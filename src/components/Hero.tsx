@@ -114,20 +114,10 @@ export default function Hero() {
         <div className="blob b1" />
         <div className="blob b2" />
       </div>
-      {/* Animated mascot — a looping, muted, feather-masked clip that sits a
-          fixed distance to the left of the centered content and gestures toward
-          the chat launcher. The white background blends into the white hero. */}
-      <video
-        className="hero-mascot"
-        autoPlay
-        loop
-        muted
-        playsInline
-        poster="/mascot/vaya-mascot-poster.jpg"
-        aria-hidden="true"
-      >
-        <source src="/mascot/vaya-mascot.mp4" type="video/mp4" />
-      </video>
+      {/* Animated mascot — a true-transparent looping WebP that sits a fixed
+          distance left of the centered content and gestures toward the chat. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="hero-mascot" src="/mascot/vaya-mascot.webp" alt="Vaya mascot" aria-hidden="true" />
       <div className="wrap hero-inner">
         <span className="eyebrow">
           <span className="dot" /> <span>{t("hero_eyebrow")}</span>

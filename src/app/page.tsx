@@ -7,6 +7,7 @@ import PurposePicker from "@/components/PurposePicker";
 import WhySection from "@/components/WhySection";
 import HowSection from "@/components/HowSection";
 import Manifesto from "@/components/Manifesto";
+import ValueBand from "@/components/ValueBand";
 import Testimonials from "@/components/Testimonials";
 import Faq from "@/components/Faq";
 import CTA from "@/components/CTA";
@@ -86,6 +87,7 @@ export default function Home() {
       <WhySection />
       <HowSection />
       <Manifesto />
+      <ValueBand />
       <Testimonials />
       <Faq />
       <CTA />
