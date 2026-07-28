@@ -7,9 +7,9 @@ import { Logo } from "@/components/Logo";
 import type { Lang } from "@/i18n/dict";
 
 const LANGS: Record<Lang, { flag: string; name: string }> = {
-  en: { flag: "🇬🇧", name: "English" },
-  vi: { flag: "🇻🇳", name: "Tiếng Việt" },
-  zh: { flag: "🇨🇳", name: "中文" },
+  en: { flag: "/flags/gb.svg", name: "English" },
+  vi: { flag: "/flags/vn.svg", name: "Tiếng Việt" },
+  zh: { flag: "/flags/cn.svg", name: "中文" },
 };
 
 export default function Navbar() {
@@ -64,7 +64,8 @@ export default function Navbar() {
                 setOpen((o) => !o);
               }}
             >
-              <span className="flag">{LANGS[lang].flag}</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="flag" src={LANGS[lang].flag} alt="" />
               <span>{LANGS[lang].name}</span>
               <svg className="lchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6" />
@@ -80,7 +81,8 @@ export default function Navbar() {
                     setOpen(false);
                   }}
                 >
-                  <span className="flag">{LANGS[code].flag}</span> {LANGS[code].name}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="flag" src={LANGS[code].flag} alt="" /> {LANGS[code].name}
                 </button>
               ))}
             </div>

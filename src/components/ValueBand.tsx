@@ -30,7 +30,7 @@ export default function ValueBand() {
   return (
     <section className="vpband">
       <div className="vpband-track" ref={trackRef}>
-        {[...items, ...items].map((x, i) => (
+        {[...Array(10)].flatMap(() => items).map((x, i) => (
           <React.Fragment key={i}>
             <span className="vp-i">{x}</span>
             <span className="vp-s">✦</span>

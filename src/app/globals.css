@@ -429,3 +429,9 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
 .vpband-track{display:flex;align-items:center;width:max-content;padding:15px 0;will-change:transform}
 .vp-i{font-family:var(--font-disp),sans-serif;font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;padding:0 22px}
 .vp-s{color:var(--green-strong);font-size:13px;opacity:.85}
+
+/* ===================== round 10 ===================== */
+img.flag{width:21px;height:14px;object-fit:cover;border-radius:2px;display:inline-block;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,.08);flex-shrink:0}
+.langbtn .flag{margin-right:1px}
+.tst{display:flex;flex-direction:column}
+.tst .who{margin-top:auto}

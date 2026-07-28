@@ -72,7 +72,7 @@ export default function Home() {
       <section className="trust">
         <div className="lab">{t("trust")}</div>
         <div className="mq" id="mq">
-          {[...BANKS, ...BANKS].map((b, i) => (
+          {[...Array(10)].flatMap(() => BANKS).map((b, i) => (
             <span key={i}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="mqlogo" src={`/banks/${b.code}.png`} alt={b.name} title={b.name} />

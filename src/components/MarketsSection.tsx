@@ -8,6 +8,7 @@ import { fmtVND, termLabel } from "@/lib/loanEngine";
 import Sparkline from "@/components/charts/Sparkline";
 import LineChart from "@/components/charts/LineChart";
 import type { Lang } from "@/i18n/dict";
+import Fuse from "fuse.js";
 
 type FilterKey = "all" | Purpose;
 type SortKey = "rate" | "max" | "term";
@@ -37,15 +38,24 @@ export default function MarketsSection() {
   const [view, setView] = useState<ViewKey>("cards");
 
   const rows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const list = PKG.filter((p) => {
-      if (filter !== "all" && p.purpose !== filter) return false;
-      if (q) {
-        const hay = (bankOf(p.code).name + " " + prodName(p, lang) + " " + purpName(p.purpose, lang)).toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
+    const q = search.trim();
+    let list = PKG.filter((p) => filter === "all" || p.purpose === filter);
+    if (q) {
+      // Fuzzy (typo-tolerant) search via Fuse.js over bank name, product & type.
+      const fl = list.map((p) => ({
+        p,
+        name: bankOf(p.code).name,
+        prod: prodName(p, lang),
+        purp: purpName(p.purpose, lang),
+      }));
+      const fuse = new Fuse(fl, {
+        keys: ["name", "prod", "purp"],
+        threshold: 0.42,
+        ignoreLocation: true,
+        minMatchCharLength: 1,
+      });
+      list = fuse.search(q).map((r) => r.item.p);
+    }
     return [...list].sort((a, b) => {
       const av = a[sort];
       const bv = b[sort];
