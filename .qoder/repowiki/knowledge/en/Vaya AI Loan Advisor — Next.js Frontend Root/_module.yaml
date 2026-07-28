@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: ""
+title: Vaya AI Loan Advisor — Next.js Frontend Root
+scope:
+    - README.md
+    - .gitignore
+    - package.json
+    - next.config.mjs
+    - postcss.config.mjs
+    - tailwind.config.ts
+    - tsconfig.json
+    - bun.lock
+    - package-lock.json
+source_files: []
+depends_on: []
+related_to: []

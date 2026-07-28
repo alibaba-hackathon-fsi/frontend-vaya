@@ -1,0 +1,1 @@
+Next.js 14 (App Router) + React 18 + TypeScript 5, styled with Tailwind CSS 3 and PostCSS/Autoprefixer, OpenAI SDK v7 for future LLM integration, Zod v4 for validation, and native SVG for all charts (no chart library). Fonts are loaded via Google Fonts links in the root layout.

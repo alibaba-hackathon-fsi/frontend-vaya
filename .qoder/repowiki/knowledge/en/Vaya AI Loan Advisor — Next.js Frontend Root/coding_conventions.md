@@ -1,0 +1,5 @@
+- All source files use absolute path aliases via `@/*` → `./src/*` defined in `tsconfig.json` paths, so imports never use relative `../../` chains across directories.
+- The design system is expressed through CSS custom properties in `globals.css` (e.g. `--bg`, `--ink`, `--green`) and applied directly, while Tailwind is used only sparingly for layout utilities.
+- All visual elements use strictly square corners (`border-radius: 0`) to maintain the Vaya brand identity, as documented in both README and globals.css comments.
+- Internationalized strings are accessed through the `t()` function from the `I18nProvider` context rather than inline literals, keeping EN/VI/ZH dictionaries centralized in `i18n/dict.ts`.
+- Charts are implemented as pure SVG components (`LineChart.tsx`, `Sparkline.tsx`) without any external charting library, keeping the dependency surface minimal.

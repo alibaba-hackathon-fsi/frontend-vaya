@@ -1,0 +1,1 @@
+Next.js 14 frontend for Vaya, a conversational AI loan advisor that compares Vietnamese bank loan products via a chat-first UI with a client-side rule-based engine and hand-written SVG charts.

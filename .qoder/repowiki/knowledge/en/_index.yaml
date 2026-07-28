@@ -1,0 +1,24 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: danny
+nodes_managed: true
+exported_at: "2026-07-28T09:36:05Z"
+modules:
+    "":
+        dir_name: Vaya AI Loan Advisor — Next.js Frontend Root
+        title: Vaya AI Loan Advisor — Next.js Frontend Root
+        scope:
+            - README.md
+            - .gitignore
+            - package.json
+            - next.config.mjs
+            - postcss.config.mjs
+            - tailwind.config.ts
+            - tsconfig.json
+            - bun.lock
+            - package-lock.json
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
