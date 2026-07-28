@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import { PKG, AVG, bankOf, purpName, type Purpose, type LoanPackage } from "@/data/banks";
+import { PKG, AVG, bankOf, purpName, prodName, type Purpose, type LoanPackage } from "@/data/banks";
 import { fmtVND, termLabel } from "@/lib/loanEngine";
 import Sparkline from "@/components/charts/Sparkline";
 import LineChart from "@/components/charts/LineChart";
@@ -39,7 +39,7 @@ export default function MarketsSection() {
     const list = PKG.filter((p) => {
       if (filter !== "all" && p.purpose !== filter) return false;
       if (q) {
-        const hay = (bankOf(p.code).name + " " + p.product + " " + purpName(p.purpose, lang)).toLowerCase();
+        const hay = (bankOf(p.code).name + " " + prodName(p, lang) + " " + purpName(p.purpose, lang)).toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -144,7 +144,7 @@ export default function MarketsSection() {
                     const b = bankOf(p.code);
                     const chg = p.change;
                     return (
-                      <tr key={p.code + p.product + i}>
+                      <tr key={p.code + prodName(p, lang) + i}>
                         <td>
                           <div className="bk">
                             <div className="lg" style={{ background: b.color }}>
@@ -152,7 +152,7 @@ export default function MarketsSection() {
                             </div>
                             <div>
                               <div className="nm">{b.name}</div>
-                              <div className="pd">{p.product}</div>
+                              <div className="pd">{prodName(p, lang)}</div>
                             </div>
                           </div>
                         </td>

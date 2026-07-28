@@ -89,7 +89,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.82);backdr
 /* trust marquee */
 .trust{border-block:1px solid var(--line);padding:26px 0;margin-top:42px;overflow:hidden;background:var(--surface)}
 .trust .lab{text-align:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);margin-bottom:16px}
-.mq{display:flex;gap:46px;width:max-content;animation:mq 28s linear infinite}
+.mq{display:flex;gap:46px;width:max-content;will-change:transform}
 .mq span{font-family:var(--font-disp);font-weight:700;font-size:20px;color:var(--muted-2);white-space:nowrap}
 @keyframes mq{to{transform:translateX(-50%)}}
 
@@ -298,3 +298,34 @@ footer{background:var(--surface);border-top:1px solid var(--line);padding:52px 0
 .table-tools .search input{border:none;outline:none;font-family:var(--font-body),sans-serif;font-size:13.5px;width:100%;color:var(--ink);background:transparent}
 .table-tools .cnt{margin-left:auto;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 @media(max-width:600px){.table-tools .cnt{display:none}}
+
+/* ===================== round 7 ===================== */
+/* Pointing mascot: absolute on the left of the hero, so the content column
+   remains the true horizontal center. Hidden on small screens. */
+.hero{position:relative}
+.hero-inner{max-width:720px}
+.hero-mascot{position:absolute;left:clamp(4px,3vw,96px);top:50%;transform:translateY(-48%);width:clamp(140px,14vw,220px);height:auto;margin:0;display:block;z-index:2;animation:mfloat 5s ease-in-out infinite;filter:drop-shadow(0 18px 26px rgba(1,61,59,.18));pointer-events:none}
+@media(max-width:900px){.hero-mascot{display:none}}
+
+/* Agentic result visualization — insight banner + monthly-payment comparison bars */
+.rc-insight{margin:12px 15px 0;padding:10px 12px;background:var(--green-soft);border:1px solid #CFEEDF;font-size:12.5px;color:var(--ink);line-height:1.45}
+.rc-clab{padding:14px 15px 2px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.rc-list{padding:0 15px 4px}
+.rc-row{padding:11px 0;border-bottom:1px solid var(--line)}
+.rc-row:last-child{border-bottom:none}
+.rc-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.rc-badge{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;color:#fff;font-family:var(--font-disp),sans-serif;font-weight:800;font-size:11px}
+.rc-name{line-height:1.15;min-width:0}
+.rc-name b{font-family:var(--font-disp),sans-serif;font-size:14px;display:block}
+.rc-name small{font-size:11.5px;color:var(--muted)}
+.rc-tag{margin-left:auto;font-size:10.5px;font-weight:700;background:var(--green);color:var(--btn-ink);padding:3px 8px;white-space:nowrap}
+.rc-fit{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--green-text);white-space:nowrap}
+.rc-bar{display:flex;align-items:center;gap:10px}
+.rc-track{flex:1;height:10px;background:var(--surface2)}
+.rc-fill{height:100%;background:var(--ink);min-width:4px;transition:width .6s var(--ease)}
+.rc-fill.cheap{background:var(--green)}
+.rc-mo{font-family:var(--font-disp),sans-serif;font-weight:700;font-size:13.5px;white-space:nowrap}
+.rc-mo small{font-size:10px;color:var(--muted);font-weight:400}
+.rc-meta{margin-top:7px;font-size:11.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.rc-meta .rc-rate{color:var(--green-text);font-weight:700}
+.rc-meta .rc-rate i{color:var(--muted);font-style:normal;font-weight:400}

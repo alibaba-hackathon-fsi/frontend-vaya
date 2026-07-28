@@ -114,9 +114,12 @@ export default function Hero() {
         <div className="blob b1" />
         <div className="blob b2" />
       </div>
+      {/* Pointing mascot — a direct child of .hero (absolute, left side) so the
+          content column stays the true horizontal center of the viewport, with
+          the mascot gesturing toward the chat launcher. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="hero-mascot" src="/mascot/vaya-mascot-point.png" alt="Vaya mascot" />
       <div className="wrap hero-inner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="hero-mascot" src="/mascot/vaya-mascot.png" alt="Vaya mascot" />
         <span className="eyebrow">
           <span className="dot" /> <span>{t("hero_eyebrow")}</span>
         </span>

@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import {
   PURP,
   purpName,
+  prodName,
   bankOf,
   type Purpose,
 } from "@/data/banks";
@@ -530,6 +531,17 @@ function ResultCard({
   const { purpose, amount, term, recs } = data;
   const maxM = Math.max(...recs.map((r) => r.mo));
   const minM = Math.min(...recs.map((r) => r.mo));
+  const cheap = recs.find((r) => r.mo === minM);
+  const save = maxM - minM;
+  // Spread the comparison bars (cheapest → 48%, priciest → 100%) so close
+  // payments still read as a clear visual ranking.
+  const barW = (m: number) => Math.round(48 + ((m - minM) / (maxM - minM || 1)) * 52);
+  const insight =
+    save > 0 && cheap
+      ? t("insight")
+          .replace("{bank}", bankOf(cheap.code).name)
+          .replace("{save}", fmtMonthly(save))
+      : "";
 
   return (
     <>
@@ -539,75 +551,55 @@ function ResultCard({
       </div>
       <div className="result">
         <div className="rh">📊 {t("rec_head")}</div>
-        {recs.map((r, i) => {
-          const b = bankOf(r.code);
-          const best = i === 0;
-          const match = Math.min(99, Math.max(45, Math.round(r.score * 0.6)));
-          return (
-            <div className={"rec " + (best ? "best" : "")} key={r.code + r.product + i}>
-              <div className="rt">
-                <div className="bk2">
-                  <b>{b.name}</b>
-                  <div className="p">{r.product}</div>
-                </div>
-                {best ? (
-                  <span className="tag-best">★ {t("best")}</span>
-                ) : (
-                  <span style={{ fontSize: 12, color: "var(--green-text)", fontWeight: 700 }}>
-                    {match}% {t("fit")}
+        {insight && <div className="rc-insight">{insight}</div>}
+        <div className="rc-clab">{t("pay_cmp")}</div>
+        <div className="rc-list">
+          {recs.map((r, i) => {
+            const b = bankOf(r.code);
+            const best = i === 0;
+            const match = Math.min(99, Math.max(45, Math.round(r.score * 0.6)));
+            const cheapest = r.mo === minM;
+            return (
+              <div className={"rc-row " + (best ? "best" : "")} key={r.code + i}>
+                <div className="rc-head">
+                  <span className="rc-badge" style={{ background: b.color }}>
+                    {r.code}
                   </span>
-                )}
-              </div>
-              <div className="grid3">
-                <div className="cell">
-                  <div className="k">{t("rate")}</div>
-                  <div className="v g">
-                    {r.rate}%
-                    {r.promoM ? (
-                      <span style={{ fontSize: 10, color: "var(--muted)" }}> →{r.std}%</span>
-                    ) : null}
+                  <div className="rc-name">
+                    <b>{b.name}</b>
+                    <small>{prodName(r, lang)}</small>
                   </div>
+                  {best ? (
+                    <span className="rc-tag">★ {t("best")}</span>
+                  ) : (
+                    <span className="rc-fit">
+                      {match}% {t("fit")}
+                    </span>
+                  )}
                 </div>
-                <div className="cell">
-                  <div className="k">{t("monthly")}</div>
-                  <div className="v">{fmtMonthly(r.mo)}</div>
+                <div className="rc-bar">
+                  <div className="rc-track">
+                    <div
+                      className={"rc-fill " + (cheapest ? "cheap" : "")}
+                      style={{ width: barW(r.mo) + "%" }}
+                    />
+                  </div>
+                  <span className="rc-mo">
+                    {fmtMonthly(r.mo)}
+                    <small>/{t("mo")}</small>
+                  </span>
                 </div>
-                <div className="cell">
-                  <div className="k">{t("term")}</div>
-                  <div className="v">{termLabel(r.usedTerm, t)}</div>
+                <div className="rc-meta">
+                  <span className="rc-rate">
+                    {r.rate}%{r.promoM ? <i> →{r.std}%</i> : null}
+                  </span>{" "}
+                  · <span>{termLabel(r.usedTerm, t)}</span> ·{" "}
+                  <span>{r.ltv ? "LTV " + r.ltv + "%" : t("no_coll")}</span> ·{" "}
+                  <span>⏱ {r.speed[lang] || r.speed.en}</span>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span className="pill">{r.speed[lang] || r.speed.en}</span>
-                <span className="pill">{r.ltv ? "LTV " + r.ltv + "%" : t("no_coll")}</span>
-              </div>
-            </div>
-          );
-        })}
-        <div style={{ padding: "12px 15px", borderTop: "1px solid var(--line)" }}>
-          <div
-            style={{
-              fontSize: 10.5,
-              textTransform: "uppercase",
-              letterSpacing: ".04em",
-              color: "var(--muted)",
-              marginBottom: 9,
-            }}
-          >
-            {t("pay_cmp")}
-          </div>
-          {recs.map((r, i) => (
-            <div className="mc" key={r.code + "mc" + i}>
-              <span className="lbl">{bankOf(r.code).name}</span>
-              <div className="track">
-                <div
-                  className={"fill " + (r.mo === minM ? "b" : "")}
-                  style={{ width: Math.round((r.mo / maxM) * 100) + "%" }}
-                />
-              </div>
-              <span className="vv">{fmtMonthly(r.mo)}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="foot">{t("foot_note")}</div>
       </div>

@@ -33,6 +33,25 @@ export default function Home() {
     return () => io.disconnect();
   }, []);
 
+  // Trust marquee — JS transform ticker (rAF). Replaces the CSS keyframe
+  // animation so it always scrolls (not gated by prefers-reduced-motion) and
+  // loops seamlessly at the halfway point of the duplicated band.
+  useEffect(() => {
+    const el = document.getElementById("mq");
+    if (!el) return;
+    let raf = 0;
+    let x = 0;
+    const step = () => {
+      const half = el.scrollWidth / 2;
+      x -= 0.4;
+      if (half > 0 && -x >= half) x += half;
+      el.style.transform = `translateX(${x.toFixed(1)}px)`;
+      raf = requestAnimationFrame(step);
+    };
+    step();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   // Smooth-scroll to a section when arriving with a hash (e.g. from /#markets).
   useEffect(() => {
     const id = window.location.hash.replace("#", "");
