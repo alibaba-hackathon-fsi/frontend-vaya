@@ -428,3 +428,6 @@ img.flag{width:21px;height:14px;object-fit:cover;border-radius:2px;display:inlin
 .langbtn .flag{margin-right:1px}
 .tst{display:flex;flex-direction:column}
 .tst .who{margin-top:auto}
+
+/* ===================== round 11 ===================== */
+.brand img.brandmark{height:27px;width:auto;display:block}
