@@ -114,11 +114,20 @@ export default function Hero() {
         <div className="blob b1" />
         <div className="blob b2" />
       </div>
-      {/* Pointing mascot — a direct child of .hero (absolute, left side) so the
-          content column stays the true horizontal center of the viewport, with
-          the mascot gesturing toward the chat launcher. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="hero-mascot" src="/mascot/vaya-mascot-point.png" alt="Vaya mascot" />
+      {/* Animated mascot — a looping, muted, feather-masked clip that sits a
+          fixed distance to the left of the centered content and gestures toward
+          the chat launcher. The white background blends into the white hero. */}
+      <video
+        className="hero-mascot"
+        autoPlay
+        loop
+        muted
+        playsInline
+        poster="/mascot/vaya-mascot-poster.jpg"
+        aria-hidden="true"
+      >
+        <source src="/mascot/vaya-mascot.mp4" type="video/mp4" />
+      </video>
       <div className="wrap hero-inner">
         <span className="eyebrow">
           <span className="dot" /> <span>{t("hero_eyebrow")}</span>
@@ -145,9 +154,6 @@ export default function Hero() {
             }}
           />
           <div className="lrow">
-            <button className="hintbtn" title="Attach" type="button">
-              +
-            </button>
             <button className="send" aria-label="Ask" type="button" onClick={send}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <path d="M5 12h14M13 6l6 6-6 6" />

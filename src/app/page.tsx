@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Hero from "@/components/Hero";
 import MarketsSection from "@/components/MarketsSection";
+import PurposePicker from "@/components/PurposePicker";
 import WhySection from "@/components/WhySection";
 import HowSection from "@/components/HowSection";
 import Manifesto from "@/components/Manifesto";
@@ -71,10 +72,15 @@ export default function Home() {
         <div className="lab">{t("trust")}</div>
         <div className="mq" id="mq">
           {[...BANKS, ...BANKS].map((b, i) => (
-            <span key={i}>{b.name}</span>
+            <span key={i}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="mqlogo" src={`/banks/${b.code}.png`} alt={b.name} title={b.name} />
+            </span>
           ))}
         </div>
       </section>
+
+      <PurposePicker />
 
       <MarketsSection />
       <WhySection />

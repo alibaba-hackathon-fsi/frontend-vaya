@@ -30,6 +30,8 @@ export function prodName(p: { product: LocalizedString }, lang: Lang): string {
   return p.product[lang] || p.product.en;
 }
 
+export const logoSrc = (code: string): string => `/banks/${code}.png`;
+
 export type Bank = { code: string; name: string; color: string };
 
 export const BANKS: Bank[] = [

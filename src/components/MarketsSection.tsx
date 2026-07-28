@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import { PKG, AVG, bankOf, purpName, prodName, type Purpose, type LoanPackage } from "@/data/banks";
+import { PKG, AVG, bankOf, purpName, prodName, logoSrc, type Purpose, type LoanPackage } from "@/data/banks";
 import { fmtVND, termLabel } from "@/lib/loanEngine";
 import Sparkline from "@/components/charts/Sparkline";
 import LineChart from "@/components/charts/LineChart";
@@ -11,6 +11,7 @@ import type { Lang } from "@/i18n/dict";
 
 type FilterKey = "all" | Purpose;
 type SortKey = "rate" | "max" | "term";
+type ViewKey = "cards" | "table";
 
 const FILTER_KEYS: FilterKey[] = ["all", "home", "car", "business", "personal", "secured"];
 const MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
@@ -33,6 +34,7 @@ export default function MarketsSection() {
   const [sort, setSort] = useState<SortKey>("rate");
   const [asc, setAsc] = useState(true);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<ViewKey>("cards");
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,8 +60,17 @@ export default function MarketsSection() {
       setAsc(true);
     }
   };
-
+  const onSortSel = (v: string) => {
+    const [k, a] = v.split(":");
+    setSort(k as SortKey);
+    setAsc(a === "1");
+  };
+  const clearFilters = () => {
+    setFilter("all");
+    setSearch("");
+  };
   const openChat = (seed: string) => router.push(seed ? `/chat?q=${encodeURIComponent(seed)}` : "/chat");
+
   const trendNow = AVG[AVG.length - 1] + "%";
   const trendDelta = "▼ " + (AVG[0] - AVG[AVG.length - 1]).toFixed(1);
 
@@ -72,6 +83,17 @@ export default function MarketsSection() {
     { k: "term", lab: "col_term", num: true },
   ];
   const sortable = ["rate", "max", "term"];
+
+  const Empty = () => (
+    <div className="empty">
+      <div className="empty-ic">🔍</div>
+      <div className="empty-t">{t("empty_t")}</div>
+      <div className="empty-d">{t("empty_d")}</div>
+      <button className="btn btn-ghost btn-sm" onClick={clearFilters}>
+        {t("empty_btn")}
+      </button>
+    </div>
+  );
 
   return (
     <section className="section" id="markets">
@@ -100,7 +122,7 @@ export default function MarketsSection() {
             </div>
           </div>
 
-          {/* Table row */}
+          {/* Packages: filters + tools + (cards | table) */}
           <div className="table-card reveal">
             <div className="filters">
               {FILTER_KEYS.map((k) => (
@@ -109,7 +131,8 @@ export default function MarketsSection() {
                 </button>
               ))}
             </div>
-            <div className="table-tools">
+
+            <div className="mkt-tools">
               <label className="search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="7" />
@@ -117,71 +140,147 @@ export default function MarketsSection() {
                 </svg>
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("search_ph")} />
               </label>
-              <span className="cnt">
-                {rows.length} {t("results")}
-              </span>
+              <div className="mkt-actions">
+                <select
+                  className="sortsel"
+                  style={{ display: view === "cards" ? "" : "none" }}
+                  value={`${sort}:${asc ? 1 : 0}`}
+                  onChange={(e) => onSortSel(e.target.value)}
+                >
+                  <option value="rate:1">{t("sort_rate")}</option>
+                  <option value="max:0">{t("sort_max")}</option>
+                  <option value="term:0">{t("sort_term")}</option>
+                </select>
+                <div className="viewtog">
+                  <button className={view === "cards" ? "on" : ""} onClick={() => setView("cards")} title={t("v_cards")}>
+                    ▦
+                  </button>
+                  <button className={view === "table" ? "on" : ""} onClick={() => setView("table")} title={t("v_table")}>
+                    ≣
+                  </button>
+                </div>
+                <span className="cnt">
+                  {rows.length} {t("results")}
+                </span>
+              </div>
             </div>
-            <div style={{ overflowX: "auto" }}>
-              <table>
-                <thead>
-                  <tr>
-                    {cols.map(({ k, lab, num }) => {
-                      const isSortable = sortable.includes(k);
-                      const cls = (num ? "num " : "") + (k === "trend" ? "hide-sm " : "") + (sort === k ? "sorted" : "");
-                      const ar = sort === k ? (asc ? "▲" : "▼") : "▲";
-                      return (
-                        <th key={k} className={cls.trim()} onClick={isSortable ? () => setSortKey(k as SortKey) : undefined}>
-                          {t(lab)}
-                          {isSortable && <span className="ar">{ar}</span>}
-                        </th>
-                      );
-                    })}
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((p: LoanPackage, i) => {
+
+            {view === "cards" ? (
+              <div className="pkg-grid">
+                {rows.length === 0 ? (
+                  <Empty />
+                ) : (
+                  rows.map((p: LoanPackage, i) => {
                     const b = bankOf(p.code);
-                    const chg = p.change;
                     return (
-                      <tr key={p.code + prodName(p, lang) + i}>
-                        <td>
-                          <div className="bk">
-                            <div className="lg" style={{ background: b.color }}>
-                              {p.code}
-                            </div>
-                            <div>
-                              <div className="nm">{b.name}</div>
-                              <div className="pd">{prodName(p, lang)}</div>
+                      <div className="pkg" key={p.code + i}>
+                        <div className="pkg-top">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img className="pkg-logo" src={logoSrc(p.code)} alt={b.name} />
+                          <span className="pkg-type">{purpName(p.purpose, lang)}</span>
+                        </div>
+                        <div className="pkg-name">{b.name}</div>
+                        <div className="pkg-rate-box">
+                          <div>
+                            <div className="k">{t("rate")}</div>
+                            <div className="v g">
+                              {p.rate}%<small>{p.promoM ? ` → ${p.std}%` : ""}</small>
                             </div>
                           </div>
-                        </td>
-                        <td>
-                          <span className="pill">{purpName(p.purpose, lang)}</span>
-                        </td>
-                        <td className="num">
-                          <span className="rate">{p.rate}%</span>{" "}
-                          <span className={"chg " + (chg <= 0 ? "up" : "down")}>
-                            {chg <= 0 ? "▼" : "▲"}
-                            {Math.abs(chg)}
+                          <div>
+                            <div className="k">{t("col_max")}</div>
+                            <div className="v">{fmtVND(p.max, lang)}</div>
+                          </div>
+                        </div>
+                        <div className="pkg-meta">
+                          <span>
+                            {t("col_term")}: <b>{termLabel(p.term, t)}</b>
                           </span>
-                        </td>
-                        <td className="hide-sm">
+                          <span>{p.ltv ? "LTV " + p.ltv + "%" : t("no_coll")}</span>
+                          <span>⏱ {p.speed[lang] || p.speed.en}</span>
+                        </div>
+                        <div className="pkg-spark">
                           <Sparkline arr={p.trend} />
-                        </td>
-                        <td className="num">{fmtVND(p.max, lang)}</td>
-                        <td className="num">{termLabel(p.term, t)}</td>
-                        <td className="num">
-                          <button className="ask" onClick={() => openChat(askText(p.purpose, lang))}>
-                            {t("ask")} →
-                          </button>
+                        </div>
+                        <button className="pkg-cta" onClick={() => openChat(askText(p.purpose, lang))}>
+                          {t("ask")} →
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <div className="tscroll">
+                <table id="mktTable">
+                  <thead>
+                    <tr>
+                      {cols.map(({ k, lab, num }) => {
+                        const isSortable = sortable.includes(k);
+                        const cls = (num ? "num " : "") + (k === "trend" ? "hide-sm " : "") + (sort === k ? "sorted" : "");
+                        const ar = sort === k ? (asc ? "▲" : "▼") : "▲";
+                        return (
+                          <th key={k} className={cls.trim()} onClick={isSortable ? () => setSortKey(k as SortKey) : undefined}>
+                            {t(lab)}
+                            {isSortable && <span className="ar">{ar}</span>}
+                          </th>
+                        );
+                      })}
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.length === 0 ? (
+                      <tr className="empty-row">
+                        <td colSpan={7}>
+                          <Empty />
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      rows.map((p: LoanPackage, i) => {
+                        const b = bankOf(p.code);
+                        const chg = p.change;
+                        return (
+                          <tr key={p.code + prodName(p, lang) + i}>
+                            <td>
+                              <div className="bk">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img className="blogo" src={logoSrc(p.code)} alt={b.name} />
+                                <div className="pd" title={prodName(p, lang)}>
+                                  {prodName(p, lang)}
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="pill" title={purpName(p.purpose, lang)}>
+                                {purpName(p.purpose, lang)}
+                              </span>
+                            </td>
+                            <td className="num">
+                              <span className="rate">{p.rate}%</span>{" "}
+                              <span className={"chg " + (chg <= 0 ? "up" : "down")}>
+                                {chg <= 0 ? "▼" : "▲"}
+                                {Math.abs(chg)}
+                              </span>
+                            </td>
+                            <td className="hide-sm">
+                              <Sparkline arr={p.trend} />
+                            </td>
+                            <td className="num">{fmtVND(p.max, lang)}</td>
+                            <td className="num">{termLabel(p.term, t)}</td>
+                            <td className="num">
+                              <button className="ask" onClick={() => openChat(askText(p.purpose, lang))}>
+                                {t("ask")} →
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
