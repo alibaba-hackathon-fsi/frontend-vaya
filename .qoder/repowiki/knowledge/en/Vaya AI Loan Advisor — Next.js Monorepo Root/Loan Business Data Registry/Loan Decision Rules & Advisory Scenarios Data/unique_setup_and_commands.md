@@ -1,0 +1,1 @@
+No build or runtime setup required — these are plain TypeScript constant arrays loaded at import time. New rules are added by appending entries to the exported arrays.

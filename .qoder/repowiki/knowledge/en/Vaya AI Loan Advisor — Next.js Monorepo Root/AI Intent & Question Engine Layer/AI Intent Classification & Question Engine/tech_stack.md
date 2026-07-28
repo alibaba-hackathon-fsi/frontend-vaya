@@ -1,0 +1,1 @@
+OpenAI SDK used as a unified client against DashScope (Qwen) and DeepSeek compatible endpoints; streaming responses via AsyncIterable for explain results; environment-driven provider selection through `LLM_PROVIDER`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, and model name overrides.

@@ -1,0 +1,1 @@
+OpenAI SDK used as a unified client against both DashScope (default `qwen-plus`) and DeepSeek (`deepseek-chat`); streaming responses via `AsyncIterable<string>` for explain-result generation.

@@ -1,0 +1,6 @@
+Three independent Next.js Route Handlers under `src/app/api/`, each implementing a single HTTP POST endpoint:
+- `/api/calculate` performs pure deterministic scoring via `runCalculation` from `@/lib/engine/pipeline`, validated against `LoanProfileSchema`; no LLM is involved.
+- `/api/chat` orchestrates the full advisory pipeline: intent extraction (`extractAndClassify`), profile merging, adaptive follow-up (capped at `MAX_FOLLOWUP_TURNS = 3`), optional inline policy RAG, then deterministic scoring followed by an SSE stream that first emits authoritative results and then streams LLM narration via `llm.explainResult`. Session state is held in an in-memory `Map<string, ChatSession>` (noted as demo-grade, to be swapped for Redis).
+- `/api/policy` exposes a standalone RAG query: embed → retrieve top-K → LLM answer with deduplicated `{bank, section}` citations.
+
+Dependency direction is strictly inward: routes depend on `@/lib/*` modules (validation, engine, AI provider/intent/questionEngine, RAG store/retrieve/embed) and never on UI components. The chat route composes multiple lib layers; calculate and policy are thin wrappers around `runCalculation` and the RAG pipeline respectively.

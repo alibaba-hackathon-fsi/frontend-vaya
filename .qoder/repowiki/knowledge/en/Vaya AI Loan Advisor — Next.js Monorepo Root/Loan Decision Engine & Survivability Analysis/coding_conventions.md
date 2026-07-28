@@ -1,0 +1,5 @@
+- Every financial calculation is a pure function that throws on invalid input rather than returning error objects, keeping callers simple and failures explicit.
+- All monetary rates are expressed as integer basis points (`Bps = number`) and converted to decimals only at the boundary of mathematical operations.
+- User-facing labels and messages use Vietnamese keys suffixed with `Vi` (e.g., `labelVi`, `rationaleVi`, `warningsVi`, `improvementsVi`) while code identifiers stay English.
+- Each module exposes a single exported function or constant set and imports types exclusively from `./types.ts`, never importing sibling logic to keep coupling one-directional.
+- Configuration constants (DTI_CAP, BASE_WEIGHTS, thresholds, normalizers) are declared as named `const` values at the top of their file rather than passed as parameters.

@@ -1,0 +1,1 @@
+Next.js 14 App Router with TypeScript, React 18, TailwindCSS 3, PostCSS, Zod 4 for schema validation, and OpenAI-compatible SDK (used against Qwen/DeepSeek via DashScope).

@@ -1,0 +1,5 @@
+- Provider abstraction via a single `LLMProvider` interface with three methods, allowing runtime switching between Qwen and DeepSeek without changing callers.
+- Environment-based configuration through `process.env` with fallback defaults and explicit placeholder strings (e.g. `unset-configure-DASHSCOPE_API_KEY-in-.env`) when keys are missing.
+- Stateless utility functions that take a `Record<string, unknown>` session profile and return new objects rather than mutating inputs, preserving immutability across turns.
+- Vietnamese-language prompts and fallback replies are kept in data files (`@/data/intakeQuestions`) and referenced by field names, separating localization from logic.
+- Singleton pattern used for the LLM provider instance via a module-level `instance` variable guarded by a lazy `getLLMProvider()` accessor.

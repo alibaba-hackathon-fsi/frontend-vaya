@@ -1,0 +1,1 @@
+Static data definitions for the loan intake questionnaire, conditional document checklists per income/collateral type, and a catalog of bank loan packages used by the decision engine.

@@ -1,0 +1,5 @@
+- Each module exports a constant array of records typed against a shared interface from `@/lib/engine/*`, keeping the data schema centralized in the engine layer.
+- Records use snake_case Vietnamese field names (e.g. `muc_dich`, `lai_suat_tu`, `han_muc`) paired with English labels where needed, reflecting the bilingual UI context.
+- Conditional applicability is encoded declaratively via optional arrays like `appliesToIncomeProof` rather than imperative branching logic.
+- Numeric monetary values are stored as raw numbers using underscored thousands separators (e.g. `1_500_000_000`) for readability without string parsing.
+- Boolean capability flags (`online_application`, `ekyc`, `fast_approval`, `no_cic_required`) are explicit properties on each record instead of derived from other fields.

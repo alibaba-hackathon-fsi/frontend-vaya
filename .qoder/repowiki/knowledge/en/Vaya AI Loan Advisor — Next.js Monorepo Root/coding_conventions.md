@@ -1,0 +1,3 @@
+- All source imports use the `@/*` path alias pointing at `./src/*` instead of relative paths.
+- Business logic is split into focused packages (`lib_engine`, `lib_ai`, `lib_validation`, `data`) imported by API routes rather than implemented inline.
+- Every user-facing input is validated with Zod schemas before reaching the decision engine or LLM layers.

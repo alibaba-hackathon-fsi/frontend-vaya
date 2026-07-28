@@ -1,0 +1,4 @@
+- All rule sets are exported as top-level constant arrays (`ELIGIBILITY_RULES`, `RISK_RULES`, `ADVISORY_SCENARIOS`) rather than functions or classes.
+- Vietnamese field names are used throughout the data shapes (`labelVi`, `descriptionVi`, `mucDich`, `dieu_kien`, `riskNoteVi`) while English identifiers are reserved for programmatic keys like `ruleId`, `scenarioId`, and `package_id`.
+- Threshold values use JavaScript numeric literals with underscore separators for readability (e.g. `12_000_000`, `3_000_000_000`) to represent VND amounts and ratios.
+- Each rule object carries a stable string identifier (`ruleId`, `scenarioId`, `package_id`) enabling lookup and referencing across the engine.

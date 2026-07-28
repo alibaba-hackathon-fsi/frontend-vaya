@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: data/rules_and_scenarios
+title: Loan Decision Rules & Advisory Scenarios Data
+scope:
+    - src/data/eligibilityRules.ts
+    - src/data/riskRules.ts
+    - src/data/scenarios.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: lib_engine

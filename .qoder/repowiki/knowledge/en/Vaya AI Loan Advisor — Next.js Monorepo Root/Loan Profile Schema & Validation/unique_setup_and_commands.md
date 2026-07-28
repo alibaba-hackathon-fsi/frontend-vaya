@@ -1,0 +1,1 @@
+No build or setup steps — the file is imported directly by consumers in the Next.js project.

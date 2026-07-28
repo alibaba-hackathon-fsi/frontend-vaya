@@ -15,6 +15,17 @@
 - [src/app/api/calculate/route.ts](file://src/app/api/calculate/route.ts)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated to reflect comprehensive data model expansion with type definitions, validation schemas, and extensive configuration files for financial entities and AI responses
+- Enhanced documentation of the centralized data structures for bank information, loan products, and financial scenarios
+- Expanded coverage of product catalog system organization by institution and category
+- Detailed bank data model including institution details, product offerings, and competitive positioning
+- Comprehensive scenario management system documentation for borrower situations and financial profiles
+- Added data validation patterns, type definitions, and data transformation utilities
+- Included data loading strategies, caching mechanisms, and synchronization with external sources
+- Documented entity relationships and interactions during loan processing workflows
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -256,8 +267,6 @@ Best practices:
 - Cache invalidation policies tied to data versioning.
 - Graceful degradation when external sources are unavailable.
 
-[No sources needed since this section provides general guidance]
-
 ### Entity Relationships During Loan Processing
 Relationships:
 - Scenarios reference eligibility and risk rules to determine product fit.
@@ -360,8 +369,6 @@ E --> C["api/calculate/route.ts"]
 - Implement lazy loading for large product catalogs if needed.
 - Cache computed results keyed by scenario and product combinations.
 - Minimize repeated validations by caching validated payloads where appropriate.
-
-[No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 Common issues and resolutions:

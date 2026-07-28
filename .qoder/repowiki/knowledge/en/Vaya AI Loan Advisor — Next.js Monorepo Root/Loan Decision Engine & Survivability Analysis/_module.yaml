@@ -1,0 +1,28 @@
+schema_version: 1
+module_path: lib_engine
+title: Loan Decision Engine & Survivability Analysis
+scope:
+    - src/lib/engine/amortization.ts
+    - src/lib/engine/calcDTI.ts
+    - src/lib/engine/calcMonthlyPayment.ts
+    - src/lib/engine/checklistEngine.ts
+    - src/lib/engine/cliff-detector.ts
+    - src/lib/engine/filterEligible.ts
+    - src/lib/engine/grace-period.ts
+    - src/lib/engine/household.ts
+    - src/lib/engine/improvements.ts
+    - src/lib/engine/pipeline.ts
+    - src/lib/engine/rankMCDA.ts
+    - src/lib/engine/rate-schedule.ts
+    - src/lib/engine/scenarioMatcher.ts
+    - src/lib/engine/scenarios.ts
+    - src/lib/engine/scoreRisk.ts
+    - src/lib/engine/shocks.ts
+    - src/lib/engine/survivability.ts
+    - src/lib/engine/types.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: api
+    - path: data/intake_and_checklists
+    - path: data/rules_and_scenarios

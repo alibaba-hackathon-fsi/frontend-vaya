@@ -1,0 +1,1 @@
+Next.js App Router API routes exposing deterministic loan-scoring calculation, an LLM-powered conversational advisory flow with SSE streaming, and a RAG-backed policy query endpoint.

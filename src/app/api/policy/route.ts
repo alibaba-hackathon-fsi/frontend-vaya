@@ -3,6 +3,7 @@ import { getLLMProvider } from "@/lib/ai/provider";
 import { getAllChunks } from "@/lib/ai/rag/store";
 import { retrieveTopK } from "@/lib/ai/rag/retrieve";
 import { embedText } from "@/lib/ai/rag/embed";
+import { parseLang } from "@/lib/i18n/apiMessages";
 
 export interface PolicyQueryResult {
   answer: string;
@@ -17,7 +18,7 @@ export interface PolicyQueryResult {
  * RAG pipeline: embed query -> retrieve top-K -> LLM answer with citations.
  */
 export async function POST(request: NextRequest) {
-  let body: { question?: string };
+  let body: { question?: string; lang?: string };
   try {
     body = await request.json();
   } catch {
@@ -25,8 +26,12 @@ export async function POST(request: NextRequest) {
   }
 
   const { question } = body;
+  const lang = parseLang(body.lang);
   if (!question || typeof question !== "string") {
-    return NextResponse.json({ error: "question is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "question is required" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -45,7 +50,12 @@ export async function POST(request: NextRequest) {
     const llm = getLLMProvider();
     const answer = await llm.answerPolicyQuery(
       question,
-      top.map((t) => ({ text: t.chunk.text, bank: t.chunk.bank, section: t.chunk.section })),
+      top.map((t) => ({
+        text: t.chunk.text,
+        bank: t.chunk.bank,
+        section: t.chunk.section,
+      })),
+      lang,
     );
 
     // Deduplicate citations based on bank + section

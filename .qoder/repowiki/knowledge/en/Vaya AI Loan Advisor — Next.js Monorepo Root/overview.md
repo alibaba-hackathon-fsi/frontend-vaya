@@ -1,0 +1,1 @@
+Next.js application root that wires together the UI, API routes, decision engine, AI intent layer, validation schemas, and static loan data into a single chat-first loan-advisor app.

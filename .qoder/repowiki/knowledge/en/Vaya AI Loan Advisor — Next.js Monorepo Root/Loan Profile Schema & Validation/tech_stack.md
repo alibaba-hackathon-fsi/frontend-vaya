@@ -1,0 +1,1 @@
+Zod for runtime schema validation and TypeScript type inference via `z.infer<typeof LoanProfileSchema>`.

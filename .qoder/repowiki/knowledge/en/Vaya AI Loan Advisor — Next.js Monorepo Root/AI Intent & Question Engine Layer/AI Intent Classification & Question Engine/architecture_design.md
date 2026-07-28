@@ -1,0 +1,6 @@
+Three cooperating modules form a thin AI layer over an OpenAI-compatible provider:
+- `provider.ts` defines the `LLMProvider` interface (`extractIntent`, `explainResult`, `answerPolicyQuery`) and a single `OpenAICompatProvider` implementation that selects between Qwen (DashScope) and DeepSeek at runtime via the `LLM_PROVIDER` env var. A module-level singleton accessor `getLLMProvider()` ensures one client instance per process.
+- `intent.ts` implements pure classification logic: `classifyIntent` uses keyword matching against Vietnamese policy terms plus session turn count to pick NUMERIC/POLICY/MIXED, and `mergeProfile` safely merges extracted fields without overwriting previously stated values. `extractAndClassify` wires LLM extraction through the provider into this classifier.
+- `questionEngine.ts` is stateless; it reads from `@/data/intakeQuestions` (external data source) and computes the next required question via `getNextQuestion`, returning a `QuestionEngineResult` with missing fields and a Vietnamese prompt.
+
+Dependency direction is one-way: `intent.ts` depends on `provider.ts`; `questionEngine.ts` depends only on external data. Prompts live in a sibling `prompts/` directory and are imported by the provider, keeping prompt content separate from code.

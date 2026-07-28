@@ -1,0 +1,1 @@
+Static data definitions for loan eligibility rules per bank product, risk assessment rules by category, and advisory scenarios used to match customer profiles to recommended loan strategies.

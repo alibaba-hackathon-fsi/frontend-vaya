@@ -1,0 +1,1 @@
+Requires `.env` variables `LLM_PROVIDER` (default `qwen`), `DASHSCOPE_API_KEY` or `DEEPSEEK_API_KEY`, and optionally `DASHSCOPE_BASE_URL` / `DEEPSEEK_BASE_URL` / `DASHSCOPE_MODEL` / `DEEPSEEK_MODEL`. No build step — files are imported directly by Next.js API routes or server components.

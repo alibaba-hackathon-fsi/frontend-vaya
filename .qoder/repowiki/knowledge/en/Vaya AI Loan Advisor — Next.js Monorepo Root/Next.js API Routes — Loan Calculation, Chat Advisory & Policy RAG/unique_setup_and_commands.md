@@ -1,0 +1,1 @@
+Chat sessions use an in-memory `Map` keyed by `sessionId` passed in the request body — no external session store is configured, so requests without a matching `sessionId` get a fresh profile. Production migration target noted in code comments is Redis.

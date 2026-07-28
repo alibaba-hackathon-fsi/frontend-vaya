@@ -1,4 +1,9 @@
-import { INTAKE_QUESTIONS, getNextQuestion, type IntakeQuestion } from "@/data/intakeQuestions";
+import {
+  INTAKE_QUESTIONS,
+  getNextQuestion,
+  type IntakeQuestion,
+} from "@/data/intakeQuestions";
+import { apiT, type ApiLang } from "@/lib/i18n/apiMessages";
 
 /* ================================================================
    Adaptive question engine
@@ -12,11 +17,21 @@ export interface QuestionEngineResult {
   reply: string | null;
 }
 
+/** Resolve the localized prompt from an IntakeQuestion for the given lang. */
+function promptFor(q: IntakeQuestion, lang: ApiLang): string {
+  if (lang === "en") return q.promptEn;
+  if (lang === "zh") return q.promptZh;
+  return q.promptVi;
+}
+
 /**
  * Given the current session profile, determine which required fields
  * are still missing and generate the next follow-up question.
  */
-export function askNextQuestion(profile: Record<string, unknown>): QuestionEngineResult {
+export function askNextQuestion(
+  profile: Record<string, unknown>,
+  lang: ApiLang = "vi",
+): QuestionEngineResult {
   const filledFields = new Set<string>();
 
   for (const [key, value] of Object.entries(profile)) {
@@ -32,25 +47,33 @@ export function askNextQuestion(profile: Record<string, unknown>): QuestionEngin
   const nextQuestion = getNextQuestion(filledFields);
 
   if (!nextQuestion) {
-    return { hasMissing: false, nextQuestion: null, missingFields: [], reply: null };
+    return {
+      hasMissing: false,
+      nextQuestion: null,
+      missingFields: [],
+      reply: null,
+    };
   }
 
   return {
     hasMissing: true,
     nextQuestion,
     missingFields,
-    reply: nextQuestion.promptVi,
+    reply: promptFor(nextQuestion, lang),
   };
 }
 
 /**
  * Generate a friendly follow-up reply for a specific missing field.
  */
-export function followUpReply(missingField: string): string {
+export function followUpReply(
+  missingField: string,
+  lang: ApiLang = "vi",
+): string {
   const question = INTAKE_QUESTIONS.find((q) => q.field === missingField);
-  if (question) return question.promptVi;
+  if (question) return promptFor(question, lang);
 
-  // Fallback: humanize the field name
+  // Fallback: humanize the field name with localized template
   const humanized = missingField.replace(/_/g, " ");
-  return `Bạn có thể cho biết thêm về ${humanized} không?`;
+  return apiT("followup_fallback", lang).replace("{field}", humanized);
 }

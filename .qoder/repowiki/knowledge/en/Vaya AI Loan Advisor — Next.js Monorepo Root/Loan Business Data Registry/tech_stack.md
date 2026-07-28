@@ -1,0 +1,1 @@
+TypeScript with shared type definitions from @/lib/engine/types; no runtime dependencies — pure data modules.

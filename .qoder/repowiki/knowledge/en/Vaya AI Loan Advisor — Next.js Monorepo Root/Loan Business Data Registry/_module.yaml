@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: data
+title: Loan Business Data Registry
+scope:
+    - src/data/checklists.ts
+    - src/data/eligibilityRules.ts
+    - src/data/intakeQuestions.ts
+    - src/data/loanPackages.ts
+    - src/data/products/index.ts
+    - src/data/products/vietcombank.ts
+    - src/data/riskRules.ts
+    - src/data/scenarios.ts
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,1 @@
+TypeScript-only static data; types imported from `@/lib/engine/checklistEngine` and `@/lib/engine/types` define the contract between this data layer and the decision engine.

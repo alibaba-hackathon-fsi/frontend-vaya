@@ -1,0 +1,5 @@
+- Every route handler wraps `request.json()` parsing in a try/catch and returns a 400 JSON error object with an `error` string field when parsing fails or required fields are missing.
+- Input data is validated through Zod schemas (`LoanProfileSchema.safeParse`) or the `validateProfile` helper before any business logic runs, with structured error responses built from `parsed.error.issues`.
+- LLM interactions go exclusively through the `getLLMProvider()` factory, calling typed methods like `answerPolicyQuery`, `explainResult`, and `extractAndClassify` rather than direct SDK calls.
+- RAG queries follow a fixed three-step pattern: `embedText` → `retrieveTopK(queryEmbedding, chunks, k)` → `llm.answerPolicyQuery(question, mappedChunks)`, with citation deduplication by `bank|section` tuples.
+- SSE streaming in the chat route uses a local `sseEncode(event, data)` helper producing `event: <name>\ndata: <json>\n\n` frames, with authoritative numeric results emitted before any LLM-generated explanation stream.

@@ -1,0 +1,17 @@
+schema_version: 1
+module_path: lib_ai
+title: AI Intent & Question Engine Layer
+scope:
+    - src/lib/ai/intent.ts
+    - src/lib/ai/provider.ts
+    - src/lib/ai/questionEngine.ts
+    - src/lib/ai/prompts/explainResult.ts
+    - src/lib/ai/prompts/extractIntent.ts
+    - src/lib/ai/prompts/policyAnswer.ts
+    - src/lib/ai/rag/embed.ts
+    - src/lib/ai/rag/retrieve.ts
+    - src/lib/ai/rag/store.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: api

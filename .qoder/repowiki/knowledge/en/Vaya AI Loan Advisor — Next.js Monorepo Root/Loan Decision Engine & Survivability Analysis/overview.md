@@ -1,0 +1,1 @@
+Pure TypeScript decision engine that filters eligible loan packages, computes monthly payments and DTI, scores risk, ranks via MCDA, and runs a 4×4 stress-test survivability grid over rate scenarios and household shocks.

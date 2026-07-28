@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: lib_ai/core
+title: AI Intent Classification & Question Engine
+scope:
+    - src/lib/ai/intent.ts
+    - src/lib/ai/provider.ts
+    - src/lib/ai/questionEngine.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: api
+    - path: data/intake_and_checklists

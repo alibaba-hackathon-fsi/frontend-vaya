@@ -1,0 +1,1 @@
+No build or setup steps — these are plain TypeScript data files consumed at import time by components and the engine.

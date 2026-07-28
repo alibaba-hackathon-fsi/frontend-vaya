@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: api
+title: Next.js API Routes — Loan Calculation, Chat Advisory & Policy RAG
+scope:
+    - src/app/api/calculate/route.ts
+    - src/app/api/chat/route.ts
+    - src/app/api/policy/route.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: lib_ai
+    - path: lib_ai/core
+    - path: lib_engine
+    - path: lib_validation

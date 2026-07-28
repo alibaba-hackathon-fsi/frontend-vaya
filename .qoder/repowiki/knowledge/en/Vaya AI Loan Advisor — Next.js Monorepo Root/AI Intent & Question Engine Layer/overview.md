@@ -1,0 +1,1 @@
+Provides a provider-agnostic LLM abstraction over Qwen/DeepSeek that powers intent classification, structured loan-profile extraction via tool calls, adaptive intake questioning, and RAG-backed policy answers.

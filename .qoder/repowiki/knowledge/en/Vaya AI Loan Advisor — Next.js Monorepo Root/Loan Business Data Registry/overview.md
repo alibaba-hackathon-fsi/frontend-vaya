@@ -1,0 +1,1 @@
+Centralized static data registry that exposes loan products, eligibility rules, risk rules, intake questions, checklists, loan packages, and advisory scenarios consumed by the decision engine.

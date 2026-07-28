@@ -1,0 +1,4 @@
+- Every LLM call goes through the singleton `getLLMProvider()` accessor rather than instantiating clients directly.
+- Prompt templates are kept as exported constants in dedicated files under `prompts/` and imported into the provider, never embedded inline.
+- Tool-based extraction uses OpenAI function-calling with a fixed `tool_choice` forcing the specific function name, and callers parse the returned JSON arguments.
+- Streaming LLM outputs are exposed as `AsyncIterable<string>` generators so consumers can forward deltas incrementally.

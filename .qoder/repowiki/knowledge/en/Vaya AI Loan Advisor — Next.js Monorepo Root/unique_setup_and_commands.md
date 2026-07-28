@@ -1,0 +1,1 @@
+`npm run dev` / `npm run build` / `npm run start` / `npm run lint` are the only commands; production builds ignore ESLint warnings to stay resilient.

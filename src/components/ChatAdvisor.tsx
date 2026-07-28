@@ -592,6 +592,7 @@ export default function ChatAdvisor({ seed }: { seed?: string }) {
           body: JSON.stringify({
             sessionId: sessionIdRef.current,
             message: txt,
+            lang: langRef.current,
           }),
         });
 

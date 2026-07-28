@@ -1,0 +1,4 @@
+- Business-range constants are exported at module scope and referenced by Zod `.max()`/`.min()` validators rather than being inlined.
+- External input enters the system only through a `validateProfile(raw: unknown)` function that returns a typed `{ profile, result }` pair, keeping parsing separate from business logic.
+- Optional fields use `.nullable().optional()` on Zod number schemas to allow null/undefined while still enforcing numeric constraints when present.
+- Enum fields use Zod's `z.enum([...], { message: ... })` form to supply human-readable error messages for invalid values.

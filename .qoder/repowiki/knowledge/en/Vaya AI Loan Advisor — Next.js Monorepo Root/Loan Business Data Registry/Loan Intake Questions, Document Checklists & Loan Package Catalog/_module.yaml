@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: data/intake_and_checklists
+title: Loan Intake Questions, Document Checklists & Loan Package Catalog
+scope:
+    - src/data/intakeQuestions.ts
+    - src/data/checklists.ts
+    - src/data/loanPackages.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: lib_ai/core
+    - path: lib_engine

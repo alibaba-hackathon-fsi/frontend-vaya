@@ -1,0 +1,1 @@
+Runtime provider selection is controlled entirely by environment variables: `LLM_PROVIDER` (qwen|deepseek), `DASHSCOPE_API_KEY`/`DEEPSEEK_API_KEY`, and optional base URLs and model names — no code changes needed to switch providers.

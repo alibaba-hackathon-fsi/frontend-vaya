@@ -1,0 +1,1 @@
+Core AI logic for classifying user intent (numeric/policy/mixed), extracting structured loan profiles via LLM tool calls, and driving adaptive intake question flows based on missing profile fields.

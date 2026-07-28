@@ -1,0 +1,1 @@
+No build or setup script is required — the engine is a pure TS module imported by the Next.js app. Data inputs come from `@/data/loanPackages` and `@/data/eligibilityRules`; adding new products or eligibility rules requires updating those data files only.

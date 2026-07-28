@@ -1,0 +1,4 @@
+- Each data file exports a constant array or object of typed configuration records plus optional query helper functions.
+- New loan products are added by creating a new file under src/data/products/ and registering it in index.ts via the getAllProducts registry.
+- All data structures are imported from @/lib/engine/types to stay consistent with the decision engine's schema.
+- Data modules contain no side effects or network calls — they are pure, serializable configuration.

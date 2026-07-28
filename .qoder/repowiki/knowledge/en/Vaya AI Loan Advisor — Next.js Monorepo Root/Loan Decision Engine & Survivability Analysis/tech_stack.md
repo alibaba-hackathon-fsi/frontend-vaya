@@ -1,0 +1,1 @@
+Plain TypeScript with no runtime dependencies; uses Vietnamese locale formatting (`vi-VN`) for currency strings and basis-point arithmetic throughout.

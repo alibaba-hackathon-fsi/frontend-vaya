@@ -7,6 +7,7 @@ import { runCalculation } from "@/lib/engine/pipeline";
 import { getAllChunks } from "@/lib/ai/rag/store";
 import { retrieveTopK } from "@/lib/ai/rag/retrieve";
 import { embedText } from "@/lib/ai/rag/embed";
+import { apiT, parseLang, type ApiLang } from "@/lib/i18n/apiMessages";
 
 /* ================================================================
    Session state — in-memory (demo-grade; swap for Redis before prod)
@@ -21,8 +22,6 @@ const sessions = new Map<string, ChatSession>();
 
 const MAX_FOLLOWUP_TURNS = 3;
 const MANUAL_FORM_STAGE = "fallback_to_manual_form";
-const OUT_OF_SCOPE_DECLINE =
-  "Xin lỗi, tôi chỉ có thể hỗ trợ các kịch bản vay thực tế tại Việt Nam. Vui lòng điều chỉnh thông tin trong biểu mẫu bên dưới.";
 
 /* ================================================================
    SSE helper
@@ -36,20 +35,29 @@ function sseEncode(event: string, data: unknown): string {
    Policy query helper (inline RAG)
    ================================================================ */
 
-async function queryPolicyInline(question: string) {
+async function queryPolicyInline(question: string, lang: ApiLang) {
   try {
     const queryEmbedding = await embedText(question);
     const chunks = getAllChunks();
     const top = retrieveTopK(queryEmbedding, chunks, 5);
 
     if (top.length === 0) {
-      return { answer: "not found in the documents", citations: [], error: false };
+      return {
+        answer: "not found in the documents",
+        citations: [],
+        error: false,
+      };
     }
 
     const llm = getLLMProvider();
     const answer = await llm.answerPolicyQuery(
       question,
-      top.map((t) => ({ text: t.chunk.text, bank: t.chunk.bank, section: t.chunk.section })),
+      top.map((t) => ({
+        text: t.chunk.text,
+        bank: t.chunk.bank,
+        section: t.chunk.section,
+      })),
+      lang,
     );
 
     const citations = Array.from(
@@ -70,7 +78,7 @@ async function queryPolicyInline(question: string) {
    ================================================================ */
 
 export async function POST(request: NextRequest) {
-  let body: { sessionId?: string; message?: string };
+  let body: { sessionId?: string; message?: string; lang?: string };
   try {
     body = await request.json();
   } catch {
@@ -81,6 +89,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { sessionId, message } = body;
+  const lang = parseLang(body.lang);
   if (!sessionId || !message) {
     return new Response(
       JSON.stringify({ error: "sessionId and message are required" }),
@@ -94,12 +103,17 @@ export async function POST(request: NextRequest) {
   // --- Intent extraction ---
   let intentResult;
   try {
-    intentResult = await extractAndClassify(message, session.profile, session.turns, llm);
+    intentResult = await extractAndClassify(
+      message,
+      session.profile,
+      session.turns,
+      llm,
+    );
   } catch {
     // LLM call failed — graceful degradation
     return new Response(
       JSON.stringify({
-        reply: "Tôi gặp khó khăn khi xử lý yêu cầu — vui lòng sử dụng biểu mẫu bên dưới.",
+        reply: apiT("llm_error", lang),
         profile: session.profile,
         missingFields: [],
         stage: MANUAL_FORM_STAGE,
@@ -119,13 +133,13 @@ export async function POST(request: NextRequest) {
   // --- Policy-only intent ---
   let policyResult = null;
   if (intent === "POLICY" || intent === "MIXED") {
-    policyResult = await queryPolicyInline(message);
+    policyResult = await queryPolicyInline(message, lang);
   }
 
   if (intent === "POLICY") {
     return new Response(
       JSON.stringify({
-        reply: "Đây là thông tin tôi tìm được từ chính sách:",
+        reply: apiT("policy_intro", lang),
         stage: "policy_answer",
         explanation: policyResult?.answer,
         citations: policyResult?.citations,
@@ -138,9 +152,12 @@ export async function POST(request: NextRequest) {
   const { profile, result } = validateProfile(session.profile);
 
   if (!profile) {
+    const reasonSuffix = result.rejectedReason
+      ? ` ${apiT("reason_prefix", lang)}: ${result.rejectedReason}.`
+      : "";
     return new Response(
       JSON.stringify({
-        reply: `${OUT_OF_SCOPE_DECLINE}${result.rejectedReason ? ` Lý do: ${result.rejectedReason}.` : ""}`,
+        reply: `${apiT("out_of_scope", lang)}${reasonSuffix}`,
         profile: session.profile,
         missingFields: [],
         rejectedReason: result.rejectedReason,
@@ -152,9 +169,9 @@ export async function POST(request: NextRequest) {
 
   // --- Missing fields: adaptive follow-up ---
   if (!result.valid && session.turns < MAX_FOLLOWUP_TURNS) {
-    let reply = followUpReply(result.missingFields[0]);
+    let reply = followUpReply(result.missingFields[0], lang);
     if (intent === "MIXED" && policyResult && !policyResult.error) {
-      reply = `${policyResult.answer}\n\nNgoài ra, ${reply.toLowerCase()}`;
+      reply = `${policyResult.answer}\n\n${apiT("also_prefix", lang)}${reply.toLowerCase()}`;
     }
     return new Response(
       JSON.stringify({
@@ -172,7 +189,7 @@ export async function POST(request: NextRequest) {
     // Cap reached — fall back to manual form
     return new Response(
       JSON.stringify({
-        reply: "Vui lòng điền thêm thông tin trong biểu mẫu để tôi có thể tính toán chính xác.",
+        reply: apiT("fallback_to_form", lang),
         profile: session.profile,
         missingFields: result.missingFields,
         stage: MANUAL_FORM_STAGE,
@@ -198,7 +215,7 @@ export async function POST(request: NextRequest) {
 
       // 1. Authoritative results event (numbers from engine, never from LLM)
       write("results", {
-        reply: "Đã đủ thông tin — đây là các phương án phù hợp nhất.",
+        reply: apiT("results_ready", lang),
         stage: "results",
         profile,
         missingFields: [],
@@ -213,7 +230,7 @@ export async function POST(request: NextRequest) {
           write("explanation", { delta: policyResult.answer + "\n\n---\n\n" });
         }
 
-        const explanationStream = await llm.explainResult(scoreLog);
+        const explanationStream = await llm.explainResult(scoreLog, lang);
         for await (const delta of explanationStream) {
           write("explanation", { delta });
         }
@@ -221,7 +238,7 @@ export async function POST(request: NextRequest) {
       } catch {
         // Narration failed — ranked numbers already delivered above remain authoritative
         write("explanation_error", {
-          message: "Không thể tạo giải thích — vui lòng xem kết quả xếp hạng ở trên.",
+          message: apiT("explanation_error", lang),
         });
       }
 

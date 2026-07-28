@@ -1,0 +1,1 @@
+Zod-based schema and validation layer for loan profile input, enforcing field types, business-range constraints, and required-field checks before data reaches the Decision Engine.

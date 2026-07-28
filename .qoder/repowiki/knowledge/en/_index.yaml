@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: danny
 nodes_managed: true
-exported_at: "2026-07-28T09:36:05Z"
+exported_at: "2026-07-28T14:17:32Z"
 modules:
     "":
-        dir_name: Vaya AI Loan Advisor — Next.js Frontend Root
-        title: Vaya AI Loan Advisor — Next.js Frontend Root
+        dir_name: Vaya AI Loan Advisor — Next.js Monorepo Root
+        title: Vaya AI Loan Advisor — Next.js Monorepo Root
         scope:
             - README.md
             - .gitignore
@@ -19,6 +19,140 @@ modules:
             - bun.lock
             - package-lock.json
         source_files: []
-        children: []
+        children:
+            - api
+            - data
+            - lib_ai
+            - lib_engine
+            - lib_validation
         depends_on: []
         related_to: []
+    api:
+        dir_name: Next.js API Routes — Loan Calculation, Chat Advisory & Policy RAG
+        title: Next.js API Routes — Loan Calculation, Chat Advisory & Policy RAG
+        scope:
+            - src/app/api/calculate/route.ts
+            - src/app/api/chat/route.ts
+            - src/app/api/policy/route.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: lib_ai
+            - path: lib_ai/core
+            - path: lib_engine
+            - path: lib_validation
+    data:
+        dir_name: Loan Business Data Registry
+        title: Loan Business Data Registry
+        scope:
+            - src/data/checklists.ts
+            - src/data/eligibilityRules.ts
+            - src/data/intakeQuestions.ts
+            - src/data/loanPackages.ts
+            - src/data/products/index.ts
+            - src/data/products/vietcombank.ts
+            - src/data/riskRules.ts
+            - src/data/scenarios.ts
+        source_files: []
+        children:
+            - data/intake_and_checklists
+            - data/rules_and_scenarios
+        depends_on: []
+        related_to: []
+    data/intake_and_checklists:
+        dir_name: Loan Intake Questions, Document Checklists & Loan Package Catalog
+        title: Loan Intake Questions, Document Checklists & Loan Package Catalog
+        scope:
+            - src/data/intakeQuestions.ts
+            - src/data/checklists.ts
+            - src/data/loanPackages.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: lib_ai/core
+            - path: lib_engine
+    data/rules_and_scenarios:
+        dir_name: Loan Decision Rules & Advisory Scenarios Data
+        title: Loan Decision Rules & Advisory Scenarios Data
+        scope:
+            - src/data/eligibilityRules.ts
+            - src/data/riskRules.ts
+            - src/data/scenarios.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: lib_engine
+    lib_ai:
+        dir_name: AI Intent & Question Engine Layer
+        title: AI Intent & Question Engine Layer
+        scope:
+            - src/lib/ai/intent.ts
+            - src/lib/ai/provider.ts
+            - src/lib/ai/questionEngine.ts
+            - src/lib/ai/prompts/explainResult.ts
+            - src/lib/ai/prompts/extractIntent.ts
+            - src/lib/ai/prompts/policyAnswer.ts
+            - src/lib/ai/rag/embed.ts
+            - src/lib/ai/rag/retrieve.ts
+            - src/lib/ai/rag/store.ts
+        source_files: []
+        children:
+            - lib_ai/core
+        depends_on: []
+        related_to:
+            - path: api
+    lib_ai/core:
+        dir_name: AI Intent Classification & Question Engine
+        title: AI Intent Classification & Question Engine
+        scope:
+            - src/lib/ai/intent.ts
+            - src/lib/ai/provider.ts
+            - src/lib/ai/questionEngine.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: api
+            - path: data/intake_and_checklists
+    lib_engine:
+        dir_name: Loan Decision Engine & Survivability Analysis
+        title: Loan Decision Engine & Survivability Analysis
+        scope:
+            - src/lib/engine/amortization.ts
+            - src/lib/engine/calcDTI.ts
+            - src/lib/engine/calcMonthlyPayment.ts
+            - src/lib/engine/checklistEngine.ts
+            - src/lib/engine/cliff-detector.ts
+            - src/lib/engine/filterEligible.ts
+            - src/lib/engine/grace-period.ts
+            - src/lib/engine/household.ts
+            - src/lib/engine/improvements.ts
+            - src/lib/engine/pipeline.ts
+            - src/lib/engine/rankMCDA.ts
+            - src/lib/engine/rate-schedule.ts
+            - src/lib/engine/scenarioMatcher.ts
+            - src/lib/engine/scenarios.ts
+            - src/lib/engine/scoreRisk.ts
+            - src/lib/engine/shocks.ts
+            - src/lib/engine/survivability.ts
+            - src/lib/engine/types.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: api
+            - path: data/intake_and_checklists
+            - path: data/rules_and_scenarios
+    lib_validation:
+        dir_name: Loan Profile Schema & Validation
+        title: Loan Profile Schema & Validation
+        scope:
+            - src/lib/validation/profileSchema.ts
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: api

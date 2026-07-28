@@ -3,8 +3,9 @@ import {
   EXTRACT_INTENT_SYSTEM_PROMPT,
   EXTRACT_INTENT_TOOL,
 } from "./prompts/extractIntent";
-import { EXPLAIN_RESULT_SYSTEM_PROMPT } from "./prompts/explainResult";
-import { POLICY_ANSWER_SYSTEM_PROMPT } from "./prompts/policyAnswer";
+import { explainResultPrompt } from "./prompts/explainResult";
+import { policyAnswerPrompt } from "./prompts/policyAnswer";
+import type { ApiLang } from "@/lib/i18n/apiMessages";
 
 /* ================================================================
    Provider-agnostic interfaces
@@ -27,11 +28,15 @@ export interface LLMProvider {
     conversationHistory?: { role: "user" | "assistant"; content: string }[],
   ): Promise<ExtractIntentResult>;
 
-  explainResult(scoreLog: unknown): Promise<AsyncIterable<string>>;
+  explainResult(
+    scoreLog: unknown,
+    lang?: ApiLang,
+  ): Promise<AsyncIterable<string>>;
 
   answerPolicyQuery(
     question: string,
     contextChunks: PolicyChunkContext[],
+    lang?: ApiLang,
   ): Promise<string>;
 }
 
@@ -104,11 +109,14 @@ class OpenAICompatProvider implements LLMProvider {
     return { profile, raw: response };
   }
 
-  async explainResult(scoreLog: unknown): Promise<AsyncIterable<string>> {
+  async explainResult(
+    scoreLog: unknown,
+    lang: ApiLang = "vi",
+  ): Promise<AsyncIterable<string>> {
     const stream = await getClient().chat.completions.create({
       model: getModel(),
       messages: [
-        { role: "system", content: EXPLAIN_RESULT_SYSTEM_PROMPT },
+        { role: "system", content: explainResultPrompt(lang) },
         { role: "user", content: JSON.stringify(scoreLog) },
       ],
       stream: true,
@@ -127,6 +135,7 @@ class OpenAICompatProvider implements LLMProvider {
   async answerPolicyQuery(
     question: string,
     contextChunks: PolicyChunkContext[],
+    lang: ApiLang = "vi",
   ): Promise<string> {
     const context = contextChunks
       .map((c) => `[${c.bank} — ${c.section}]\n${c.text}`)
@@ -135,7 +144,7 @@ class OpenAICompatProvider implements LLMProvider {
     const response = await getClient().chat.completions.create({
       model: getModel(),
       messages: [
-        { role: "system", content: POLICY_ANSWER_SYSTEM_PROMPT },
+        { role: "system", content: policyAnswerPrompt(lang) },
         {
           role: "user",
           content: `Excerpts:\n${context}\n\nQuestion: ${question}`,

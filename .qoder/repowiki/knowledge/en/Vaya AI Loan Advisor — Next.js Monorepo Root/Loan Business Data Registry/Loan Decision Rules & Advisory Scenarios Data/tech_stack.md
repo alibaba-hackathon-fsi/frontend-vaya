@@ -1,0 +1,1 @@
+TypeScript-only static data modules; types are imported from `@/lib/engine/types` and `@/lib/engine/scenarioMatcher`, indicating a shared engine layer that consumes this data.
