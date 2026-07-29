@@ -79,12 +79,35 @@ type ApiResultData = {
 type Message =
   | { id: number; role: "user"; text: string }
   | { id: number; role: "bot"; typing: boolean; kind: "text"; text: string }
-  | { id: number; role: "bot"; typing: boolean; kind: "result"; result: ResultData }
-  | { id: number; role: "bot"; typing: boolean; kind: "api-result"; result: ApiResultData }
-  | { id: number; role: "bot"; typing: boolean; kind: "pkgresult"; pkg: PkgResultData };
+  | {
+      id: number;
+      role: "bot";
+      typing: boolean;
+      kind: "result";
+      result: ResultData;
+    }
+  | {
+      id: number;
+      role: "bot";
+      typing: boolean;
+      kind: "api-result";
+      result: ApiResultData;
+    }
+  | {
+      id: number;
+      role: "bot";
+      typing: boolean;
+      kind: "pkgresult";
+      pkg: PkgResultData;
+    };
 
 /** Package-specific consultation result (advisor opened from a package page). */
-type PkgResultData = { idx: number; amount: number; term: number; income: number };
+type PkgResultData = {
+  idx: number;
+  amount: number;
+  term: number;
+  income: number;
+};
 
 /* ---------------------------------------------------------------- option builders (ported) */
 
@@ -144,7 +167,13 @@ function qPurpose(s: string): Purpose | null {
 
 /* ---------------------------------------------------------------- component */
 
-export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number }) {
+export default function ChatAdvisor({
+  seed,
+  pkg,
+}: {
+  seed?: string;
+  pkg?: number;
+}) {
   const router = useRouter();
   const { lang, t, tRaw } = useI18n();
 
@@ -154,10 +183,20 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
   const sessionIdRef = useRef(makeSessionId());
   const messagesRef = useRef<Message[]>([]);
   const chipsRef = useRef<Chip[]>([]);
-  const stateRef = useRef<ChatState>({ step: "purpose", purpose: null, amount: null, term: null, age: null });
+  const stateRef = useRef<ChatState>({
+    step: "purpose",
+    purpose: null,
+    amount: null,
+    term: null,
+    age: null,
+  });
   // Package-advisor mode: when set, the conversation is about this product only.
   const pkgRef = useRef<number | null>(pkg != null && PKG[pkg] ? pkg : null);
-  const pkgAns = useRef<{ amount: number | null; term: number | null; income: number | null }>({ amount: null, term: null, income: null });
+  const pkgAns = useRef<{
+    amount: number | null;
+    term: number | null;
+    income: number | null;
+  }>({ amount: null, term: null, income: null });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const idRef = useRef(0);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -294,20 +333,26 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
   const addBotPkgResult = useCallback(
     (data: PkgResultData, cb?: () => void) => {
       const id = nextId();
-      messagesRef.current = [...messagesRef.current, { id, role: "bot", typing: true, kind: "pkgresult", pkg: data }];
+      messagesRef.current = [
+        ...messagesRef.current,
+        { id, role: "bot", typing: true, kind: "pkgresult", pkg: data },
+      ];
       rerender();
       scrollChat();
-      const timer = setTimeout(() => {
-        messagesRef.current = messagesRef.current.map((m) =>
-          m.id === id && m.role === "bot" ? { ...m, typing: false } : m
-        );
-        rerender();
-        scrollChat();
-        cb && cb();
-      }, 640 + Math.random() * 300);
+      const timer = setTimeout(
+        () => {
+          messagesRef.current = messagesRef.current.map((m) =>
+            m.id === id && m.role === "bot" ? { ...m, typing: false } : m,
+          );
+          rerender();
+          scrollChat();
+          cb && cb();
+        },
+        640 + Math.random() * 300,
+      );
       timersRef.current.push(timer);
     },
-    [rerender, scrollChat]
+    [rerender, scrollChat],
   );
 
   /* ---- package-advisor flow ---- */
@@ -319,17 +364,31 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
     addBot(tRef.current("analyzing"), () => {
       const timer = setTimeout(() => {
         addBotPkgResult(
-          { idx, amount: pkgAns.current.amount || 0, term: pkgAns.current.term || 0, income: pkgAns.current.income || 0 },
+          {
+            idx,
+            amount: pkgAns.current.amount || 0,
+            term: pkgAns.current.term || 0,
+            income: pkgAns.current.income || 0,
+          },
           () => {
             const chipTimer = setTimeout(() => {
               setChips([
-                { label: tRef.current("pk_cta_surv"), action: () => router.push(`/survival?pkg=${idx}`) },
-                { label: tRef.current("pk_cta_cmp"), action: () => router.push("/chat") },
-                { label: tRef.current("restart"), action: () => startPkgChat(idx) },
+                {
+                  label: tRef.current("pk_cta_surv"),
+                  action: () => router.push(`/survival?pkg=${idx}`),
+                },
+                {
+                  label: tRef.current("pk_cta_cmp"),
+                  action: () => router.push("/chat"),
+                },
+                {
+                  label: tRef.current("restart"),
+                  action: () => startPkgChat(idx),
+                },
               ]);
             }, 400);
             timersRef.current.push(chipTimer);
-          }
+          },
         );
       }, 760);
       timersRef.current.push(timer);
@@ -344,10 +403,23 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
       setChips([
         ...[20e6, 35e6, 50e6, 80e6].map((v) => ({
           label: fmtVND(v, langRef.current),
-          action: () => { addUser(fmtVND(v, langRef.current)); pkgAns.current.income = v; clearChips(); finishPkg(); },
+          action: () => {
+            addUser(fmtVND(v, langRef.current));
+            pkgAns.current.income = v;
+            clearChips();
+            finishPkg();
+          },
         })),
-        { label: T("other"), action: () => { stateRef.current.step = "pk_income_free"; clearChips(); addBot(T("pk_ask_income")); inputRef.current?.focus(); } },
-      ])
+        {
+          label: T("other"),
+          action: () => {
+            stateRef.current.step = "pk_income_free";
+            clearChips();
+            addBot(T("pk_ask_income"));
+            inputRef.current?.focus();
+          },
+        },
+      ]),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addBot, addUser, clearChips, setChips, finishPkg]);
@@ -362,10 +434,23 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
       setChips([
         ...o.map((m) => ({
           label: termLabel(m, T),
-          action: () => { addUser(termLabel(m, T)); pkgAns.current.term = m; clearChips(); askIncomePkg(); },
+          action: () => {
+            addUser(termLabel(m, T));
+            pkgAns.current.term = m;
+            clearChips();
+            askIncomePkg();
+          },
         })),
-        { label: T("other"), action: () => { stateRef.current.step = "pk_term_free"; clearChips(); addBot(T("pk_ask_term").replace("{max}", termLabel(p.term, T))); inputRef.current?.focus(); } },
-      ])
+        {
+          label: T("other"),
+          action: () => {
+            stateRef.current.step = "pk_term_free";
+            clearChips();
+            addBot(T("pk_ask_term").replace("{max}", termLabel(p.term, T)));
+            inputRef.current?.focus();
+          },
+        },
+      ]),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addBot, addUser, clearChips, setChips, askIncomePkg]);
@@ -376,14 +461,34 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
     const T = tRef.current;
     let o = amtOpts(p.purpose).filter((a) => a <= p.max);
     if (!o.length) o = [Math.min(p.max, 1e9)];
-    addBot(T("pk_ask_amount").replace("{max}", fmtVND(p.max, langRef.current)), () =>
-      setChips([
-        ...o.map((a) => ({
-          label: fmtVND(a, langRef.current),
-          action: () => { addUser(fmtVND(a, langRef.current)); pkgAns.current.amount = a; clearChips(); askTermPkg(); },
-        })),
-        { label: T("other"), action: () => { stateRef.current.step = "pk_amount_free"; clearChips(); addBot(T("pk_ask_amount").replace("{max}", fmtVND(p.max, langRef.current))); inputRef.current?.focus(); } },
-      ])
+    addBot(
+      T("pk_ask_amount").replace("{max}", fmtVND(p.max, langRef.current)),
+      () =>
+        setChips([
+          ...o.map((a) => ({
+            label: fmtVND(a, langRef.current),
+            action: () => {
+              addUser(fmtVND(a, langRef.current));
+              pkgAns.current.amount = a;
+              clearChips();
+              askTermPkg();
+            },
+          })),
+          {
+            label: T("other"),
+            action: () => {
+              stateRef.current.step = "pk_amount_free";
+              clearChips();
+              addBot(
+                T("pk_ask_amount").replace(
+                  "{max}",
+                  fmtVND(p.max, langRef.current),
+                ),
+              );
+              inputRef.current?.focus();
+            },
+          },
+        ]),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addBot, addUser, clearChips, setChips, askTermPkg]);
@@ -397,15 +502,26 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
       pkgRef.current = idx;
       pkgAns.current = { amount: null, term: null, income: null };
       rerender();
-      const p = PKG[idx], b = bankOf(p.code);
-      stateRef.current = { step: "pk_amount", purpose: p.purpose, amount: null, term: null, age: null };
+      const p = PKG[idx],
+        b = bankOf(p.code);
+      stateRef.current = {
+        step: "pk_amount",
+        purpose: p.purpose,
+        amount: null,
+        term: null,
+        age: null,
+      };
       addBot(
-        tRef.current("pk_greet").replace("{bank}", b.name).replace("{product}", prodName(p, langRef.current)).replace("{rate}", String(p.rate)),
-        () => askAmountPkg()
+        tRef
+          .current("pk_greet")
+          .replace("{bank}", b.name)
+          .replace("{product}", prodName(p, langRef.current))
+          .replace("{rate}", String(p.rate)),
+        () => askAmountPkg(),
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addBot, rerender, askAmountPkg]
+    [addBot, rerender, askAmountPkg],
   );
 
   const handleTextPkg = (txt: string) => {
@@ -415,16 +531,30 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
     const T = tRef.current;
     if (st.startsWith("pk_amount")) {
       const a = qAmount(txt);
-      if (a == null) { addBot(T("pk_ask_amount").replace("{max}", fmtVND(p.max, langRef.current))); return; }
-      pkgAns.current.amount = a; askTermPkg();
+      if (a == null) {
+        addBot(
+          T("pk_ask_amount").replace("{max}", fmtVND(p.max, langRef.current)),
+        );
+        return;
+      }
+      pkgAns.current.amount = a;
+      askTermPkg();
     } else if (st.startsWith("pk_term")) {
       const m = qTerm(txt);
-      if (m == null) { addBot(T("pk_ask_term").replace("{max}", termLabel(p.term, T))); return; }
-      pkgAns.current.term = m; askIncomePkg();
+      if (m == null) {
+        addBot(T("pk_ask_term").replace("{max}", termLabel(p.term, T)));
+        return;
+      }
+      pkgAns.current.term = m;
+      askIncomePkg();
     } else if (st.startsWith("pk_income")) {
       const v = qAmount(txt);
-      if (v == null) { addBot(T("pk_ask_income")); return; }
-      pkgAns.current.income = v; finishPkg();
+      if (v == null) {
+        addBot(T("pk_ask_income"));
+        return;
+      }
+      pkgAns.current.income = v;
+      finishPkg();
     } else finishPkg();
   };
 
@@ -820,7 +950,13 @@ export default function ChatAdvisor({ seed, pkg }: { seed?: string; pkg?: number
             <span className="on-ind">{t("advisor_sub")}</span>
           </div>
           <div className="hact">
-            <button className="btn btn-ghost btn-sm" onClick={() => { pkgRef.current = null; startChat(); }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                pkgRef.current = null;
+                startChat();
+              }}
+            >
               {t("new_chat")}
             </button>
             <button
@@ -923,6 +1059,7 @@ function ResultCard({
   lang: "en" | "vi" | "zh";
   t: (k: string) => string;
 }) {
+  const router = useRouter();
   const { purpose, amount, term, recs } = data;
   const maxM = Math.max(...recs.map((r) => r.mo));
   const minM = Math.min(...recs.map((r) => r.mo));
@@ -930,7 +1067,8 @@ function ResultCard({
   const save = maxM - minM;
   // Spread the comparison bars (cheapest → 48%, priciest → 100%) so close
   // payments still read as a clear visual ranking.
-  const barW = (m: number) => Math.round(48 + ((m - minM) / (maxM - minM || 1)) * 52);
+  const barW = (m: number) =>
+    Math.round(48 + ((m - minM) / (maxM - minM || 1)) * 52);
   const insight =
     save > 0 && cheap
       ? t("insight")
@@ -955,7 +1093,10 @@ function ResultCard({
             const match = Math.min(99, Math.max(45, Math.round(r.score * 0.6)));
             const cheapest = r.mo === minM;
             return (
-              <div className={"rc-row " + (best ? "best" : "")} key={r.code + i}>
+              <div
+                className={"rc-row " + (best ? "best" : "")}
+                key={r.code + i}
+              >
                 <div className="rc-head">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img className="rc-logo" src={logoSrc(r.code)} alt={b.name} />
@@ -999,17 +1140,35 @@ function ResultCard({
           // Cumulative amount paid per bank — a real line chart, distinct colours.
           const series = recs.map((r, i) => {
             const amt = Math.min(amount || r.max, r.max);
-            return { name: bankOf(r.code).name, color: PAL[i % PAL.length], vals: amortSeries(amt, r.std, r.usedTerm).cum };
+            return {
+              name: bankOf(r.code).name,
+              color: PAL[i % PAL.length],
+              vals: amortSeries(amt, r.std, r.usedTerm).cum,
+            };
           });
           const maxLen = Math.max(...series.map((s) => s.vals.length));
-          series.forEach((s) => { while (s.vals.length < maxLen) s.vals.push(s.vals[s.vals.length - 1]); });
+          series.forEach((s) => {
+            while (s.vals.length < maxLen)
+              s.vals.push(s.vals[s.vals.length - 1]);
+          });
           return (
             <>
               <div className="rc-clab">{t("cmp_line_title")}</div>
-              <div className="surv-chart" dangerouslySetInnerHTML={{ __html: lineMultiSvg(series) }} />
+              <div
+                className="surv-chart"
+                dangerouslySetInnerHTML={{ __html: lineMultiSvg(series) }}
+              />
               <div className="surv-legend">
                 {series.map((s, i) => (
-                  <span className="lg lg-c" key={i} style={{ ["--lgc" as string]: s.color } as React.CSSProperties}>{s.name}</span>
+                  <span
+                    className="lg lg-c"
+                    key={i}
+                    style={
+                      { ["--lgc" as string]: s.color } as React.CSSProperties
+                    }
+                  >
+                    {s.name}
+                  </span>
                 ))}
               </div>
             </>
@@ -1020,17 +1179,45 @@ function ResultCard({
           {(() => {
             const items = recs.map((r, i) => {
               const P = Math.min(amount || r.max, r.max);
-              return { name: bankOf(r.code).name, color: PAL[i % PAL.length], interest: Math.max(0, r.mo * r.usedTerm - P) };
+              return {
+                name: bankOf(r.code).name,
+                color: PAL[i % PAL.length],
+                interest: Math.max(0, r.mo * r.usedTerm - P),
+              };
             });
             const mx = Math.max(...items.map((x) => x.interest)) || 1;
             return items.map((x, i) => (
               <div className="cmp-row" key={i}>
                 <span className="cmp-name">{x.name}</span>
-                <div className="cmp-track"><div className="cmp-fill" style={{ width: Math.round((x.interest / mx) * 100) + "%", background: x.color }} /></div>
+                <div className="cmp-track">
+                  <div
+                    className="cmp-fill"
+                    style={{
+                      width: Math.round((x.interest / mx) * 100) + "%",
+                      background: x.color,
+                    }}
+                  />
+                </div>
                 <span className="cmp-val">{fmtMonthly(x.interest)}</span>
               </div>
             ));
           })()}
+        </div>
+        <div className="chk-cta">
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => router.push(`/checklist?purpose=${purpose}`)}
+          >
+            {t("cta_checklist")}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() =>
+              router.push(`/analysis?amount=${amount}&term=${term}`)
+            }
+          >
+            {t("cta_analysis")}
+          </button>
         </div>
         <div className="foot">{t("foot_note")}</div>
       </div>
@@ -1146,7 +1333,15 @@ function ApiResultCard({ data }: { data: ApiResultData }) {
 
 /* ---------------------------------------------------------------- package-advisor result */
 
-function PkgResultCard({ data, lang, t }: { data: PkgResultData; lang: "en" | "vi" | "zh"; t: (k: string) => string }) {
+function PkgResultCard({
+  data,
+  lang,
+  t,
+}: {
+  data: PkgResultData;
+  lang: "en" | "vi" | "zh";
+  t: (k: string) => string;
+}) {
   const p = PKG[data.idx];
   const b = bankOf(p.code);
   const amt = Math.min(data.amount || p.max, p.max);
@@ -1160,7 +1355,12 @@ function PkgResultCard({ data, lang, t }: { data: PkgResultData; lang: "en" | "v
   const okDti = dti <= 45;
   const fit = okAmt && okTerm && okDti;
   const vclass = fit ? (dti <= 35 ? "good" : "ok") : "risk";
-  const vlab = vclass === "good" ? t("pk_v_good") : vclass === "ok" ? t("pk_v_ok") : t("pk_v_bad");
+  const vlab =
+    vclass === "good"
+      ? t("pk_v_good")
+      : vclass === "ok"
+        ? t("pk_v_ok")
+        : t("pk_v_bad");
   const mktAvg = AVG[AVG.length - 1];
   const delta = p.rate - mktAvg;
   const facts: [string, string][] = [
@@ -1169,10 +1369,16 @@ function PkgResultCard({ data, lang, t }: { data: PkgResultData; lang: "en" | "v
     [t("pk_interest"), fmtMonthly(a.interest)],
     [t("pk_total"), fmtMonthly(amt + a.interest)],
     [t("m_dti"), dti.toFixed(0) + "%"],
-    [t("pk_vs"), (delta <= 0 ? "▼ " : "▲ ") + Math.abs(delta).toFixed(1) + " pts"],
+    [
+      t("pk_vs"),
+      (delta <= 0 ? "▼ " : "▲ ") + Math.abs(delta).toFixed(1) + " pts",
+    ],
   ];
   const checks: [boolean, string][] = [
-    [okAmt, t("pk_c_amount")], [okTerm, t("pk_c_term")], [okDti, t("pk_c_dti")], [!!p.ltv, t("pk_c_coll")],
+    [okAmt, t("pk_c_amount")],
+    [okTerm, t("pk_c_term")],
+    [okDti, t("pk_c_dti")],
+    [!!p.ltv, t("pk_c_coll")],
   ];
   const series = [
     { name: t("pk_rem"), color: "#0A8F55", vals: a.rem },
@@ -1182,18 +1388,41 @@ function PkgResultCard({ data, lang, t }: { data: PkgResultData; lang: "en" | "v
     <div className="result">
       <div className="rh">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="rc-logo" src={logoSrc(p.code)} alt="" /> {b.name} · {prodName(p, lang)}
+        <img className="rc-logo" src={logoSrc(p.code)} alt="" /> {b.name} ·{" "}
+        {prodName(p, lang)}
       </div>
       <div className={"pk-verdict pk-" + vclass}>{vlab}</div>
       <div className="rc-clab">{t("pk_head")}</div>
-      <div className="sm-grid pk-facts">{facts.map((f, i) => <div className="sm" key={i}><div className="smk">{f[0]}</div><div className="smv">{f[1]}</div></div>)}</div>
+      <div className="sm-grid pk-facts">
+        {facts.map((f, i) => (
+          <div className="sm" key={i}>
+            <div className="smk">{f[0]}</div>
+            <div className="smv">{f[1]}</div>
+          </div>
+        ))}
+      </div>
       <div className="rc-clab">{t("pk_elig")}</div>
-      <div className="pk-checks">{checks.map((c, i) => <span className={"pk-chk " + (c[0] ? "ok" : "no")} key={i}>{c[0] ? "✓" : "✕"} {c[1]}</span>)}</div>
+      <div className="pk-checks">
+        {checks.map((c, i) => (
+          <span className={"pk-chk " + (c[0] ? "ok" : "no")} key={i}>
+            {c[0] ? "✓" : "✕"} {c[1]}
+          </span>
+        ))}
+      </div>
       <div className="rc-clab">{t("pk_amort")}</div>
-      <div className="surv-chart" dangerouslySetInnerHTML={{ __html: lineMultiSvg(series, 600, 200) }} />
+      <div
+        className="surv-chart"
+        dangerouslySetInnerHTML={{ __html: lineMultiSvg(series, 600, 200) }}
+      />
       <div className="surv-legend">
         {series.map((s, i) => (
-          <span className="lg lg-c" key={i} style={{ ["--lgc" as string]: s.color } as React.CSSProperties}>{s.name}</span>
+          <span
+            className="lg lg-c"
+            key={i}
+            style={{ ["--lgc" as string]: s.color } as React.CSSProperties}
+          >
+            {s.name}
+          </span>
         ))}
       </div>
       <div className="foot">{t("foot_note")}</div>
