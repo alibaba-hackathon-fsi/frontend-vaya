@@ -80,7 +80,8 @@ export default function SurvivalScore() {
     T: number;
     inp: SurvInput;
   } | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrs, setFieldErrs] = useState<Record<string, string>>({});
+  const [emiBreakdown, setEmiBreakdown] = useState<{ emi: number; income: number; pct: number; rate: number } | null>(null);
 
   // Persist to localStorage on every change
   useEffect(() => {
@@ -125,33 +126,29 @@ export default function SurvivalScore() {
     const term = NUM(f.term);
     const income = NUM(f.income);
 
-    // Validate inputs against bank policy
-    const errs: string[] = [];
+    // Validate inputs — errors keyed to field name
+    const fe: Record<string, string> = {};
+    let emiBd: typeof emiBreakdown = null;
     const pkg = pk != null ? PKG[pk] : null;
-    if (amount <= 0) errs.push(t("err_amount_zero"));
-    if (income <= 0) errs.push(t("err_income_zero"));
+    if (amount <= 0) fe.amount = t("err_amount_zero");
+    if (income <= 0) fe.income = t("err_income_zero");
     if (pkg && amount > pkg.max)
-      errs.push(
-        t("err_over_max")
-          .replace("{max}", (pkg.max / 1e9).toFixed(1) + "B")
-          .replace("{bank}", bankOf(pkg.code).name),
-      );
+      fe.amount = t("err_over_max")
+        .replace("{max}", (pkg.max / 1e9).toFixed(1) + "B")
+        .replace("{bank}", bankOf(pkg.code).name);
     if (pkg && term > pkg.term)
-      errs.push(
-        t("err_over_term")
-          .replace("{max}", String(pkg.term))
-          .replace("{bank}", bankOf(pkg.code).name),
-      );
-    if (
-      amount > 0 &&
-      income > 0 &&
-      monthly(amount, pkg ? pkg.std || pkg.rate : 10, Math.max(1, term)) >
-        income * 0.9
-    ) {
-      errs.push(t("err_emi_income"));
+      fe.term = t("err_over_term")
+        .replace("{max}", String(pkg.term))
+        .replace("{bank}", bankOf(pkg.code).name);
+    const rate = pkg ? (pkg.std || pkg.rate) : 10;
+    const emiVal = monthly(amount, rate, Math.max(1, term));
+    if (amount > 0 && income > 0 && emiVal > income * 0.9) {
+      fe.amount = t("err_emi_income");
+      emiBd = { emi: emiVal, income, pct: (emiVal / income) * 100, rate };
     }
-    setErrors(errs);
-    if (errs.length > 0) {
+    setFieldErrs(fe);
+    setEmiBreakdown(emiBd);
+    if (Object.keys(fe).length > 0) {
       setRes(null);
       return;
     }
@@ -178,7 +175,7 @@ export default function SurvivalScore() {
   }, []);
 
   const numField = (label: string, key: string, step: number) => (
-    <label className="fq">
+    <label className={`fq${fieldErrs[key] ? " fq-err" : ""}`}>
       <span>{t(label)}</span>
       <input
         type="text"
@@ -186,6 +183,7 @@ export default function SurvivalScore() {
         value={f[key]}
         onChange={(e) => set(key, e.target.value.replace(/[^\d]/g, ""))}
       />
+      {fieldErrs[key] && <em className="field-err">⚠ {fieldErrs[key]}</em>}
     </label>
   );
 
@@ -295,13 +293,27 @@ export default function SurvivalScore() {
             >
               {t("surv_gen")}
             </button>
-            {errors.length > 0 && (
-              <div className="surv-errors">
-                {errors.map((e, i) => (
-                  <p key={i} className="surv-err">
-                    ⚠ {e}
-                  </p>
-                ))}
+            {emiBreakdown && (
+              <div className="emi-flow">
+                <div className="emi-flow-title">{t("emi_flow_title")}</div>
+                <div className="emi-flow-steps">
+                  <div className="emi-step">
+                    <span className="emi-step-n">1</span>
+                    <span>{t("emi_flow_1").replace("{amt}", fvShort(emiBreakdown.emi * Math.max(1, NUM(f.term)))).replace("{rate}", emiBreakdown.rate.toFixed(1)).replace("{term}", f.term)}</span>
+                  </div>
+                  <div className="emi-step">
+                    <span className="emi-step-n">2</span>
+                    <span>{t("emi_flow_2").replace("{emi}", fmtMonthly(emiBreakdown.emi))}</span>
+                  </div>
+                  <div className="emi-step">
+                    <span className="emi-step-n">3</span>
+                    <span>{t("emi_flow_3").replace("{inc}", fmtMonthly(emiBreakdown.income)).replace("{pct}", Math.round(emiBreakdown.pct).toString())}</span>
+                  </div>
+                  <div className="emi-step emi-step-fail">
+                    <span className="emi-step-n">✗</span>
+                    <span>{t("emi_flow_4")}</span>
+                  </div>
+                </div>
               </div>
             )}
           </form>
