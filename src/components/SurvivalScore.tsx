@@ -179,9 +179,6 @@ export default function SurvivalScore() {
     const T = Math.max(6, Math.min(Math.round(inp.term || 60), 60));
     setRes({ mc: monteCarlo(inp, T, 220), T, inp });
   };
-  useEffect(() => {
-    run(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, []);
 
   const numField = (label: string, key: keyof typeof f, step: number) => (
     <label className={`fq${fieldErrs[key] ? " fq-err" : ""}`}>
