@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
 import { PKG, bankOf, purpName, prodName, logoSrc } from "@/data/banks";
 import { fmtVND, fmtMonthly, termLabel, monthly } from "@/lib/loanEngine";
-import { amortSeries, trendChartRichSvg } from "@/lib/survival";
+import { amortSeries } from "@/lib/survival";
+import RateTrendChart from "@/components/charts/RateTrendChart";
 
 export default function PackageDetail({ idx }: { idx: number }) {
   const { lang, t } = useI18n();
@@ -61,7 +62,7 @@ export default function PackageDetail({ idx }: { idx: number }) {
       {/* Rate trend: KPIs + annotated chart + insight */}
       <div className="rc-clab">{t("d_trend_title")}</div>
       <div className="sm-grid">{kpi.map((k, i) => <div className="sm" key={i}><div className="smk">{k[0]}</div><div className="smv">{k[1]}</div></div>)}</div>
-      <div className="surv-chart dt-chart" dangerouslySetInnerHTML={{ __html: trendChartRichSvg(arr) }} />
+      <div className="surv-chart dt-chart"><RateTrendChart arr={arr} t={t} /></div>
       <div className="dt-insight">💡 {chg <= 0 ? t("d_ins_down") : t("d_ins_up")}</div>
 
       {/* Cost breakdown */}

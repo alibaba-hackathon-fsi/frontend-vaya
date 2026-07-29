@@ -545,3 +545,46 @@ img.flag{width:21px;height:14px;object-fit:cover;border-radius:2px;display:inlin
 .ck-i::before{background:var(--green)}
 .ck-t::before{background:var(--surface2);border:1px solid var(--line-2)}
 
+/* ===================== round 14: mobile nav + interactive detail chart ===================== */
+.navtoggle{display:none;width:38px;height:34px;border:1px solid var(--line-2);background:#fff;cursor:pointer;place-items:center;gap:4px;flex-direction:column;padding:0;border-radius:0}
+.navtoggle span{display:block;width:17px;height:2px;background:var(--ink);transition:.2s var(--ease)}
+.navtoggle.on span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.navtoggle.on span:nth-child(2){opacity:0}
+.navtoggle.on span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.navpanel{position:absolute;left:0;right:0;top:100%;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 18px 40px -22px rgba(1,61,59,.35);padding:6px 0;z-index:120}
+.navpanel[hidden]{display:none}
+.navpanel a{display:block;padding:13px 6%;font-size:15px;font-weight:600;color:var(--ink-2);cursor:pointer;border-bottom:1px solid var(--line)}
+.navpanel a:last-child{border-bottom:none}
+.navpanel a:hover{background:var(--surface);color:var(--green-text)}
+@media(max-width:900px){
+  .nav .links{display:none}
+  .navtoggle{display:flex}
+}
+@media(max-width:560px){
+  .nav{gap:10px}
+  .nav .right{gap:8px}
+  .nav .right .btn-sm{height:34px;padding:0 12px;font-size:12.5px;white-space:nowrap;line-height:1}
+  .langbtn{height:34px;padding:0 9px;font-size:12.5px}
+  .brand{font-size:18px;gap:8px}
+  .brand img.brandmark{height:22px}
+}
+@media(max-width:430px){
+  .langbtn .langlab{display:none}
+  .langbtn{padding:0 8px;gap:5px}
+  .nav .right .btn-sm{padding:0 10px;font-size:12px}
+}
+/* detail header: stack on small screens so the rate never collides with the name */
+.dt-type{white-space:nowrap}
+@media(max-width:640px){
+  .dt-head{display:block;padding:16px}
+  .dt-logo{width:104px;height:44px;margin-bottom:10px}
+  .dt-h h2{font-size:21px}
+  .dt-prod{font-size:13px}
+  .dt-rate{text-align:left;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:baseline;gap:9px}
+  .dt-rate .k{font-size:10px}
+  .dt-rate .v{font-size:23px}
+}
+/* interactive rate-trend chart */
+.dt-chart{cursor:crosshair}
+.dt-chart .chart-wrap{margin-top:0}
+

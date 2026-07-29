@@ -17,6 +17,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { lang, setLang, t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
   const selRef = useRef<HTMLDivElement>(null);
 
   // Close the language menu on outside click.
@@ -26,6 +27,13 @@ export default function Navbar() {
     };
     document.addEventListener("click", onDoc);
     return () => document.removeEventListener("click", onDoc);
+  }, []);
+
+  // Collapse the mobile menu when returning to desktop widths.
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth > 900) setMenu(false); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const scrollToId = (id: string) => {
@@ -67,7 +75,7 @@ export default function Navbar() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img className="flag" src={LANGS[lang].flag} alt="" />
-              <span>{LANGS[lang].name}</span>
+              <span className="langlab">{LANGS[lang].name}</span>
               <svg className="lchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6" />
               </svg>
@@ -88,11 +96,27 @@ export default function Navbar() {
               ))}
             </div>
           </div>
-          <button className="btn btn-green btn-sm" onClick={() => router.push("/chat")}>
+          <button className="btn btn-green btn-sm navcta" onClick={() => router.push("/chat")}>
             {t("cta_chat")}
+          </button>
+          <button
+            className={"navtoggle" + (menu ? " on" : "")}
+            aria-label="Menu"
+            aria-expanded={menu}
+            onClick={(e) => { e.stopPropagation(); setMenu((m) => !m); }}
+          >
+            <span /><span /><span />
           </button>
         </div>
       </div>
+      {/* Mobile navigation panel (hamburger) */}
+      <nav className="navpanel" hidden={!menu}>
+        <a onClick={() => { setMenu(false); scrollToId("markets"); }}>{t("nav_markets")}</a>
+        <a onClick={() => { setMenu(false); scrollToId("why"); }}>{t("nav_why")}</a>
+        <a onClick={() => { setMenu(false); scrollToId("how"); }}>{t("nav_how")}</a>
+        <a onClick={() => { setMenu(false); scrollToId("faq"); }}>{t("nav_faq")}</a>
+        <a className="nav-surv" onClick={() => { setMenu(false); router.push("/survival"); }}>{t("nav_surv")}</a>
+      </nav>
     </header>
   );
 }
