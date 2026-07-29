@@ -38,9 +38,30 @@ export function pickRate(purpose: string): { rate: number; std: number } {
   return { rate: best.rate, std: best.std };
 }
 
-function rnorm(): number {
-  const u = Math.random() || 1e-9;
-  const v = Math.random();
+/** Deterministic seeded PRNG (mulberry32) — same inputs always produce same chart. */
+function mulberry32(seed: number): () => number {
+  let s = seed | 0;
+  return () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Derive a stable numeric seed from the user's inputs. */
+function seedFromInput(inp: SurvInput): number {
+  const raw = `${inp.purpose}|${inp.amount}|${inp.term}|${inp.income}|${inp.expenses}|${inp.debt}|${inp.savings}|${inp.down}|${inp.dependents}|${inp.employment}|${inp.collateral}|${inp.pkgIdx ?? -1}`;
+  let h = 0;
+  for (let i = 0; i < raw.length; i++) {
+    h = (Math.imul(31, h) + raw.charCodeAt(i)) | 0;
+  }
+  return h;
+}
+
+function rnormFrom(rng: () => number): number {
+  const u = rng() || 1e-9;
+  const v = rng();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
@@ -87,6 +108,7 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
 export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
   const met = computeMetrics(inp);
   const base = inp.income - inp.expenses - inp.debt - met.emi - met.depCost;
+  const rng = mulberry32(seedFromInput(inp));
   const months: number[] = [];
   for (let i = 0; i <= T; i++) months.push(i);
   const paths: number[][] = [];
@@ -94,8 +116,8 @@ export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
     let bal = inp.savings;
     const path = [bal];
     for (let i = 1; i <= T; i++) {
-      let net = base + inp.income * (rnorm() * 0.12);
-      if (Math.random() < 0.02) net -= inp.income * 0.6;
+      let net = base + inp.income * (rnormFrom(rng) * 0.12);
+      if (rng() < 0.02) net -= inp.income * 0.6;
       bal += net;
       path.push(bal);
     }

@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
 import { PKG, bankOf, prodName, logoSrc, type Purpose } from "@/data/banks";
 import { fmtMonthly } from "@/lib/loanEngine";
-import { monteCarlo, survChartSvg, fvShort, type SurvInput, type MCResult } from "@/lib/survival";
+import { monteCarlo, fvShort, type SurvInput, type MCResult } from "@/lib/survival";
+import SurvivalChart from "@/components/charts/SurvivalChart";
 import type { Lang } from "@/i18n/dict";
 
 const NUM = (s: string) => {
@@ -171,10 +172,22 @@ function Result({ res, lang, t }: { res: { mc: MCResult; T: number; inp: SurvInp
       <div className="rc-clab">{t("r_metrics")}</div>
       <div className="sm-grid">{metrics.map((m) => <div className="sm" key={m[0]}><div className="smk">{t(m[0])}</div><div className="smv">{m[1]}</div></div>)}</div>
       <div className="rc-clab">{t("r_chart")}</div>
-      <div className="surv-chart" dangerouslySetInnerHTML={{ __html: survChartSvg(mc, T, fvShort) }} />
+      <div className="surv-chart"><SurvivalChart mc={mc} T={T} t={t} /></div>
       <div className="surv-legend"><span className="lg lg-med">{t("r_median")}</span><span className="lg lg-band">{t("r_band")}</span><span className="lg lg-stress">{t("r_stress")}</span></div>
       <div className="rc-clab">{t("r_reco")}</div>
       <div className="reco-list">{recos.map((r, i) => <div className="reco-i" key={i}><span className="reco-k">{r[0]}</span><span className="reco-v">{r[1]}</span></div>)}</div>
+      <div className="rc-clab">{t("sc_why")}</div>
+      <div className="sc-explain">
+        {met.dti > 45 && <p className="sc-reason"><b>{t("m_dti")} = {met.dti.toFixed(0)}%</b> — {t("why_dti")}</p>}
+        {met.efr < 3 && <p className="sc-reason"><b>{t("m_efr")} = {met.efr.toFixed(1)} {t("r_mo")}</b> — {t("why_efr")}</p>}
+        {met.disposable < 0 && <p className="sc-reason"><b>{t("m_disp")} = {fmtMonthly(met.disposable)}</b> — {t("why_neg")}</p>}
+        {met.ltv > 80 && <p className="sc-reason"><b>{t("m_ltv")} = {met.ltv.toFixed(0)}%</b> — {t("why_ltv")}</p>}
+        {met.stab < 60 && <p className="sc-reason"><b>{t("m_stab")} = {met.stab}/100</b> — {t("why_stab")}</p>}
+        {mc.ruin > 0.3 && <p className="sc-reason"><b>{t("r_ruin")} = {(mc.ruin * 100).toFixed(0)}%</b> — {t("why_ruin")}</p>}
+        {met.dti <= 45 && met.efr >= 3 && met.disposable >= 0 && met.ltv <= 80 && met.stab >= 60 && mc.ruin <= 0.3 && (
+          <p className="sc-reason sc-ok-msg">{t("why_ok")}</p>
+        )}
+      </div>
     </>
   );
 }
