@@ -87,11 +87,10 @@ export default function AnalysisPage() {
     <label className="fq">
       <span>{t(label)}</span>
       <input
-        type="number"
-        min={0}
-        step={step}
+        type="text"
+        inputMode="numeric"
         value={f[key]}
-        onChange={(e) => set(key, e.target.value)}
+        onChange={(e) => set(key, e.target.value.replace(/[^\d]/g, ""))}
       />
     </label>
   );

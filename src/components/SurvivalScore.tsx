@@ -60,7 +60,7 @@ export default function SurvivalScore() {
   const numField = (label: string, key: keyof typeof f, step: number) => (
     <label className="fq">
       <span>{t(label)}</span>
-      <input type="number" min={0} step={step} value={f[key]} onChange={(e) => set(key, e.target.value)} />
+      <input type="text" inputMode="numeric" value={f[key]} onChange={(e) => set(key, e.target.value.replace(/[^\d]/g, ""))} />
     </label>
   );
 
