@@ -8,8 +8,11 @@ import { fmtMonthly, monthly } from "@/lib/loanEngine";
 import {
   monteCarlo,
   fvShort,
+  suggestImprovementsSurv,
   type SurvInput,
   type MCResult,
+  type RepayMethod,
+  type Suggestion,
 } from "@/lib/survival";
 import SurvivalChart from "@/components/charts/SurvivalChart";
 import type { Lang } from "@/i18n/dict";
@@ -73,6 +76,7 @@ export default function SurvivalScore() {
       dependents: "1",
       employment: "salaried",
       collateral: "re",
+      method: "ANNUITY" as RepayMethod,
     };
     // Restore only financial profile fields from localStorage
     if (saved) {
@@ -175,6 +179,7 @@ export default function SurvivalScore() {
       dependents: NUM(f.dependents),
       employment: f.employment,
       collateral: f.collateral,
+      method: f.method as RepayMethod,
     };
     const T = Math.max(6, Math.min(Math.round(inp.term || 60), 60));
     setRes({ mc: monteCarlo(inp, T, 220), T, inp });
@@ -250,6 +255,16 @@ export default function SurvivalScore() {
               )}
               {numField("q_amount", "amount", 10000000)}
               {numField("q_term", "term", 6)}
+              <label className="fq">
+                <span>{t("ana_method")}</span>
+                <select
+                  value={f.method}
+                  onChange={(e) => set("method", e.target.value)}
+                >
+                  <option value="ANNUITY">{t("ana_annuity")}</option>
+                  <option value="EQUAL_PRINCIPAL">{t("ana_equal_principal")}</option>
+                </select>
+              </label>
             </div>
             <div className="fgroup">
               <div className="glab">{t("g_income")}</div>
@@ -348,6 +363,7 @@ function Result({
 }) {
   const { mc, T, inp } = res;
   const met = mc.met;
+  const suggestions = useMemo(() => suggestImprovementsSurv(inp), [inp]);
   const sc = met.score;
   const vclass = sc >= 70 ? "good" : sc >= 45 ? "ok" : "risk";
   const vlab = sc >= 70 ? t("r_good") : sc >= 45 ? t("r_ok") : t("r_risk");
@@ -522,6 +538,49 @@ function Result({
             <p className="sc-reason sc-ok-msg">{t("why_ok")}</p>
           )}
       </div>
+
+      {/* Improvement suggestions */}
+      {suggestions.length > 0 && (
+        <>
+          <div className="rc-clab">{t("ana_improvements")}</div>
+          <div className="ana-improve">
+            {suggestions.map((s, i) => (
+              <p key={i} className="ana-sug">
+                {s.icon} {formatSuggestion(s, t)}
+              </p>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
+}
+
+function formatSuggestion(s: Suggestion, t: (k: string) => string): string {
+  const parts = s.text.split(":");
+  const key = parts[0];
+  if (key === "extend_term") {
+    return t("sug_extend_term")
+      .replace("{old}", parts[1])
+      .replace("{new}", parts[2])
+      .replace("{base}", parts[3])
+      .replace("{new_sc}", parts[4]);
+  }
+  if (key === "reduce_amount") {
+    return t("sug_reduce_amount")
+      .replace("{pct}", parts[1])
+      .replace("{base}", parts[2])
+      .replace("{new_sc}", parts[3]);
+  }
+  if (key === "increase_buffer") {
+    return t("sug_increase_buffer")
+      .replace("{base}", parts[1])
+      .replace("{new_sc}", parts[2]);
+  }
+  if (key === "switch_method") {
+    return t("sug_switch_method")
+      .replace("{base}", parts[1])
+      .replace("{new_sc}", parts[2]);
+  }
+  return s.text;
 }

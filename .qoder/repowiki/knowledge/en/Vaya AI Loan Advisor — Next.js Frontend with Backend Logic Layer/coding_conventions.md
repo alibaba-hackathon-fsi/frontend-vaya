@@ -1,0 +1,6 @@
+- API routes validate all incoming JSON bodies with Zod schemas before processing, returning structured error responses with status 400 for invalid input.
+- Server-side conversation state is stored in an in-memory `Map<string, ChatSession>` keyed by sessionId, with explicit comments noting this is demo-grade and should be replaced with Redis for production.
+- SSE streaming separates authoritative deterministic data (engine results sent as `results` events) from LLM-generated narration (sent as incremental `explanation` delta events), ensuring numbers never come from the LLM.
+- Business rules are declared as plain TypeScript arrays of objects in `src/data/` (eligibility, risk, intake questions, loan packages) rather than being embedded in code, making them configurable without code changes.
+- Internationalization strings are accessed through a centralized `t(key)` function from `I18nProvider`, with English used as the fallback language when a translation key is missing.
+- Error handling follows a graceful degradation pattern: LLM failures return user-friendly messages and fall back to manual form stages or local scoring, never crashing the conversation flow.

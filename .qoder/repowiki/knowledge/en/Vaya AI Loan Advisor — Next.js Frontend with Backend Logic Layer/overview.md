@@ -1,0 +1,1 @@
+A Next.js 14 application that provides a conversational AI loan advisor, combining a React chat UI with server-side API routes implementing a rule-based decision engine, RAG-powered policy Q&A, and SSE-streamed LLM narration over Vietnamese bank loan products.

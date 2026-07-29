@@ -1,0 +1,9 @@
+The project follows the Next.js App Router convention with a clear separation between client components and server API routes:
+- `src/app/` contains page components (`page.tsx`, `chat/page.tsx`) and Route Handlers under `api/` (`chat/route.ts`, `calculate/route.ts`, `policy/route.ts`).
+- The `/api/chat` route is the main entry point for the conversational flow: it maintains in-memory session state (profile + turn counter), performs intent extraction via an LLM provider, runs a deterministic eligibility/validation pipeline through `@/lib/engine/pipeline`, optionally queries policy documents via an inline RAG pipeline (embed → retrieveTopK → LLM answer with citations), and streams results using Server-Sent Events (SSE) with separate `results` and `explanation` events.
+- `/api/calculate` is a pure deterministic endpoint that validates input via Zod schema and returns ranked/rejected offers without any LLM involvement.
+- `/api/policy` exposes a standalone RAG query endpoint for policy document lookups.
+- Business rules live in `src/data/` as TypeScript arrays (`eligibilityRules.ts`, `riskRules.ts`, `intakeQuestions.ts`, `loanPackages.ts`, `banks.ts`) consumed by the engine layer.
+- The legacy scoring logic is preserved in `src/lib/loanEngine.ts` as a fallback when the backend engine is unavailable.
+- Client-side stateful chat UI lives in `src/components/ChatAdvisor.tsx`, which drives both the wizard flow and the SSE-consuming AI chat mode, falling back to local scoring on network errors.
+- Internationalization is provided by `src/i18n/I18nProvider.tsx` with a React context and localStorage persistence, supporting en/vi/zh with English fallback.

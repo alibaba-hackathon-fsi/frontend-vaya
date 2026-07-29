@@ -5,6 +5,8 @@
 import { PKG } from "@/data/banks";
 import { monthly } from "@/lib/loanEngine";
 
+export type RepayMethod = "ANNUITY" | "EQUAL_PRINCIPAL";
+
 export type SurvInput = {
   /** Index into PKG when the projection is run for a specific package. */
   pkgIdx?: number | null;
@@ -19,6 +21,7 @@ export type SurvInput = {
   dependents: number;
   employment: string;
   collateral: string;
+  method?: RepayMethod;
 };
 
 export type SurvMetrics = {
@@ -96,7 +99,13 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
     const pr = pickRate(inp.purpose);
     rate = pr.std || pr.rate || 12;
   }
-  const emi = monthly(inp.amount, rate, Math.max(1, inp.term || 1));
+  const n = Math.max(1, inp.term || 1);
+  const r = rate / 100 / 12;
+  // EQUAL_PRINCIPAL: first-month payment is the highest (worst-case for DTI)
+  const emi =
+    inp.method === "EQUAL_PRINCIPAL"
+      ? inp.amount / n + inp.amount * r
+      : monthly(inp.amount, rate, n);
   const depCost = (inp.dependents || 0) * 3000000;
   const out = inp.expenses + inp.debt + emi + depCost;
   const disposable = inp.income - out;
@@ -387,3 +396,62 @@ export function trendChartRichSvg(arr: number[]): string {
 
 /** Distinct palette so comparison series never collide visually. */
 export const PAL = ["#0A8F55", "#2F6BFF", "#E5533B", "#8180C8"];
+
+export type Suggestion = { icon: string; text: string; delta: number };
+
+/** Generate actionable improvement suggestions by trial-testing changes. */
+export function suggestImprovementsSurv(inp: SurvInput): Suggestion[] {
+  const base = computeMetrics(inp).score;
+  const out: Suggestion[] = [];
+
+  // 1. Extend term +60 months
+  const extInp = { ...inp, term: inp.term + 60 };
+  const extScore = computeMetrics(extInp).score;
+  if (extScore > base) {
+    out.push({
+      icon: "📅",
+      text: `extend_term:${Math.round(inp.term / 12)}:${Math.round((inp.term + 60) / 12)}:${base}:${extScore}`,
+      delta: extScore - base,
+    });
+  }
+
+  // 2. Reduce amount by 15%
+  const redInp = { ...inp, amount: Math.round(inp.amount * 0.85) };
+  const redScore = computeMetrics(redInp).score;
+  if (redScore > base) {
+    out.push({
+      icon: "💰",
+      text: `reduce_amount:15:${base}:${redScore}`,
+      delta: redScore - base,
+    });
+  }
+
+  // 3. Increase savings to 6 months of expenses
+  const target = (inp.expenses + inp.debt) * 6;
+  if (inp.savings < target) {
+    const savInp = { ...inp, savings: Math.round(target) };
+    const savScore = computeMetrics(savInp).score;
+    if (savScore > base) {
+      out.push({
+        icon: "🏦",
+        text: `increase_buffer:${base}:${savScore}`,
+        delta: savScore - base,
+      });
+    }
+  }
+
+  // 4. Switch to EQUAL_PRINCIPAL if currently ANNUITY
+  if (inp.method !== "EQUAL_PRINCIPAL") {
+    const epInp = { ...inp, method: "EQUAL_PRINCIPAL" as RepayMethod };
+    const epScore = computeMetrics(epInp).score;
+    if (epScore > base) {
+      out.push({
+        icon: "🔄",
+        text: `switch_method:${base}:${epScore}`,
+        delta: epScore - base,
+      });
+    }
+  }
+
+  return out.sort((a, b) => b.delta - a.delta);
+}

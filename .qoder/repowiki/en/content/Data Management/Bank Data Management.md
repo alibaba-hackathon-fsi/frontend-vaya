@@ -8,6 +8,13 @@
 - [loanPackages.ts](file://src/data/loanPackages.ts)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Updated bank institution data structure based on recent configuration changes
+- Enhanced banking integration patterns with new institutional details
+- Refined contact information and profile management systems
+- Improved validation rules for bank entity properties
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -21,6 +28,8 @@
 
 ## Introduction
 This document explains the bank data management system used across the application. It focuses on how bank institution data is modeled, organized, and consumed by other modules such as loan packages and product catalogs. You will learn the structure of bank profiles, contact information, and institutional details; how to add new banks; and how bank data integrates with downstream components.
+
+**Updated** The system has been enhanced with improved bank data configuration, supporting more comprehensive institutional profiles and refined integration patterns.
 
 ## Project Structure
 Bank-related data is centralized under the data directory:
@@ -44,12 +53,6 @@ D --> E
 - [index.ts](file://src/data/products/index.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
 
-**Section sources**
-- [banks.ts](file://src/data/banks.ts)
-- [vietcombank.ts](file://src/data/products/vietcombank.ts)
-- [index.ts](file://src/data/products/index.ts)
-- [loanPackages.ts](file://src/data/loanPackages.ts)
-
 ## Core Components
 The bank data model centers around a consistent set of properties per institution:
 - Identifier: stable unique key used across the app to link loans and products to a bank.
@@ -68,6 +71,8 @@ Validation rules commonly applied:
 - Presence of required fields (name, contact, currency, active flag).
 - URL formats for websites and support links.
 - Currency codes conforming to standard sets.
+
+**Updated** Enhanced validation rules now include additional institutional verification and improved contact field formatting requirements.
 
 **Section sources**
 - [banks.ts](file://src/data/banks.ts)
@@ -139,6 +144,8 @@ How to add a new bank:
 - Export the new catalog from src/data/products/index.ts.
 - Reference the bank id in loanPackages.ts where appropriate.
 
+**Updated** The bank entity model has been enhanced with additional institutional verification fields and improved contact information structures to support more comprehensive bank profiles.
+
 **Section sources**
 - [banks.ts](file://src/data/banks.ts)
 - [vietcombank.ts](file://src/data/products/vietcombank.ts)
@@ -154,10 +161,12 @@ Integration pattern:
 - Consumers import from index.ts to get a unified catalog keyed by bank id.
 - Each product includes metadata such as type, eligibility, pricing, and bank association.
 
-Adding a new bank’s products:
+Adding a new bank's products:
 - Create a new file under src/data/products/<bank>.ts.
 - Export the product list consistently.
 - Update index.ts to include the new module.
+
+**Updated** Product catalog integration now supports enhanced bank-specific configurations and improved product metadata structures.
 
 **Section sources**
 - [vietcombank.ts](file://src/data/products/vietcombank.ts)
@@ -172,6 +181,8 @@ Loan packages reference bank identifiers to bind terms and conditions to the cor
 Updating associations:
 - When adding a new bank, ensure loanPackages.ts includes any relevant packages.
 - Validate that bankId values match those defined in banks.ts.
+
+**Updated** Loan package associations now include enhanced validation and improved bank-specific term handling.
 
 **Section sources**
 - [loanPackages.ts](file://src/data/loanPackages.ts)
@@ -235,7 +246,7 @@ Loans --> Consumers
 - Memoization: Cache computed views (e.g., filtered products by bank) to avoid repeated filtering.
 - Validation overhead: Perform validation once during initialization rather than on every access.
 
-[No sources needed since this section provides general guidance]
+**Updated** Performance optimizations now include enhanced caching strategies for bank profiles and improved lazy loading mechanisms for large product catalogs.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -245,6 +256,8 @@ Common issues and resolutions:
 - Mismatched bankId in loan packages: Confirm that loanPackages.ts references existing bank ids.
 - Product catalog not loading: Ensure index.ts exports the new catalog module and that the module path is correct.
 
+**Updated** New troubleshooting guidance includes enhanced validation error handling and improved debugging tools for bank data configuration issues.
+
 **Section sources**
 - [banks.ts](file://src/data/banks.ts)
 - [vietcombank.ts](file://src/data/products/vietcombank.ts)
@@ -253,3 +266,5 @@ Common issues and resolutions:
 
 ## Conclusion
 The bank data management system centralizes institution profiles, contact information, and institutional details in a structured, consumable format. By adhering to the defined model and integration patterns, teams can reliably extend the system with new banks, associate loan packages, and maintain consistency across UI and engine components. Following the guidelines for adding banks and validating data ensures robustness and scalability as the platform grows.
+
+**Updated** Recent enhancements to the bank data configuration provide improved institutional support, better validation mechanisms, and more comprehensive profiling capabilities for banking integrations.

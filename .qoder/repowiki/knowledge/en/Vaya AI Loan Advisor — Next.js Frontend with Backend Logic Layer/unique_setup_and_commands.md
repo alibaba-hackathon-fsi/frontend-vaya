@@ -1,0 +1,1 @@
+Development: `bun dev` or `npm run dev` starts the Next.js dev server. Build: `next build`. Lint: `next lint`. The project uses Bun lockfile (`bun.lock`) but also has `package-lock.json`; dependencies include `openai` for LLM calls and `zod` for input validation. Environment variables for LLM providers are expected via the `getLLMProvider()` abstraction in `@/lib/ai/provider`.

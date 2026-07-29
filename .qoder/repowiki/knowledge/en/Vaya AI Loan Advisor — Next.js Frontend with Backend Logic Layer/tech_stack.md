@@ -1,0 +1,1 @@
+Next.js 14.2.5 with the App Router, React 18, TypeScript 5.5, TailwindCSS 3.4, OpenAI SDK v7 for LLM calls, and Zod v4 for runtime schema validation. SSE streaming uses native ReadableStream/TextEncoder on the server and a custom event parser on the client. RAG is implemented in-memory with vector embedding and cosine similarity retrieval against document chunks.

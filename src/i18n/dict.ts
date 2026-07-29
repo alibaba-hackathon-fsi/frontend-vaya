@@ -155,6 +155,14 @@ export const T: Record<Lang, Dict> = {
       "In over 30% of simulated scenarios, your savings hit zero — a significant insolvency risk.",
     why_ok:
       "All key metrics are within safe thresholds. Maintain your emergency fund and avoid taking on additional debt.",
+    sug_extend_term:
+      "Extend term from {old} to {new} years: score {base} → {new_sc}. Lower monthly payment, but higher total interest over the loan lifetime.",
+    sug_reduce_amount:
+      "Reduce loan amount by {pct}%: score {base} → {new_sc}. Less monthly pressure, but requires more upfront capital.",
+    sug_increase_buffer:
+      "Increase emergency fund to 6 months of expenses: score {base} → {new_sc}. Better shock absorption, but requires time to accumulate.",
+    sug_switch_method:
+      "Switch to equal-principal repayment: score {base} → {new_sc}. Lower initial burden if interest rate is high.",
     d_back: "← Back",
     d_keyfacts: "Key facts",
     d_features: "Highlights",
@@ -527,6 +535,14 @@ export const T: Record<Lang, Dict> = {
       "Trong hơn 30% kịch bản mô phỏng, tiết kiệm chạm 0 — rủi ro mất thanh khoản đáng kể.",
     why_ok:
       "Tất cả chỉ số đều trong ngưỡng an toàn. Hãy duy trì quỹ dự phòng và tránh vay thêm nợ mới.",
+    sug_extend_term:
+      "Kéo dài kỳ hạn từ {old} lên {new} năm: điểm {base} → {new_sc}. Khoản trả hàng tháng giảm, nhưng tổng lãi vay sẽ tăng.",
+    sug_reduce_amount:
+      "Giảm {pct}% số tiền vay: điểm {base} → {new_sc}. Giảm áp lực trả nợ tháng, nhưng cần thêm vốn tự có.",
+    sug_increase_buffer:
+      "Tăng quỹ dự phòng lên 6 tháng chi phí: điểm {base} → {new_sc}. Tăng khả năng chịu sốc, nhưng cần thời gian tích luỹ.",
+    sug_switch_method:
+      "Chuyển sang trả gốc đều: điểm {base} → {new_sc}. Giảm gánh nặng ban đầu nếu lãi suất cao.",
     d_back: "← Quay lại",
     d_keyfacts: "Thông tin chính",
     d_features: "Điểm nổi bật",
@@ -893,6 +909,10 @@ export const T: Record<Lang, Dict> = {
     why_stab: "自由职业/自营收入可预测性较低——银行会施加更高的折扣系数。",
     why_ruin: "在超过 30% 的模拟情景中，储蓄归零——存在显著的偿付能力风险。",
     why_ok: "所有关键指标均在安全阈值内。请保持应急基金，避免增加新债务。",
+    sug_extend_term: "将期限从 {old} 年延长至 {new} 年：分数 {base} → {new_sc}。月供降低，但总利息支出增加。",
+    sug_reduce_amount: "减少贷款金额 {pct}%：分数 {base} → {new_sc}。月供压力减轻，但需要更多自有资金。",
+    sug_increase_buffer: "将应急基金增加至 6 个月支出：分数 {base} → {new_sc}。抗风险能力增强，但需要时间积累。",
+    sug_switch_method: "切换为等额本金还款：分数 {base} → {new_sc}。若利率较高，可减轻初期负担。",
     d_back: "← 返回",
     d_keyfacts: "关键信息",
     d_features: "亮点",

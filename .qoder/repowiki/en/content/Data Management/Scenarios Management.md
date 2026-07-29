@@ -2,7 +2,6 @@
 
 <cite>
 **Referenced Files in This Document**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
@@ -10,6 +9,14 @@
 - [policy/route.ts](file://src/app/api/policy/route.ts)
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Removed all references to automated scenario-based financial planning features
+- Updated architecture diagrams to reflect the removal of scenarioMatcher.ts and scenarios.ts
+- Revised component descriptions to focus on eligibility rules, risk assessment, and loan package matching
+- Updated dependency analysis to remove scenario matching system components
+- Modified examples and workflows to reflect current system capabilities
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -24,24 +31,23 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the scenarios management system that models different borrower situations and financial profiles to simulate lending outcomes and calculate loan eligibility. It covers:
-- The scenario data structure, including income levels, debt ratios, employment status, and credit history patterns
-- How scenarios are consumed by the engine to compute eligibility and recommendations
-- The process for creating new scenarios and integrating them into calculations
-- Examples of scenario-based calculations and their impact on loan recommendations
+This document explains the lending evaluation system that processes borrower information through eligibility rules, risk assessment, and loan package matching to calculate loan recommendations. The system has been streamlined to focus on core lending functionality without automated scenario-based financial planning features. It covers:
+- The eligibility rules framework for determining loan qualification
+- Risk assessment mechanisms for evaluating borrower profiles
+- Loan package matching algorithms for recommendation generation
+- API endpoints for calculation and policy evaluation services
 
-The goal is to make it easy for both technical and non-technical users to understand how scenarios drive decisions and how to extend the system with new borrower profiles.
+The goal is to provide clear understanding of how the lending engine processes borrower data to generate appropriate loan recommendations.
 
 ## Project Structure
-The scenarios system is primarily defined in data files under src/data and consumed by API routes and the loan engine. Key locations:
-- Scenario definitions and related rules live in src/data (scenarios, eligibility rules, risk rules, loan packages)
+The lending evaluation system is primarily defined in data files under src/data and consumed by API routes and the loan engine. Key locations:
+- Eligibility rules, risk rules, and loan packages live in src/data
 - API endpoints in src/app/api provide calculation and policy evaluation services
 - The loan engine in src/lib orchestrates scoring and decision logic
 
 ```mermaid
 graph TB
 subgraph "Data Layer"
-S["Scenarios<br/>src/data/scenarios.ts"]
 ER["Eligibility Rules<br/>src/data/eligibilityRules.ts"]
 RR["Risk Rules<br/>src/data/riskRules.ts"]
 LP["Loan Packages<br/>src/data/loanPackages.ts"]
@@ -53,7 +59,6 @@ end
 subgraph "Engine Layer"
 LE["Loan Engine<br/>src/lib/loanEngine.ts"]
 end
-S --> LE
 ER --> LE
 RR --> LE
 LP --> LE
@@ -62,16 +67,6 @@ POL --> LE
 ```
 
 **Diagram sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
-- [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
-- [riskRules.ts](file://src/data/riskRules.ts)
-- [loanPackages.ts](file://src/data/loanPackages.ts)
-- [calculate/route.ts](file://src/app/api/calculate/route.ts)
-- [policy/route.ts](file://src/app/api/policy/route.ts)
-- [loanEngine.ts](file://src/lib/loanEngine.ts)
-
-**Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
@@ -80,31 +75,21 @@ POL --> LE
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
 
 ## Core Components
-- Scenarios: Define borrower profiles with attributes such as income, debt-to-income ratio, employment status, and credit history indicators. These serve as inputs to the engine for simulation.
-- Eligibility Rules: Encode thresholds and conditions used to determine whether a borrower qualifies for specific products or terms.
-- Risk Rules: Capture risk factors and scoring adjustments based on profile characteristics and behavior patterns.
-- Loan Packages: Represent available loan products, limits, rates, and constraints that can be matched to eligible borrowers.
-- Loan Engine: Orchestrates rule application, scoring, and recommendation generation using scenarios and rules.
-- API Endpoints: Expose calculation and policy evaluation capabilities to clients.
+- **Eligibility Rules**: Encode thresholds and conditions used to determine whether a borrower qualifies for specific products or terms based on their financial profile.
+- **Risk Rules**: Capture risk factors and scoring adjustments based on borrower characteristics and behavior patterns.
+- **Loan Packages**: Represent available loan products, limits, rates, and constraints that can be matched to eligible borrowers.
+- **Loan Engine**: Orchestrates rule application, scoring, and recommendation generation using eligibility rules, risk assessments, and loan packages.
+- **API Endpoints**: Expose calculation and policy evaluation capabilities to clients.
 
 How they work together:
-- A scenario is provided to the engine along with applicable rules and product catalog.
-- The engine evaluates eligibility and risk, computes scores, and returns recommendations tailored to the scenario.
+- Borrower information is provided to the engine along with applicable rules and product catalog.
+- The engine evaluates eligibility and risk, computes scores, and returns recommendations tailored to the borrower profile.
 - API endpoints accept requests, invoke the engine, and return results to callers.
 
-**Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
-- [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
-- [riskRules.ts](file://src/data/riskRules.ts)
-- [loanPackages.ts](file://src/data/loanPackages.ts)
-- [loanEngine.ts](file://src/lib/loanEngine.ts)
-- [calculate/route.ts](file://src/app/api/calculate/route.ts)
-- [policy/route.ts](file://src/app/api/policy/route.ts)
-
 ## Architecture Overview
-The scenarios system follows a layered architecture:
-- Data layer defines scenarios, rules, and product catalogs
-- Engine layer applies rules to scenarios to compute eligibility and risk
+The lending evaluation system follows a streamlined layered architecture:
+- Data layer defines eligibility rules, risk rules, and product catalogs
+- Engine layer applies rules to borrower profiles to compute eligibility and risk
 - API layer exposes endpoints to trigger calculations and policy checks
 
 ```mermaid
@@ -113,17 +98,15 @@ participant Client as "Client"
 participant CalcAPI as "Calculate API<br/>src/app/api/calculate/route.ts"
 participant PolicyAPI as "Policy API<br/>src/app/api/policy/route.ts"
 participant Engine as "Loan Engine<br/>src/lib/loanEngine.ts"
-participant Scenarios as "Scenarios<br/>src/data/scenarios.ts"
 participant Rules as "Rules & Packages<br/>src/data/*"
-Client->>CalcAPI : "POST /api/calculate {scenario}"
-CalcAPI->>Engine : "Run calculations with scenario"
-Engine->>Scenarios : "Load scenario profile"
+Client->>CalcAPI : "POST /api/calculate {borrowerProfile}"
+CalcAPI->>Engine : "Run calculations with profile"
 Engine->>Rules : "Apply eligibility and risk rules"
 Rules-->>Engine : "Scores and flags"
 Engine-->>CalcAPI : "Recommendations and eligibility"
 CalcAPI-->>Client : "Result payload"
-Client->>PolicyAPI : "POST /api/policy {scenario}"
-PolicyAPI->>Engine : "Evaluate policy for scenario"
+Client->>PolicyAPI : "POST /api/policy {borrowerProfile}"
+PolicyAPI->>Engine : "Evaluate policy for profile"
 Engine->>Rules : "Check policy constraints"
 Rules-->>Engine : "Policy outcome"
 Engine-->>PolicyAPI : "Policy result"
@@ -134,117 +117,121 @@ PolicyAPI-->>Client : "Policy response"
 - [calculate/route.ts](file://src/app/api/calculate/route.ts)
 - [policy/route.ts](file://src/app/api/policy/route.ts)
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
 
 ## Detailed Component Analysis
 
-### Scenario Data Model
-Scenarios represent borrower profiles and include fields such as:
-- Income level(s): monthly or annual income, stability indicators
-- Debt ratios: existing obligations relative to income
-- Employment status: type of employment, tenure, stability
-- Credit history patterns: past performance indicators, delinquencies, utilization trends
+### Eligibility Rules Framework
+Eligibility rules define the criteria that borrowers must meet to qualify for specific loan products. These rules evaluate various aspects of a borrower's financial profile including:
+- Income thresholds and stability indicators
+- Debt-to-income ratio limits
+- Employment status and tenure requirements
+- Credit history standards and minimum scores
+- Existing debt obligations and payment history
 
-These fields feed into eligibility and risk evaluations to determine loan suitability and terms.
+The rules are structured as conditional statements that return boolean values indicating qualification status.
 
 ```mermaid
 classDiagram
-class Scenario {
-+string id
-+number incomeLevel
-+number debtRatio
-+string employmentStatus
-+object creditHistory
-+map~string,any~ additionalAttributes
-}
 class EligibilityRule {
 +string name
-+function evaluate(scenario) boolean
++function evaluate(profile) boolean
++number threshold
++string category
 }
 class RiskRule {
 +string name
-+function score(scenario) number
++function score(profile) number
++string factor
++number weight
 }
 class LoanPackage {
 +string productId
 +number maxAmount
 +number interestRate
 +object constraints
++string[] eligibilityCriteria
 }
-Scenario --> EligibilityRule : "evaluated by"
-Scenario --> RiskRule : "scored by"
-Scenario --> LoanPackage : "matched to"
+EligibilityRule --> LoanPackage : "qualifies for"
+RiskRule --> LoanPackage : "affects pricing"
 ```
 
 **Diagram sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
 
 **Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
 
-### Scenario Creation Process
-To add a new scenario:
-- Define a new scenario object with required attributes (income, debt ratio, employment status, credit history).
-- Ensure attribute names and types align with those expected by eligibility and risk rules.
-- Optionally include additional attributes for nuanced modeling.
-- Register the scenario in the dataset so the engine can load it during calculations.
+### Risk Assessment System
+The risk assessment system evaluates borrower profiles to determine risk levels and appropriate loan terms. Key components include:
+- **Risk Factors**: Individual criteria that contribute to overall risk assessment (payment history, income stability, employment type)
+- **Scoring Algorithm**: Mathematical model that combines risk factors into a composite risk score
+- **Adjustment Rules**: Logic that modifies base terms based on risk assessment results
 
-Best practices:
-- Keep scenario definitions consistent and well-documented
-- Validate inputs before submission to the engine
-- Use clear identifiers and descriptive labels for traceability
-
-**Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
-
-### Eligibility and Risk Evaluation Flow
-The engine processes scenarios through a structured flow:
-- Load scenario profile
-- Apply eligibility rules to determine qualification
-- Apply risk rules to compute risk scores and adjustments
-- Match eligible scenarios against loan packages to generate recommendations
+Risk scores influence loan approval decisions, interest rates, and maximum borrowing amounts.
 
 ```mermaid
 flowchart TD
-Start(["Start"]) --> LoadScenario["Load Scenario Profile"]
-LoadScenario --> EligibilityCheck["Apply Eligibility Rules"]
-EligibilityCheck --> Eligible{"Eligible?"}
-Eligible --> |No| Reject["Return Not Eligible"]
-Eligible --> |Yes| RiskScore["Apply Risk Rules"]
-RiskScore --> ScoreThreshold{"Within Threshold?"}
-ScoreThreshold --> |No| Conditional["Conditional Approval with Adjustments"]
-ScoreThreshold --> |Yes| MatchProducts["Match Loan Packages"]
-MatchProducts --> Recommendations["Generate Recommendations"]
+Start(["Borrower Profile"]) --> FactorAnalysis["Analyze Risk Factors"]
+FactorAnalysis --> ScoreCalculation["Calculate Composite Risk Score"]
+ScoreCalculation --> ThresholdCheck{"Within Acceptable Range?"}
+ThresholdCheck --> |No| HighRisk["High Risk Classification"]
+ThresholdCheck --> |Yes| StandardRisk["Standard Risk Classification"]
+HighRisk --> TermAdjustment["Adjust Loan Terms"]
+StandardRisk --> ProductMatching["Match Available Products"]
+TermAdjustment --> Recommendations["Generate Recommendations"]
+ProductMatching --> Recommendations
 Recommendations --> End(["End"])
-Conditional --> End
-Reject --> End
 ```
 
 **Diagram sources**
-- [loanEngine.ts](file://src/lib/loanEngine.ts)
-- [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
-- [loanPackages.ts](file://src/data/loanPackages.ts)
+- [loanEngine.ts](file://src/lib/loanEngine.ts)
 
 **Section sources**
-- [loanEngine.ts](file://src/lib/loanEngine.ts)
-- [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
+- [loanEngine.ts](file://src/lib/loanEngine.ts)
+
+### Loan Package Matching
+The loan package matching system connects qualified borrowers with appropriate loan products based on their profile and risk assessment. The process includes:
+- **Product Catalog**: Complete list of available loan products with specifications
+- **Matching Algorithm**: Logic that pairs borrower profiles with suitable products
+- **Constraint Validation**: Verification that borrower meets all product requirements
+- **Optimization**: Selection of best-fit product based on multiple criteria
+
+```mermaid
+sequenceDiagram
+participant Engine as "Loan Engine"
+participant Catalog as "Product Catalog"
+participant Matcher as "Matching Algorithm"
+participant Validator as "Constraint Validator"
+Engine->>Catalog : "Load available products"
+Catalog-->>Engine : "Product specifications"
+Engine->>Matcher : "Process borrower profile"
+Matcher->>Validator : "Validate product constraints"
+Validator-->>Matcher : "Validation results"
+Matcher-->>Engine : "Qualified products"
+Engine-->>Engine : "Rank and select best match"
+```
+
+**Diagram sources**
 - [loanPackages.ts](file://src/data/loanPackages.ts)
+- [loanEngine.ts](file://src/lib/loanEngine.ts)
+
+**Section sources**
+- [loanPackages.ts](file://src/data/loanPackages.ts)
+- [loanEngine.ts](file://src/lib/loanEngine.ts)
 
 ### API Integration for Calculations
 Clients interact with the system via API endpoints:
-- POST /api/calculate: Accepts a scenario and returns eligibility and recommendations
-- POST /api/policy: Evaluates policy constraints for a given scenario
+- POST /api/calculate: Accepts borrower profile and returns eligibility and recommendations
+- POST /api/policy: Evaluates policy constraints for a given borrower profile
 
 The endpoints delegate to the loan engine, which applies rules and returns structured results.
 
@@ -253,11 +240,11 @@ sequenceDiagram
 participant Client as "Client"
 participant API as "API Routes"
 participant Engine as "Loan Engine"
-participant Data as "Scenarios & Rules"
-Client->>API : "Request with scenario"
+participant Data as "Rules & Packages"
+Client->>API : "Request with borrower profile"
 API->>Engine : "Invoke calculation/policy"
-Engine->>Data : "Read scenario and rules"
-Data-->>Engine : "Profile and constraints"
+Engine->>Data : "Read rules and packages"
+Data-->>Engine : "Constraints and criteria"
 Engine-->>API : "Computed results"
 API-->>Client : "Response payload"
 ```
@@ -266,7 +253,6 @@ API-->>Client : "Response payload"
 - [calculate/route.ts](file://src/app/api/calculate/route.ts)
 - [policy/route.ts](file://src/app/api/policy/route.ts)
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
@@ -277,16 +263,15 @@ API-->>Client : "Response payload"
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
 
 ## Dependency Analysis
-The scenarios system has clear dependencies:
-- Scenarios depend on consistent field definitions across rules and packages
-- Eligibility and risk rules depend on scenario attributes being present and valid
+The lending evaluation system has clear dependencies:
+- Eligibility and risk rules depend on consistent borrower profile field definitions
 - The loan engine depends on all data modules to produce accurate outputs
 - API routes depend on the engine and data modules to serve requests
+- Product matching depends on both eligibility validation and risk assessment results
 
 ```mermaid
 graph LR
-Scenarios["Scenarios<br/>src/data/scenarios.ts"] --> Engine["Loan Engine<br/>src/lib/loanEngine.ts"]
-Eligibility["Eligibility Rules<br/>src/data/eligibilityRules.ts"] --> Engine
+Eligibility["Eligibility Rules<br/>src/data/eligibilityRules.ts"] --> Engine["Loan Engine<br/>src/lib/loanEngine.ts"]
 Risk["Risk Rules<br/>src/data/riskRules.ts"] --> Engine
 Packages["Loan Packages<br/>src/data/loanPackages.ts"] --> Engine
 CalcAPI["Calculate API<br/>src/app/api/calculate/route.ts"] --> Engine
@@ -294,7 +279,6 @@ PolicyAPI["Policy API<br/>src/app/api/policy/route.ts"] --> Engine
 ```
 
 **Diagram sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
@@ -303,7 +287,6 @@ PolicyAPI["Policy API<br/>src/app/api/policy/route.ts"] --> Engine
 - [policy/route.ts](file://src/app/api/policy/route.ts)
 
 **Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
@@ -313,28 +296,27 @@ PolicyAPI["Policy API<br/>src/app/api/policy/route.ts"] --> Engine
 
 ## Performance Considerations
 - Precompute stable rule sets where possible to reduce runtime overhead
-- Cache frequently accessed scenario profiles and product catalogs
+- Cache frequently accessed rule definitions and product catalogs
 - Validate inputs early to avoid expensive computations on invalid data
-- Batch multiple scenario evaluations when processing large datasets
+- Batch multiple borrower evaluations when processing large datasets
 - Monitor rule complexity and optimize thresholds to maintain responsiveness
-
-[No sources needed since this section provides general guidance]
+- Implement efficient matching algorithms for product selection
 
 ## Troubleshooting Guide
 Common issues and resolutions:
-- Missing or invalid scenario fields: Ensure all required attributes are present and correctly typed
-- Rule mismatches: Verify that scenario attributes match expectations in eligibility and risk rules
+- Missing or invalid borrower profile fields: Ensure all required attributes are present and correctly typed
+- Rule mismatches: Verify that borrower profile attributes match expectations in eligibility and risk rules
 - Engine errors: Check logs from the loan engine for failed evaluations or unexpected states
 - API failures: Inspect request payloads and responses from calculate and policy endpoints
+- Product matching failures: Review constraint validation logic and product specifications
 
 Recommended steps:
-- Validate scenario data before submission
-- Review rule definitions for consistency with scenario schema
+- Validate borrower profile data before submission
+- Review rule definitions for consistency with profile schema
 - Add logging around key evaluation steps to pinpoint failures
-- Test with known-good scenarios to isolate regressions
+- Test with known-good profiles to isolate regressions
 
 **Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
@@ -342,22 +324,28 @@ Recommended steps:
 - [policy/route.ts](file://src/app/api/policy/route.ts)
 
 ## Conclusion
-The scenarios management system provides a robust foundation for modeling borrower profiles and simulating lending outcomes. By defining clear scenario structures, applying eligibility and risk rules, and leveraging loan packages, the engine produces actionable recommendations. Extending the system involves adding new scenarios and ensuring alignment with existing rules and packages. Proper validation, caching, and monitoring will help maintain performance and reliability.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The lending evaluation system provides a focused foundation for processing borrower information through eligibility rules, risk assessment, and loan package matching. By defining clear rule structures, applying consistent risk evaluation, and leveraging product catalogs, the engine produces actionable loan recommendations. The streamlined architecture removes unnecessary complexity while maintaining robust lending decision-making capabilities. Proper validation, caching, and monitoring will help maintain performance and reliability.
 
 ## Appendices
 
-### Example Scenario-Based Calculations
-- Low income, high debt ratio: Likely not eligible for standard loans; may receive conditional offers with reduced amounts or higher rates
-- Stable employment, moderate debt ratio: Eligible for multiple packages; engine recommends best-fit product based on risk score
-- Strong credit history, low debt ratio: High eligibility; engine suggests optimal package with favorable terms
+### Example Evaluation Workflows
+- **Low income, high debt ratio**: Likely not eligible for standard loans; may receive conditional offers with reduced amounts or higher rates
+- **Stable employment, moderate debt ratio**: Eligible for multiple packages; engine recommends best-fit product based on risk score
+- **Strong credit history, low debt ratio**: High eligibility; engine suggests optimal package with favorable terms
 
-These examples illustrate how scenario attributes influence eligibility and recommendations.
+These examples illustrate how borrower profile attributes influence eligibility and recommendations.
 
 **Section sources**
-- [scenarios.ts](file://src/data/scenarios.ts)
 - [eligibilityRules.ts](file://src/data/eligibilityRules.ts)
 - [riskRules.ts](file://src/data/riskRules.ts)
 - [loanPackages.ts](file://src/data/loanPackages.ts)
 - [loanEngine.ts](file://src/lib/loanEngine.ts)
+
+### System Limitations and Scope
+The current system focuses on core lending evaluation functionality and does not include:
+- Automated scenario-based financial planning features
+- Complex multi-scenario comparison tools
+- Advanced predictive modeling capabilities
+- Real-time market condition integration
+
+Future enhancements may expand these capabilities while maintaining the core lending evaluation framework.
