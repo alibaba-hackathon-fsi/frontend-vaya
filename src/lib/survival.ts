@@ -22,13 +22,27 @@ export type SurvInput = {
 };
 
 export type SurvMetrics = {
-  emi: number; dti: number; pti: number; ltv: number; disposable: number;
-  efr: number; stab: number; score: number; depCost: number; rate: number;
+  emi: number;
+  dti: number;
+  pti: number;
+  ltv: number;
+  disposable: number;
+  efr: number;
+  stab: number;
+  score: number;
+  depCost: number;
+  rate: number;
 };
 
 export type MCResult = {
-  months: number[]; p10: number[]; p50: number[]; p90: number[];
-  ruin: number; stress: number[]; met: SurvMetrics; base: number;
+  months: number[];
+  p10: number[];
+  p50: number[];
+  p90: number[];
+  ruin: number;
+  stress: number[];
+  met: SurvMetrics;
+  base: number;
 };
 
 export function pickRate(purpose: string): { rate: number; std: number } {
@@ -91,7 +105,13 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
   const asset = inp.amount + inp.down;
   const ltv = asset > 0 ? (inp.amount / asset) * 100 : 0;
   const efr = out > 0 ? inp.savings / out : 99;
-  const stabMap: Record<string, number> = { salaried: 88, gov: 95, business: 70, self: 60, freelance: 52 };
+  const stabMap: Record<string, number> = {
+    salaried: 88,
+    gov: 95,
+    business: 70,
+    self: 60,
+    freelance: 52,
+  };
   const stab = stabMap[inp.employment] || 70;
 
   // Weighted score model (100 points total):
@@ -107,8 +127,25 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
   // 5. Income stability (10 pts) — from employment type
   const stabScore = (stab / 100) * 10;
 
-  const sc = Math.max(1, Math.min(99, Math.round(dtiScore + cfScore + efScore + ltvScore + stabScore)));
-  return { emi, dti, pti, ltv, disposable, efr, stab, score: sc, depCost, rate };
+  const sc = Math.max(
+    1,
+    Math.min(
+      99,
+      Math.round(dtiScore + cfScore + efScore + ltvScore + stabScore),
+    ),
+  );
+  return {
+    emi,
+    dti,
+    pti,
+    ltv,
+    disposable,
+    efr,
+    stab,
+    score: sc,
+    depCost,
+    rate,
+  };
 }
 
 export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
@@ -129,7 +166,9 @@ export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
     }
     paths.push(path);
   }
-  const p10: number[] = [], p50: number[] = [], p90: number[] = [];
+  const p10: number[] = [],
+    p50: number[] = [],
+    p90: number[] = [];
   for (let i = 0; i <= T; i++) {
     const col = paths.map((p) => p[i]).sort((a, b) => a - b);
     p10.push(col[Math.floor(N * 0.1)]);
@@ -151,21 +190,39 @@ export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
 }
 
 // Savings-balance chart as an SVG string (band + expected path + stress line).
-export function survChartSvg(mc: MCResult, T: number, fv: (v: number) => string): string {
+export function survChartSvg(
+  mc: MCResult,
+  T: number,
+  fv: (v: number) => string,
+): string {
   const { p10, p50, p90, stress } = mc;
   const n = mc.months.length;
-  const W = 680, H = 250, pl = 52, pr = 14, pt = 14, pb = 26;
+  const W = 680,
+    H = 250,
+    pl = 52,
+    pr = 14,
+    pt = 14,
+    pb = 26;
   const all = p10.concat(p90, stress, [0]);
-  let mn = Math.min(...all), mx = Math.max(...all);
+  let mn = Math.min(...all),
+    mx = Math.max(...all);
   if (mx === mn) mx = mn + 1;
   const X = (i: number) => pl + (i * (W - pl - pr)) / (n - 1);
   const Y = (v: number) => pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb);
-  const up = p90.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
-  const dn = p10.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).reverse().join(" ");
+  const up = p90
+    .map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1))
+    .join(" ");
+  const dn = p10
+    .map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1))
+    .reverse()
+    .join(" ");
   const band = `<polygon points="${up} ${dn}" fill="rgba(0,199,118,.15)"/>`;
   const med = `<polyline points="${p50.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ")}" fill="none" stroke="#0A8F55" stroke-width="2.6" stroke-linejoin="round"/>`;
   const stressLine = `<polyline points="${stress.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ")}" fill="none" stroke="#E5533B" stroke-width="1.8" stroke-dasharray="5 4"/>`;
-  const zero = mn < 0 ? `<line x1="${pl}" y1="${Y(0).toFixed(1)}" x2="${W - pr}" y2="${Y(0).toFixed(1)}" stroke="#E5533B" stroke-width="1" stroke-dasharray="2 3" opacity=".55"/>` : "";
+  const zero =
+    mn < 0
+      ? `<line x1="${pl}" y1="${Y(0).toFixed(1)}" x2="${W - pr}" y2="${Y(0).toFixed(1)}" stroke="#E5533B" stroke-width="1" stroke-dasharray="2 3" opacity=".55"/>`
+      : "";
   let grid = "";
   for (let g = 0; g <= 3; g++) {
     const val = mx - ((mx - mn) * g) / 3;
@@ -184,14 +241,21 @@ export function survChartSvg(mc: MCResult, T: number, fv: (v: number) => string)
 
 /* ============ round 13: amortisation + richer chart builders ============ */
 
-export type Amort = { rem: number[]; cum: number[]; emi: number; interest: number };
+export type Amort = {
+  rem: number[];
+  cum: number[];
+  emi: number;
+  interest: number;
+};
 
 /** Remaining-balance and cumulative-interest series for one loan. */
 export function amortSeries(P: number, annual: number, n: number): Amort {
   const r = annual / 100 / 12;
   const m = monthly(P, annual, n);
-  let bal = P, ci = 0;
-  const rem = [P], cum = [0];
+  let bal = P,
+    ci = 0;
+  const rem = [P],
+    cum = [0];
   for (let i = 1; i <= n; i++) {
     const int = bal * r;
     ci += int;
@@ -202,22 +266,34 @@ export function amortSeries(P: number, annual: number, n: number): Amort {
   return { rem, cum, emi: m, interest: ci };
 }
 
-export type Series = { name: string; color: string; vals: number[]; dash?: boolean };
+export type Series = {
+  name: string;
+  color: string;
+  vals: number[];
+  dash?: boolean;
+};
 
 /** Multi-series line chart (SVG string) with y/x axes, end dots and staggered end labels. */
 export function lineMultiSvg(series: Series[], W = 660, H = 220): string {
-  const pl = 54, pr = 52, pt = 14, pb = 24;
+  const pl = 54,
+    pr = 52,
+    pt = 14,
+    pb = 24;
   let all: number[] = [];
-  series.forEach((s) => { all = all.concat(s.vals); });
+  series.forEach((s) => {
+    all = all.concat(s.vals);
+  });
   all.push(0);
-  let mn = Math.min(...all), mx = Math.max(...all);
+  let mn = Math.min(...all),
+    mx = Math.max(...all);
   if (mx === mn) mx = mn + 1;
   const n = series[0].vals.length;
   const X = (i: number) => pl + (i * (W - pl - pr)) / (n - 1);
   const Y = (v: number) => pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb);
   let grid = "";
   for (let g = 0; g <= 3; g++) {
-    const val = mx - ((mx - mn) * g) / 3, yy = Y(val);
+    const val = mx - ((mx - mn) * g) / 3,
+      yy = Y(val);
     grid += `<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${W - pr}" y2="${yy.toFixed(1)}" stroke="#EDF1F4"/><text x="${pl - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="10" fill="#95A29F">${fvShort(val)}</text>`;
   }
   const marks: number[] = [];
@@ -225,17 +301,25 @@ export function lineMultiSvg(series: Series[], W = 660, H = 220): string {
   for (let i = 0; i < n; i += step) marks.push(i);
   if (marks[marks.length - 1] !== n - 1) marks.push(n - 1);
   let xl = "";
-  marks.forEach((i) => { xl += `<text x="${X(i).toFixed(1)}" y="${H - 7}" text-anchor="middle" font-size="10" fill="#95A29F">${i}</text>`; });
+  marks.forEach((i) => {
+    xl += `<text x="${X(i).toFixed(1)}" y="${H - 7}" text-anchor="middle" font-size="10" fill="#95A29F">${i}</text>`;
+  });
   const ends = series.map((s, i) => ({ i, y: Y(s.vals[n - 1]) }));
   ends.sort((a, b) => a.y - b.y);
-  for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 12) ends[k].y = ends[k - 1].y + 12;
+  for (let k = 1; k < ends.length; k++)
+    if (ends[k].y - ends[k - 1].y < 12) ends[k].y = ends[k - 1].y + 12;
   const lblY: Record<number, number> = {};
-  ends.forEach((e) => { lblY[e.i] = e.y; });
+  ends.forEach((e) => {
+    lblY[e.i] = e.y;
+  });
   let lines = "";
   series.forEach((s, si) => {
-    const pts = s.vals.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
+    const pts = s.vals
+      .map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1))
+      .join(" ");
     lines += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ' stroke-dasharray="5 4"' : ""}/>`;
-    const lx = X(n - 1), ly = Y(s.vals[n - 1]);
+    const lx = X(n - 1),
+      ly = Y(s.vals[n - 1]);
     lines += `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.6" fill="${s.color}" stroke="#fff" stroke-width="1.6"/>`;
     lines += `<text x="${(lx + 7).toFixed(1)}" y="${(lblY[si] + 3.5).toFixed(1)}" font-size="10.5" font-weight="700" fill="${s.color}">${fvShort(s.vals[n - 1])}</text>`;
   });
@@ -244,28 +328,60 @@ export function lineMultiSvg(series: Series[], W = 660, H = 220): string {
 
 /** Rate-trend chart with axes, dots and min/max annotations. */
 export function trendChartRichSvg(arr: number[]): string {
-  const W = 660, H = 190, pl = 46, pr = 16, pt = 16, pb = 24, n = arr.length;
-  let mn = Math.min(...arr), mx = Math.max(...arr);
+  const W = 660,
+    H = 190,
+    pl = 46,
+    pr = 16,
+    pt = 16,
+    pb = 24,
+    n = arr.length;
+  let mn = Math.min(...arr),
+    mx = Math.max(...arr);
   const pad = (mx - mn) * 0.25 || 0.4;
-  mn -= pad; mx += pad;
+  mn -= pad;
+  mx += pad;
   const X = (i: number) => pl + (i * (W - pl - pr)) / (n - 1);
   const Y = (v: number) => pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb);
   let grid = "";
   for (let g = 0; g <= 3; g++) {
-    const val = mx - ((mx - mn) * g) / 3, yy = Y(val);
+    const val = mx - ((mx - mn) * g) / 3,
+      yy = Y(val);
     grid += `<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${W - pr}" y2="${yy.toFixed(1)}" stroke="#EDF1F4"/><text x="${pl - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" font-size="10" fill="#95A29F">${val.toFixed(1)}%</text>`;
   }
-  const line = arr.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
+  const line = arr
+    .map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1))
+    .join(" ");
   const area = `<polygon points="${pl},${H - pb} ${line} ${W - pr},${H - pb}" fill="url(#dtg)"/>`;
   let dots = "";
-  arr.forEach((v, i) => { dots += `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="#fff" stroke="#0A8F55" stroke-width="1.6"/>`; });
-  const lo = Math.min(...arr), hi = Math.max(...arr);
-  const iMin = arr.indexOf(lo), iMax = arr.indexOf(hi);
-  const ann = `<g><circle cx="${X(iMin).toFixed(1)}" cy="${Y(lo).toFixed(1)}" r="4.4" fill="#00C776" stroke="#fff" stroke-width="2"/><text x="${X(iMin).toFixed(1)}" y="${(Y(lo) + 16).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#0A8F55">${lo.toFixed(1)}%</text></g>`
-    + `<g><circle cx="${X(iMax).toFixed(1)}" cy="${Y(hi).toFixed(1)}" r="4.4" fill="#E5533B" stroke="#fff" stroke-width="2"/><text x="${X(iMax).toFixed(1)}" y="${(Y(hi) - 9).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#E5533B">${hi.toFixed(1)}%</text></g>`;
-  const MO = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+  arr.forEach((v, i) => {
+    dots += `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="#fff" stroke="#0A8F55" stroke-width="1.6"/>`;
+  });
+  const lo = Math.min(...arr),
+    hi = Math.max(...arr);
+  const iMin = arr.indexOf(lo),
+    iMax = arr.indexOf(hi);
+  const ann =
+    `<g><circle cx="${X(iMin).toFixed(1)}" cy="${Y(lo).toFixed(1)}" r="4.4" fill="#00C776" stroke="#fff" stroke-width="2"/><text x="${X(iMin).toFixed(1)}" y="${(Y(lo) + 16).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#0A8F55">${lo.toFixed(1)}%</text></g>` +
+    `<g><circle cx="${X(iMax).toFixed(1)}" cy="${Y(hi).toFixed(1)}" r="4.4" fill="#E5533B" stroke="#fff" stroke-width="2"/><text x="${X(iMax).toFixed(1)}" y="${(Y(hi) - 9).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#E5533B">${hi.toFixed(1)}%</text></g>`;
+  const MO = [
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+  ];
   let xl = "";
-  arr.forEach((v, i) => { if (i % 2 === 0 || i === n - 1) xl += `<text x="${X(i).toFixed(1)}" y="${H - 7}" text-anchor="middle" font-size="10" fill="#95A29F">${MO[i] ?? i}</text>`; });
+  arr.forEach((v, i) => {
+    if (i % 2 === 0 || i === n - 1)
+      xl += `<text x="${X(i).toFixed(1)}" y="${H - 7}" text-anchor="middle" font-size="10" fill="#95A29F">${MO[i] ?? i}</text>`;
+  });
   return `<svg viewBox="0 0 ${W} ${H}" class="survsvg"><defs><linearGradient id="dtg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00C776" stop-opacity=".24"/><stop offset="1" stop-color="#00C776" stop-opacity="0"/></linearGradient></defs>${grid}${area}<polyline points="${line}" fill="none" stroke="#0A8F55" stroke-width="2.6" stroke-linejoin="round"/>${dots}${ann}${xl}</svg>`;
 }
 

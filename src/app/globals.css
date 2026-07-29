@@ -2493,7 +2493,9 @@ img.flag {
   margin-bottom: 5px;
   line-height: 1.4;
 }
-.surv-err:last-child { margin-bottom: 0; }
+.surv-err:last-child {
+  margin-bottom: 0;
+}
 .surv-result {
   min-height: 420px;
 }
@@ -2642,8 +2644,12 @@ img.flag {
   padding-left: 14px;
   border-left: 3px solid var(--red);
 }
-.sc-reason:last-child { margin-bottom: 0; }
-.sc-reason b { color: var(--red); }
+.sc-reason:last-child {
+  margin-bottom: 0;
+}
+.sc-reason b {
+  color: var(--red);
+}
 .sc-ok-msg {
   border-left-color: var(--green);
   color: var(--green-text);
