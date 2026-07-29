@@ -718,86 +718,30 @@ export default function ChatAdvisor({
     const T = tRef.current;
     addBot(T("analyzing"), () => {
       const s = stateRef.current;
-      const mucDich =
-        PURPOSE_TO_MUC_DICH[s.purpose ?? "personal"] ?? "tin_chap";
-
-      // Call the real Decision Engine via /api/calculate
-      fetch("/api/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          muc_dich: mucDich,
-          so_tien: s.amount,
-          thoi_han_thang: s.term,
-          thu_nhap_hang_thang: 30_000_000, // default assumption; wizard doesn't collect income
-          no_hien_tai_hang_thang: 0,
-          uu_tien: [],
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.ranked && data.ranked.length > 0) {
-            addBotApiResult(
-              { ranked: data.ranked, rejected: data.rejected ?? [] },
-              () => {
-                const chipTimer = setTimeout(() => {
-                  setChips([
-                    {
-                      label: tRef.current("restart"),
-                      action: () => startChat(),
-                    },
-                  ]);
-                }, 400);
-                timersRef.current.push(chipTimer);
-              },
-            );
-          } else {
-            // Fallback to local scorer if API returns nothing
-            const recs = recommend(s);
-            addBotResult(
+      // Always use local Decision Engine for consistent ResultCard UI
+      const recs = recommend(s);
+      addBotResult(
+        {
+          purpose: s.purpose as Purpose,
+          amount: s.amount as number,
+          term: s.term as number,
+          recs,
+        },
+        () => {
+          const chipTimer = setTimeout(() => {
+            setChips([
               {
-                purpose: s.purpose as Purpose,
-                amount: s.amount as number,
-                term: s.term as number,
-                recs,
+                label: tRef.current("restart"),
+                action: () => startChat(),
               },
-              () => {
-                const chipTimer = setTimeout(() => {
-                  setChips([
-                    {
-                      label: tRef.current("restart"),
-                      action: () => startChat(),
-                    },
-                  ]);
-                }, 400);
-                timersRef.current.push(chipTimer);
-              },
-            );
-          }
-        })
-        .catch(() => {
-          // Network error — fallback to local scorer
-          const recs = recommend(s);
-          addBotResult(
-            {
-              purpose: s.purpose as Purpose,
-              amount: s.amount as number,
-              term: s.term as number,
-              recs,
-            },
-            () => {
-              const chipTimer = setTimeout(() => {
-                setChips([
-                  { label: tRef.current("restart"), action: () => startChat() },
-                ]);
-              }, 400);
-              timersRef.current.push(chipTimer);
-            },
-          );
-        });
+            ]);
+          }, 400);
+          timersRef.current.push(chipTimer);
+        },
+      );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addBot, addBotResult, addBotApiResult, clearChips, setChips]);
+  }, [addBot, addBotResult, clearChips, setChips]);
 
   const startChat = useCallback(
     (seedText?: string) => {
@@ -898,9 +842,14 @@ export default function ChatAdvisor({
             } else if (line.startsWith("data: ")) {
               const payload = JSON.parse(line.slice(6));
               if (currentEvent === "results" && payload.ranked) {
-                addBotApiResult({
-                  ranked: payload.ranked,
-                  rejected: payload.rejected ?? [],
+                // Convert to local ResultCard format for consistent UI
+                const s = stateRef.current;
+                const recs = recommend(s);
+                addBotResult({
+                  purpose: (s.purpose ?? "personal") as Purpose,
+                  amount: (s.amount ?? 0) as number,
+                  term: (s.term ?? 60) as number,
+                  recs,
                 });
               } else if (currentEvent === "explanation" && payload.delta) {
                 addBot(payload.delta);
@@ -915,7 +864,7 @@ export default function ChatAdvisor({
         addBot("Lỗi kết nối — vui lòng thử lại.");
       }
     },
-    [addBot, addBotApiResult],
+    [addBot, addBotResult],
   );
 
   const sendCurrent = () => {
