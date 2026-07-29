@@ -807,11 +807,14 @@ export default function ChatAdvisor({
     [addBot, addUser, rerender, setChips, purposeChips],
   );
 
-  // Boot the conversation once on mount — restore from sessionStorage if available.
+  // Boot the conversation once on mount.
+  // Only restore from sessionStorage when there is NO new intent (no seed, no pkg).
+  // A seed or pkg means the user clicked a fresh entry point and expects a new conversation.
   useEffect(() => {
-    const saved = loadChat();
+    const hasNewIntent = seed != null || pkg != null;
+    const saved = !hasNewIntent ? loadChat() : null;
     if (saved && saved.messages.length > 0) {
-      // Restore persisted session
+      // Restore persisted session (user navigated back without a new intent)
       messagesRef.current = saved.messages.map((m) =>
         m.role === "bot" ? { ...m, typing: false } : m,
       );
