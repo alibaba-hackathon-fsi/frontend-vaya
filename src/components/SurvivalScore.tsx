@@ -46,7 +46,7 @@ export default function SurvivalScore() {
       : null;
   const seed = initPkg != null ? PKG[initPkg] : null;
 
-  // Load persisted form from localStorage
+  // Load persisted financial profile from localStorage (NOT pkg/amount/term)
   const saved = useMemo(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -56,10 +56,10 @@ export default function SurvivalScore() {
     }
   }, []);
 
-  const [pkgSel, setPkgSel] = useState<number | null>(saved?.pkgSel ?? initPkg);
+  // URL ?pkg= always overrides; otherwise no pre-selected package
+  const [pkgSel, setPkgSel] = useState<number | null>(initPkg);
   const [f, setF] = useState(() => {
-    if (saved?.f) return saved.f;
-    return {
+    const base = {
       purpose: seed ? seed.purpose : sp.get("p") || "home",
       amount: String(
         seed ? Math.min(seed.max, 2000000000) : sp.get("a") || "2000000000",
@@ -74,6 +74,14 @@ export default function SurvivalScore() {
       employment: "salaried",
       collateral: "re",
     };
+    // Restore only financial profile fields from localStorage
+    if (saved) {
+      const finKeys = ["income", "expenses", "debt", "savings", "down", "dependents", "employment", "collateral"] as const;
+      for (const k of finKeys) {
+        if (saved[k] != null) base[k] = saved[k];
+      }
+    }
+    return base;
   });
   const [res, setRes] = useState<{
     mc: MCResult;
@@ -83,14 +91,15 @@ export default function SurvivalScore() {
   const [fieldErrs, setFieldErrs] = useState<Record<string, string>>({});
   const [emiBreakdown, setEmiBreakdown] = useState<{ emi: number; income: number; pct: number; rate: number } | null>(null);
 
-  // Persist to localStorage on every change
+  // Persist only financial profile to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ f, pkgSel }));
+      const { income, expenses, debt, savings, down, dependents, employment, collateral } = f;
+      localStorage.setItem(LS_KEY, JSON.stringify({ income, expenses, debt, savings, down, dependents, employment, collateral }));
     } catch {
       /* noop */
     }
-  }, [f, pkgSel]);
+  }, [f]);
 
   const set = (k: string, v: string) =>
     setF((o: typeof f) => ({ ...o, [k]: v }));
@@ -174,7 +183,7 @@ export default function SurvivalScore() {
     run(); /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
-  const numField = (label: string, key: string, step: number) => (
+  const numField = (label: string, key: keyof typeof f, step: number) => (
     <label className={`fq${fieldErrs[key] ? " fq-err" : ""}`}>
       <span>{t(label)}</span>
       <input
