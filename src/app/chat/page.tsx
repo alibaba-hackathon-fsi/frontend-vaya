@@ -7,9 +7,12 @@ import ChatAdvisor from "@/components/ChatAdvisor";
 function ChatInner() {
   const params = useSearchParams();
   const q = params.get("q") ?? undefined;
-  // `key` forces a fresh engine instance if the seed changes (e.g. navigating
-  // from home with a different question).
-  return <ChatAdvisor key={q ?? "__none__"} seed={q} />;
+  // `?pkg=<index>` opens a package-specific consultation instead of the
+  // generic needs-based flow (used by the AI-advisor button on a package page).
+  const pkgRaw = params.get("pkg");
+  const pkg = pkgRaw != null && !Number.isNaN(parseInt(pkgRaw, 10)) ? parseInt(pkgRaw, 10) : undefined;
+  // `key` forces a fresh engine instance when the seed/package changes.
+  return <ChatAdvisor key={pkg != null ? "p" + pkg : q ?? "__none__"} seed={q} pkg={pkg} />;
 }
 
 export default function ChatPage() {

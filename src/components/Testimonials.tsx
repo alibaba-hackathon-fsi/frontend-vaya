@@ -9,6 +9,13 @@ const ITEMS: [string, string, string][] = [
   ["t3", "t3n", "t3r"],
 ];
 
+// Memoji-style avatars (on a green circle) per testimonial.
+const AVA: Record<string, string> = {
+  t1: "/testimonials/minh.png",
+  t2: "/testimonials/an.png",
+  t3: "/testimonials/linh.png",
+};
+
 export default function Testimonials() {
   const { t } = useI18n();
   return (
@@ -26,7 +33,8 @@ export default function Testimonials() {
                 <div className="stars">★★★★★</div>
                 <p>{t(q)}</p>
                 <div className="who">
-                  <div className="a">{name.charAt(0)}</div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="a" src={AVA[q]} alt={name} />
                   <div>
                     <b>{name}</b>
                     <small>{t(r)}</small>

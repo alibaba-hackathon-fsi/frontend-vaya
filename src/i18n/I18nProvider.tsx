@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
   useCallback,
   type ReactNode,
@@ -11,6 +12,11 @@ import React, {
 import { T, type Lang } from "./dict";
 
 const STORAGE_KEY = "vaya_lang";
+
+// Apply the persisted language before the browser paints, so a non-default
+// language never flashes English first on refresh. Falls back to useEffect on
+// the server (where layout effects would warn).
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 type I18nContextValue = {
   lang: Lang;
@@ -32,8 +38,8 @@ function resolve(lang: Lang, key: string): string | string[] | undefined {
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
 
-  // Hydrate persisted language on mount (client only).
-  useEffect(() => {
+  // Hydrate persisted language before first paint (avoids default-language flash).
+  useIsoLayoutEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved === "en" || saved === "vi" || saved === "zh") {

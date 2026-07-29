@@ -114,9 +114,11 @@ export default function Hero() {
         <div className="blob b1" />
         <div className="blob b2" />
       </div>
+      {/* Animated mascot — a true-transparent looping WebP that sits a fixed
+          distance left of the centered content and gestures toward the chat. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="hero-mascot" src="/mascot/vaya-mascot.gif" alt="Vaya mascot" aria-hidden="true" />
       <div className="wrap hero-inner">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="hero-mascot" src="/mascot/vaya-mascot.png" alt="Vaya mascot" />
         <span className="eyebrow">
           <span className="dot" /> <span>{t("hero_eyebrow")}</span>
         </span>
@@ -142,9 +144,6 @@ export default function Hero() {
             }}
           />
           <div className="lrow">
-            <button className="hintbtn" title="Attach" type="button">
-              +
-            </button>
             <button className="send" aria-label="Ask" type="button" onClick={send}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <path d="M5 12h14M13 6l6 6-6 6" />
