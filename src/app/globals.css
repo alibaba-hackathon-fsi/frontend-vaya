@@ -431,3 +431,82 @@ img.flag{width:21px;height:14px;object-fit:cover;border-radius:2px;display:inlin
 
 /* ===================== round 11 ===================== */
 .brand img.brandmark{height:27px;width:auto;display:block}
+
+/* ===================== round 12 : survival + detail ===================== */
+.pageview{display:none;min-height:calc(100vh - 66px);background:var(--surface)}
+.pageview.on{display:block}
+#detailView .wrap,#survivalView .wrap{padding-bottom:64px}
+.linkback{background:none;border:none;color:var(--green-text);font-weight:700;cursor:pointer;padding:18px 0 4px;font-size:14px}
+.nav-surv{color:var(--green-text)!important;font-weight:700!important}
+/* detail */
+.dt-head{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);padding:20px;margin-top:6px}
+.dt-logo{width:130px;height:58px;display:grid;place-items:center;background:var(--surface);flex-shrink:0}
+.dt-logo img{max-width:108px;max-height:34px;object-fit:contain}
+.dt-h{flex:1;min-width:0}
+.dt-type{font-size:11px;font-weight:700;color:var(--ink-2);background:var(--surface2);display:inline-block;padding:2px 8px;margin-bottom:5px}
+.dt-h h2{font-size:23px;line-height:1.1}
+.dt-prod{color:var(--muted);font-size:14px;margin-top:2px}
+.dt-rate{text-align:right}
+.dt-rate .k{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.dt-rate .v{font-family:var(--font-disp),sans-serif;font-weight:800;font-size:26px;color:var(--green-text)}
+.dt-rate .v small{font-size:12px;color:var(--muted);font-weight:600}
+.sm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px}
+.sm{background:#fff;border:1px solid var(--line);padding:11px 13px}
+.smk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.smv{font-family:var(--font-disp),sans-serif;font-weight:800;font-size:16px;margin-top:3px;white-space:nowrap}
+.dt-spark{background:#fff;border:1px solid var(--line);padding:12px;margin-top:10px}
+.dt-spark .spark{width:100%;height:60px}
+.dt-feats{display:flex;flex-wrap:wrap;gap:8px}
+.feat{font-size:12.5px;font-weight:600;color:var(--green-text);background:var(--green-soft);border:1px solid #CFEEDF;padding:6px 10px}
+.dt-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.dt-act{background:#fff;border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;align-items:flex-start}
+.dt-act-h{font-family:var(--font-disp),sans-serif;font-weight:800;font-size:16px;margin-bottom:6px}
+.dt-act p{color:var(--muted);font-size:13.5px;line-height:1.5;margin-bottom:13px}
+@media(max-width:640px){.dt-actions{grid-template-columns:1fr}.dt-head{flex-wrap:wrap}.dt-rate{text-align:left}}
+/* survival */
+.surv-hero{padding:8px 0 20px}
+.surv-hero h2{font-size:clamp(24px,3.2vw,36px);font-weight:800;max-width:780px;margin-top:10px}
+.surv-hero p{color:var(--muted);font-size:15.5px;line-height:1.6;margin-top:10px;max-width:720px}
+.surv-grid{display:grid;grid-template-columns:370px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.surv-grid{grid-template-columns:1fr}}
+.surv-form{background:#fff;border:1px solid var(--line);padding:20px;position:sticky;top:80px}
+@media(max-width:900px){.surv-form{position:static}}
+.fgroup{margin-bottom:16px}
+.glab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green-text);margin-bottom:9px}
+.fq{display:block;margin-bottom:10px}
+.fq>span{display:block;font-size:12.5px;color:var(--ink-2);font-weight:600;margin-bottom:5px}
+.fq input,.fq select{width:100%;border:1px solid var(--line-2);background:#fff;padding:9px 11px;font-family:var(--font-body),sans-serif;font-size:14px;color:var(--ink);border-radius:0}
+.fq input:focus,.fq select:focus{outline:none;border-color:var(--green)}
+.surv-gen{width:100%;justify-content:center;margin-top:6px}
+.surv-result{min-height:420px}
+.surv-empty{background:#fff;border:1px dashed var(--line-2);padding:60px 24px;text-align:center;color:var(--muted);font-size:14.5px}
+.score-head{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-left-width:5px;padding:18px 20px}
+.score-head.sc-good{border-left-color:var(--green)}
+.score-head.sc-ok{border-left-color:#E6A417}
+.score-head.sc-risk{border-left-color:var(--red)}
+.score-num{font-family:var(--font-disp),sans-serif;font-weight:800;font-size:46px;line-height:1}
+.sc-good .score-num{color:var(--green-text)}.sc-ok .score-num{color:#C6890F}.sc-risk .score-num{color:var(--red)}
+.score-meta{flex:1}
+.score-lab{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.score-verdict{font-family:var(--font-disp),sans-serif;font-weight:700;font-size:17px;margin-top:2px}
+.score-ruin{text-align:right;font-size:11.5px;color:var(--muted)}
+.score-ruin b{display:block;font-family:var(--font-disp),sans-serif;font-size:20px;color:var(--ink);margin-top:2px}
+.surv-chart{background:#fff;border:1px solid var(--line);padding:12px 12px 2px}
+.survsvg{width:100%;height:auto;display:block}
+.surv-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:9px 2px 2px}
+.lg{display:inline-flex;align-items:center;gap:6px}
+.lg::before{content:"";width:15px;height:3px;border-radius:2px;display:inline-block}
+.lg-med::before{background:#0A8F55}.lg-band::before{background:rgba(0,199,118,.34)}.lg-stress::before{background:#E5533B}
+.reco-list{background:#fff;border:1px solid var(--line)}
+.reco-i{display:flex;justify-content:space-between;gap:14px;padding:12px 15px;border-bottom:1px solid var(--line);font-size:13.5px}
+.reco-i:last-child{border-bottom:none}
+.reco-k{color:var(--muted);font-weight:600;flex-shrink:0}
+.reco-v{text-align:right;font-weight:700;color:var(--ink)}
+/* chat comparison */
+.rc-cmp{padding:2px 15px 10px}
+.cmp-row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.cmp-name{width:100px;font-size:12px;color:var(--ink-2);font-weight:600;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-track{flex:1;height:9px;background:var(--surface2)}
+.cmp-fill{height:100%}
+.cmp-val{font-size:11.5px;font-family:var(--font-disp),sans-serif;font-weight:700;white-space:nowrap}
+

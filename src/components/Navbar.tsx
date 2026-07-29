@@ -52,6 +52,7 @@ export default function Navbar() {
           <a onClick={() => scrollToId("why")}>{t("nav_why")}</a>
           <a onClick={() => scrollToId("how")}>{t("nav_how")}</a>
           <a onClick={() => scrollToId("faq")}>{t("nav_faq")}</a>
+          <a className="nav-surv" onClick={() => router.push("/survival")}>{t("nav_surv")}</a>
         </div>
         <div className="right">
           <div className="langsel" ref={selRef}>

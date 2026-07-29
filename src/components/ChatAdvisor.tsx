@@ -601,6 +601,23 @@ function ResultCard({
             );
           })}
         </div>
+        <div className="rc-clab">{t("cmp_title")}</div>
+        <div className="rc-cmp">
+          {(() => {
+            const items = recs.map((r) => {
+              const P = Math.min(amount || r.max, r.max);
+              return { name: bankOf(r.code).name, color: bankOf(r.code).color, interest: Math.max(0, r.mo * r.usedTerm - P) };
+            });
+            const mx = Math.max(...items.map((x) => x.interest)) || 1;
+            return items.map((x, i) => (
+              <div className="cmp-row" key={i}>
+                <span className="cmp-name">{x.name}</span>
+                <div className="cmp-track"><div className="cmp-fill" style={{ width: Math.round((x.interest / mx) * 100) + "%", background: x.color }} /></div>
+                <span className="cmp-val">{fmtMonthly(x.interest)}</span>
+              </div>
+            ));
+          })()}
+        </div>
         <div className="foot">{t("foot_note")}</div>
       </div>
     </>

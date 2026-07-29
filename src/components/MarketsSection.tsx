@@ -7,7 +7,6 @@ import { PKG, AVG, bankOf, purpName, prodName, logoSrc, type Purpose, type LoanP
 import { fmtVND, termLabel } from "@/lib/loanEngine";
 import Sparkline from "@/components/charts/Sparkline";
 import LineChart from "@/components/charts/LineChart";
-import type { Lang } from "@/i18n/dict";
 
 type FilterKey = "all" | Purpose;
 type SortKey = "rate" | "max" | "term";
@@ -15,17 +14,6 @@ type ViewKey = "cards" | "table";
 
 const FILTER_KEYS: FilterKey[] = ["all", "home", "car", "business", "personal", "secured"];
 const MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
-
-function askText(p: Purpose, lang: Lang): string {
-  const map: Record<Purpose, Record<Lang, string>> = {
-    home: { en: "I want a home loan", vi: "Tôi muốn vay mua nhà", zh: "我想申请购房贷款" },
-    car: { en: "I want a car loan", vi: "Tôi muốn vay mua ô tô", zh: "我想申请购车贷款" },
-    business: { en: "I need business capital", vi: "Tôi cần vốn kinh doanh", zh: "我需要经营资金" },
-    personal: { en: "I want a personal loan", vi: "Tôi muốn vay tiêu dùng", zh: "我想申请个人贷款" },
-    secured: { en: "I want a secured loan", vi: "Tôi muốn vay có tài sản đảm bảo", zh: "我想申请抵押贷款" },
-  };
-  return map[p][lang] || map[p].en;
-}
 
 export default function MarketsSection() {
   const router = useRouter();
@@ -69,7 +57,6 @@ export default function MarketsSection() {
     setFilter("all");
     setSearch("");
   };
-  const openChat = (seed: string) => router.push(seed ? `/chat?q=${encodeURIComponent(seed)}` : "/chat");
 
   const trendNow = AVG[AVG.length - 1] + "%";
   const trendDelta = "▼ " + (AVG[0] - AVG[AVG.length - 1]).toFixed(1);
@@ -173,7 +160,7 @@ export default function MarketsSection() {
                   rows.map((p: LoanPackage, i) => {
                     const b = bankOf(p.code);
                     return (
-                      <div className="pkg" key={p.code + i}>
+                      <div className="pkg" key={p.code + i} style={{ cursor: "pointer" }} onClick={() => router.push(`/package/${PKG.indexOf(p)}`)}>
                         <div className="pkg-top">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img className="pkg-logo" src={logoSrc(p.code)} alt={b.name} />
@@ -204,8 +191,8 @@ export default function MarketsSection() {
                         <div className="pkg-spark">
                           <Sparkline arr={p.trend} />
                         </div>
-                        <button className="pkg-cta" onClick={() => openChat(askText(p.purpose, lang))}>
-                          {t("ask")} →
+                        <button className="pkg-cta" onClick={(e) => { e.stopPropagation(); router.push(`/package/${PKG.indexOf(p)}`); }}>
+                          {t("view_details")}
                         </button>
                       </div>
                     );
@@ -271,8 +258,8 @@ export default function MarketsSection() {
                             <td className="num">{fmtVND(p.max, lang)}</td>
                             <td className="num">{termLabel(p.term, t)}</td>
                             <td className="num">
-                              <button className="ask" onClick={() => openChat(askText(p.purpose, lang))}>
-                                {t("ask")} →
+                              <button className="ask" onClick={() => router.push(`/package/${PKG.indexOf(p)}`)}>
+                                {t("view")}
                               </button>
                             </td>
                           </tr>
