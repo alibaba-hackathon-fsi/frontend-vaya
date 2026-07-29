@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import { PKG, bankOf, prodName, type Purpose } from "@/data/banks";
+import { PKG, bankOf, prodName, logoSrc, type Purpose } from "@/data/banks";
 import { fmtMonthly } from "@/lib/loanEngine";
 import { monteCarlo, survChartSvg, fvShort, type SurvInput, type MCResult } from "@/lib/survival";
+import type { Lang } from "@/i18n/dict";
 
 const NUM = (s: string) => {
   const x = parseFloat((s || "").replace(/[^\d.]/g, ""));
@@ -19,10 +20,17 @@ const COL = [["re", "colt_re"], ["vehicle", "colt_vehicle"], ["savings", "colt_s
 export default function SurvivalScore() {
   const { lang, t } = useI18n();
   const sp = useSearchParams();
+  // Arriving from a package detail page: ?pkg=<index> keeps the projection tied
+  // to that exact product (its rate, limits and name).
+  const pkgParam = sp.get("pkg");
+  const initPkg = pkgParam != null && PKG[parseInt(pkgParam, 10)] ? parseInt(pkgParam, 10) : null;
+  const seed = initPkg != null ? PKG[initPkg] : null;
+
+  const [pkgSel, setPkgSel] = useState<number | null>(initPkg);
   const [f, setF] = useState({
-    purpose: sp.get("p") || "home",
-    amount: sp.get("a") || "2000000000",
-    term: sp.get("t") || "240",
+    purpose: seed ? seed.purpose : sp.get("p") || "home",
+    amount: String(seed ? Math.min(seed.max, 2000000000) : sp.get("a") || "2000000000"),
+    term: String(seed ? Math.min(seed.term, 240) : sp.get("t") || "240"),
     income: "45000000",
     expenses: "18000000",
     debt: "4000000",
@@ -35,8 +43,10 @@ export default function SurvivalScore() {
   const [res, setRes] = useState<{ mc: MCResult; T: number; inp: SurvInput } | null>(null);
   const set = (k: string, v: string) => setF((o) => ({ ...o, [k]: v }));
 
-  const run = () => {
+  const run = (pkgOverride?: number | null) => {
+    const pk = pkgOverride === undefined ? pkgSel : pkgOverride;
     const inp: SurvInput = {
+      pkgIdx: pk,
       purpose: f.purpose, amount: NUM(f.amount), term: NUM(f.term), income: NUM(f.income),
       expenses: NUM(f.expenses), debt: NUM(f.debt), savings: NUM(f.savings), down: NUM(f.down),
       dependents: NUM(f.dependents), employment: f.employment, collateral: f.collateral,
@@ -44,7 +54,6 @@ export default function SurvivalScore() {
     const T = Math.max(6, Math.min(Math.round(inp.term || 60), 60));
     setRes({ mc: monteCarlo(inp, T, 220), T, inp });
   };
-  // Project once on mount (also when arriving prefilled from a package).
   useEffect(() => { run(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const numField = (label: string, key: keyof typeof f, step: number) => (
@@ -66,7 +75,10 @@ export default function SurvivalScore() {
           <div className="fgroup">
             <div className="glab">{t("g_loan")}</div>
             <label className="fq"><span>{t("q_purpose")}</span>
-              <select value={f.purpose} onChange={(e) => set("purpose", e.target.value)}>
+              <select
+                value={f.purpose}
+                onChange={(e) => { setPkgSel(null); set("purpose", e.target.value); }}
+              >
                 {PURP_KEYS.map((k) => <option key={k} value={k}>{t("f_" + k)}</option>)}
               </select>
             </label>
@@ -98,7 +110,7 @@ export default function SurvivalScore() {
               </select>
             </label>
           </div>
-          <button type="button" className="btn btn-green surv-gen" onClick={run}>{t("surv_gen")}</button>
+          <button type="button" className="btn btn-green surv-gen" onClick={() => run()}>{t("surv_gen")}</button>
         </form>
 
         <div className="surv-result">
@@ -109,7 +121,7 @@ export default function SurvivalScore() {
   );
 }
 
-function Result({ res, lang, t }: { res: { mc: MCResult; T: number; inp: SurvInput }; lang: string; t: (k: string) => string }) {
+function Result({ res, lang, t }: { res: { mc: MCResult; T: number; inp: SurvInput }; lang: Lang; t: (k: string) => string }) {
   const { mc, T, inp } = res;
   const met = mc.met;
   const sc = met.score;
@@ -120,7 +132,9 @@ function Result({ res, lang, t }: { res: { mc: MCResult; T: number; inp: SurvInp
     ["m_ltv", met.ltv.toFixed(0) + "%"], ["m_disp", fmtMonthly(met.disposable)],
     ["m_efr", met.efr.toFixed(1) + " " + t("r_mo")], ["m_stab", met.stab + "/100"],
   ];
-  const bestP = PKG.filter((p) => p.purpose === inp.purpose).sort((a, b) => a.rate - b.rate)[0];
+  const selP = inp.pkgIdx != null ? PKG[inp.pkgIdx] : null;
+  const cheapest = PKG.filter((p) => p.purpose === inp.purpose).sort((a, b) => a.rate - b.rate)[0];
+  const bestP = selP || cheapest;
   const verdict = sc >= 70 ? t("v_yes") : sc >= 45 ? t("v_care") : t("v_no");
   const risks: string[] = [];
   if (met.dti > 45) risks.push(t("risk_dti"));
@@ -132,13 +146,23 @@ function Result({ res, lang, t }: { res: { mc: MCResult; T: number; inp: SurvInp
   const adjust = met.dti > 40 || met.disposable < 0 ? t("adj_amount") : met.ltv > 80 ? t("adj_down") : t("adj_ok");
   const recos: [string, string][] = [
     [t("reco_borrow"), verdict],
-    [t("reco_pkg"), bestP ? bankOf(bestP.code).name + " · " + prodName(bestP, lang as any) : "—"],
-    [t("reco_prob"), (mc.ruin * 100).toFixed(0) + "%"],
-    [t("reco_risk"), risks.join(" · ")],
-    [t("reco_adjust"), adjust],
+    [t("reco_pkg"), bestP ? bankOf(bestP.code).name + " · " + prodName(bestP, lang) : "—"],
   ];
+  if (selP && cheapest && cheapest.code !== selP.code && cheapest.rate < selP.rate) {
+    recos.push([t("reco_alt"), bankOf(cheapest.code).name + " · " + prodName(cheapest, lang) + " (" + cheapest.rate + "%)"]);
+  }
+  recos.push([t("reco_prob"), (mc.ruin * 100).toFixed(0) + "%"], [t("reco_risk"), risks.join(" · ")], [t("reco_adjust"), adjust]);
+
   return (
     <>
+      {selP && (
+        <div className="surv-for">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoSrc(selP.code)} alt="" />
+          <div><span>{t("surv_for")}</span><b>{bankOf(selP.code).name} · {prodName(selP, lang)}</b></div>
+          <span className="sf-rate">{selP.rate}% → {selP.std}%</span>
+        </div>
+      )}
       <div className={"score-head sc-" + vclass}>
         <div className="score-num">{sc}</div>
         <div className="score-meta"><div className="score-lab">{t("r_score")}</div><div className="score-verdict">{vlab}</div></div>
