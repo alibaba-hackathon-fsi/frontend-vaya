@@ -59,6 +59,31 @@ function makeSessionId(): string {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const CHAT_SS_KEY = "vaya_chat_session";
+
+type PersistedChat = {
+  messages: Message[];
+  state: ChatState;
+  pkg: number | null;
+  pkgAns: { amount: number | null; term: number | null; income: number | null };
+  idCounter: number;
+};
+
+function saveChat(d: PersistedChat) {
+  try {
+    sessionStorage.setItem(CHAT_SS_KEY, JSON.stringify(d));
+  } catch { /* noop */ }
+}
+
+function loadChat(): PersistedChat | null {
+  try {
+    const raw = sessionStorage.getItem(CHAT_SS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ---------------------------------------------------------------- types */
 
 type Chip = { label: string; action: () => void };
@@ -202,7 +227,17 @@ export default function ChatAdvisor({
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [, setTick] = useState(0);
-  const rerender = useCallback(() => setTick((n) => n + 1), []);
+  const rerender = useCallback(() => {
+    setTick((n) => n + 1);
+    // Persist chat state for session recovery
+    saveChat({
+      messages: messagesRef.current,
+      state: stateRef.current,
+      pkg: pkgRef.current,
+      pkgAns: pkgAns.current,
+      idCounter: idRef.current,
+    });
+  }, []);
 
   // Keep localized helpers stable per render via refs so async callbacks read
   // the current language.
@@ -772,10 +807,25 @@ export default function ChatAdvisor({
     [addBot, addUser, rerender, setChips, purposeChips],
   );
 
-  // Boot the conversation once on mount (with the optional seed).
+  // Boot the conversation once on mount — restore from sessionStorage if available.
   useEffect(() => {
-    if (pkgRef.current != null) startPkgChat(pkgRef.current);
-    else startChat(seed);
+    const saved = loadChat();
+    if (saved && saved.messages.length > 0) {
+      // Restore persisted session
+      messagesRef.current = saved.messages.map((m) =>
+        m.role === "bot" ? { ...m, typing: false } : m,
+      );
+      stateRef.current = saved.state;
+      pkgRef.current = saved.pkg;
+      pkgAns.current = saved.pkgAns;
+      idRef.current = saved.idCounter;
+      rerender();
+      scrollChat();
+    } else if (pkgRef.current != null) {
+      startPkgChat(pkgRef.current);
+    } else {
+      startChat(seed);
+    }
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
@@ -1162,7 +1212,7 @@ function ResultCard({
           <button
             className="btn btn-ghost btn-sm"
             onClick={() =>
-              router.push(`/analysis?amount=${amount}&term=${term}`)
+              router.push(`/survival?p=${purpose}&a=${amount}&t=${term}`)
             }
           >
             {t("cta_analysis")}
