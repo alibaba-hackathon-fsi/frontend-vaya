@@ -2472,6 +2472,15 @@ img.flag {
   justify-content: center;
   margin-top: 6px;
 }
+.pkg-policy {
+  font-size: 11.5px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 7px 11px;
+  margin-top: -4px;
+  line-height: 1.4;
+}
 .surv-result {
   min-height: 420px;
 }

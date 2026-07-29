@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
 import { PKG, bankOf, prodName, logoSrc, type Purpose } from "@/data/banks";
@@ -8,6 +8,8 @@ import { fmtMonthly } from "@/lib/loanEngine";
 import { monteCarlo, fvShort, type SurvInput, type MCResult } from "@/lib/survival";
 import SurvivalChart from "@/components/charts/SurvivalChart";
 import type { Lang } from "@/i18n/dict";
+
+const LS_KEY = "vaya_surv_form";
 
 const NUM = (s: string) => {
   const x = parseFloat((s || "").replace(/[^\d.]/g, ""));
@@ -21,28 +23,65 @@ const COL = [["re", "colt_re"], ["vehicle", "colt_vehicle"], ["savings", "colt_s
 export default function SurvivalScore() {
   const { lang, t } = useI18n();
   const sp = useSearchParams();
-  // Arriving from a package detail page: ?pkg=<index> keeps the projection tied
-  // to that exact product (its rate, limits and name).
   const pkgParam = sp.get("pkg");
   const initPkg = pkgParam != null && PKG[parseInt(pkgParam, 10)] ? parseInt(pkgParam, 10) : null;
   const seed = initPkg != null ? PKG[initPkg] : null;
 
-  const [pkgSel, setPkgSel] = useState<number | null>(initPkg);
-  const [f, setF] = useState({
-    purpose: seed ? seed.purpose : sp.get("p") || "home",
-    amount: String(seed ? Math.min(seed.max, 2000000000) : sp.get("a") || "2000000000"),
-    term: String(seed ? Math.min(seed.term, 240) : sp.get("t") || "240"),
-    income: "45000000",
-    expenses: "18000000",
-    debt: "4000000",
-    savings: "150000000",
-    down: "600000000",
-    dependents: "1",
-    employment: "salaried",
-    collateral: "re",
+  // Load persisted form from localStorage
+  const saved = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, []);
+
+  const [pkgSel, setPkgSel] = useState<number | null>(saved?.pkgSel ?? initPkg);
+  const [f, setF] = useState(() => {
+    if (saved?.f) return saved.f;
+    return {
+      purpose: seed ? seed.purpose : sp.get("p") || "home",
+      amount: String(seed ? Math.min(seed.max, 2000000000) : sp.get("a") || "2000000000"),
+      term: String(seed ? Math.min(seed.term, 240) : sp.get("t") || "240"),
+      income: "45000000",
+      expenses: "18000000",
+      debt: "4000000",
+      savings: "150000000",
+      down: "600000000",
+      dependents: "1",
+      employment: "salaried",
+      collateral: "re",
+    };
   });
   const [res, setRes] = useState<{ mc: MCResult; T: number; inp: SurvInput } | null>(null);
-  const set = (k: string, v: string) => setF((o) => ({ ...o, [k]: v }));
+
+  // Persist to localStorage on every change
+  useEffect(() => {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ f, pkgSel })); } catch { /* noop */ }
+  }, [f, pkgSel]);
+
+  const set = (k: string, v: string) => setF((o: typeof f) => ({ ...o, [k]: v }));
+
+  // Packages filtered by current purpose
+  const pkgsForPurpose = useMemo(
+    () => PKG.map((p, i) => ({ ...p, idx: i })).filter((p) => p.purpose === f.purpose),
+    [f.purpose],
+  );
+
+  // Active package policy
+  const activePkg = pkgSel != null ? PKG[pkgSel] : null;
+
+  // Select a package and clamp values to its policy
+  const selectPkg = (idx: number | null) => {
+    setPkgSel(idx);
+    if (idx != null) {
+      const p = PKG[idx];
+      setF((o: typeof f) => ({
+        ...o,
+        amount: String(Math.min(NUM(o.amount), p.max)),
+        term: String(Math.min(NUM(o.term), p.term)),
+      }));
+    }
+  };
 
   const run = (pkgOverride?: number | null) => {
     const pk = pkgOverride === undefined ? pkgSel : pkgOverride;
@@ -57,7 +96,7 @@ export default function SurvivalScore() {
   };
   useEffect(() => { run(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  const numField = (label: string, key: keyof typeof f, step: number) => (
+  const numField = (label: string, key: string, step: number) => (
     <label className="fq">
       <span>{t(label)}</span>
       <input type="text" inputMode="numeric" value={f[key]} onChange={(e) => set(key, e.target.value.replace(/[^\d]/g, ""))} />
@@ -78,11 +117,27 @@ export default function SurvivalScore() {
             <label className="fq"><span>{t("q_purpose")}</span>
               <select
                 value={f.purpose}
-                onChange={(e) => { setPkgSel(null); set("purpose", e.target.value); }}
+                onChange={(e) => { selectPkg(null); set("purpose", e.target.value); }}
               >
                 {PURP_KEYS.map((k) => <option key={k} value={k}>{t("f_" + k)}</option>)}
               </select>
             </label>
+            <label className="fq"><span>{t("q_package")}</span>
+              <select
+                value={pkgSel ?? ""}
+                onChange={(e) => selectPkg(e.target.value === "" ? null : parseInt(e.target.value, 10))}
+              >
+                <option value="">{t("q_pkg_any")}</option>
+                {pkgsForPurpose.map((p) => (
+                  <option key={p.idx} value={p.idx}>{bankOf(p.code).name} · {prodName(p, lang)}</option>
+                ))}
+              </select>
+            </label>
+            {activePkg && (
+              <div className="pkg-policy">
+                {t("pkg_max")}: {(activePkg.max / 1e9).toFixed(1)}B VND · {t("pkg_term")}: {activePkg.term} {t("r_mo")} · LTV: {activePkg.ltv}%
+              </div>
+            )}
             {numField("q_amount", "amount", 10000000)}
             {numField("q_term", "term", 6)}
           </div>
