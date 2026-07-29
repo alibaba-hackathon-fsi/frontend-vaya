@@ -93,15 +93,21 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
   const efr = out > 0 ? inp.savings / out : 99;
   const stabMap: Record<string, number> = { salaried: 88, gov: 95, business: 70, self: 60, freelance: 52 };
   const stab = stabMap[inp.employment] || 70;
-  let sc = 100;
-  sc -= Math.max(0, dti - 35) * 1.1;
-  sc -= Math.max(0, pti - 30);
-  sc -= Math.max(0, ltv - 70) * 0.35;
-  sc += Math.min(18, efr * 2.5);
-  sc += (stab - 70) * 0.3;
-  sc += disposable > 0 ? 8 : -28;
-  sc -= (inp.dependents || 0) * 1.5;
-  sc = Math.max(5, Math.min(97, Math.round(sc)));
+
+  // Weighted score model (100 points total):
+  // 1. Payment burden (35 pts) — DTI-based, full marks at ≤30%, zero at ≥70%
+  const dtiScore = Math.max(0, Math.min(1, (70 - dti) / 40)) * 35;
+  // 2. Cash flow buffer (25 pts) — disposable income ratio
+  const cfRatio = inp.income > 0 ? disposable / inp.income : -1;
+  const cfScore = Math.max(0, Math.min(1, cfRatio / 0.25)) * 25;
+  // 3. Emergency reserve (20 pts) — months of coverage, full at ≥6 months
+  const efScore = Math.max(0, Math.min(1, efr / 6)) * 20;
+  // 4. Loan-to-value (10 pts) — full at ≤50%, zero at ≥90%
+  const ltvScore = Math.max(0, Math.min(1, (90 - ltv) / 40)) * 10;
+  // 5. Income stability (10 pts) — from employment type
+  const stabScore = (stab / 100) * 10;
+
+  const sc = Math.max(1, Math.min(99, Math.round(dtiScore + cfScore + efScore + ltvScore + stabScore)));
   return { emi, dti, pti, ltv, disposable, efr, stab, score: sc, depCost, rate };
 }
 

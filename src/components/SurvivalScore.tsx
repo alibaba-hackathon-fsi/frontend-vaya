@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
 import { PKG, bankOf, prodName, logoSrc, type Purpose } from "@/data/banks";
-import { fmtMonthly } from "@/lib/loanEngine";
+import { fmtMonthly, monthly } from "@/lib/loanEngine";
 import { monteCarlo, fvShort, type SurvInput, type MCResult } from "@/lib/survival";
 import SurvivalChart from "@/components/charts/SurvivalChart";
 import type { Lang } from "@/i18n/dict";
@@ -53,6 +53,7 @@ export default function SurvivalScore() {
     };
   });
   const [res, setRes] = useState<{ mc: MCResult; T: number; inp: SurvInput } | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
 
   // Persist to localStorage on every change
   useEffect(() => {
@@ -85,9 +86,26 @@ export default function SurvivalScore() {
 
   const run = (pkgOverride?: number | null) => {
     const pk = pkgOverride === undefined ? pkgSel : pkgOverride;
+    const amount = NUM(f.amount);
+    const term = NUM(f.term);
+    const income = NUM(f.income);
+
+    // Validate inputs against bank policy
+    const errs: string[] = [];
+    const pkg = pk != null ? PKG[pk] : null;
+    if (amount <= 0) errs.push(t("err_amount_zero"));
+    if (income <= 0) errs.push(t("err_income_zero"));
+    if (pkg && amount > pkg.max) errs.push(t("err_over_max").replace("{max}", (pkg.max / 1e9).toFixed(1) + "B").replace("{bank}", bankOf(pkg.code).name));
+    if (pkg && term > pkg.term) errs.push(t("err_over_term").replace("{max}", String(pkg.term)).replace("{bank}", bankOf(pkg.code).name));
+    if (amount > 0 && income > 0 && monthly(amount, pkg ? (pkg.std || pkg.rate) : 10, Math.max(1, term)) > income * 0.9) {
+      errs.push(t("err_emi_income"));
+    }
+    setErrors(errs);
+    if (errs.length > 0) { setRes(null); return; }
+
     const inp: SurvInput = {
       pkgIdx: pk,
-      purpose: f.purpose, amount: NUM(f.amount), term: NUM(f.term), income: NUM(f.income),
+      purpose: f.purpose, amount, term, income,
       expenses: NUM(f.expenses), debt: NUM(f.debt), savings: NUM(f.savings), down: NUM(f.down),
       dependents: NUM(f.dependents), employment: f.employment, collateral: f.collateral,
     };
@@ -167,6 +185,11 @@ export default function SurvivalScore() {
             </label>
           </div>
           <button type="button" className="btn btn-green surv-gen" onClick={() => run()}>{t("surv_gen")}</button>
+          {errors.length > 0 && (
+            <div className="surv-errors">
+              {errors.map((e, i) => <p key={i} className="surv-err">⚠ {e}</p>)}
+            </div>
+          )}
         </form>
 
         <div className="surv-result">
