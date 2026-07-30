@@ -2,9 +2,9 @@ export type ApiLang = "en" | "vi" | "zh";
 
 const MESSAGES = {
   llm_error: {
-    en: "I had trouble processing that — please use the form below instead.",
-    vi: "Tôi gặp khó khăn khi xử lý yêu cầu — vui lòng sử dụng biểu mẫu bên dưới.",
-    zh: "处理您的请求时遇到问题 — 请使用下方表单。",
+    en: "I had trouble processing that — could you rephrase or provide more details?",
+    vi: "Tôi gặp khó khăn khi xử lý yêu cầu — bạn có thể diễn đạt lại hoặc cung cấp thêm thông tin không?",
+    zh: "处理您的请求时遇到问题 — 您能重新表述或提供更多细节吗？",
   },
   policy_intro: {
     en: "Here is what I found in the policies:",
@@ -12,9 +12,9 @@ const MESSAGES = {
     zh: "以下是我从政策中找到的信息：",
   },
   out_of_scope: {
-    en: "I'm sorry, but I can only help with realistic Vietnamese loan scenarios. Please adjust the request in the form below.",
-    vi: "Xin lỗi, tôi chỉ có thể hỗ trợ các kịch bản vay thực tế tại Việt Nam. Vui lòng điều chỉnh thông tin trong biểu mẫu bên dưới.",
-    zh: "抱歉，我只能帮助处理越南实际贷款场景。请在下方表单中调整您的请求。",
+    en: "I'm sorry, but I can only help with realistic Vietnamese loan scenarios. Please adjust your request.",
+    vi: "Xin lỗi, tôi chỉ có thể hỗ trợ các kịch bản vay thực tế tại Việt Nam. Vui lòng điều chỉnh yêu cầu của bạn.",
+    zh: "抱歉，我只能帮助处理越南实际贷款场景。请调整您的请求。",
   },
   reason_prefix: {
     en: "Reason",
@@ -27,9 +27,9 @@ const MESSAGES = {
     zh: "另外，",
   },
   fallback_to_form: {
-    en: "Please fill in the remaining details in the form so I can calculate accurate numbers.",
-    vi: "Vui lòng điền thêm thông tin trong biểu mẫu để tôi có thể tính toán chính xác.",
-    zh: "请在表单中填写剩余信息，以便我进行准确计算。",
+    en: "Almost there! I just need a couple more details to crunch the numbers:",
+    vi: "Gần xong rồi! Tôi chỉ cần thêm vài thông tin để tính toán chính xác:",
+    zh: "快好了！我只需要再补充一些信息来计算准确数字：",
   },
   results_ready: {
     en: "Got everything I need — here are your best options.",

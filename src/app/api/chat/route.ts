@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!result.valid) {
-    // Cap reached — fall back to manual form
+    // Cap reached — show inline form for remaining fields
     return new Response(
       JSON.stringify({
         reply: apiT("fallback_to_form", lang),

@@ -1,5 +1,16 @@
 import type { EligibilityResult, EligibilityRule, LoanPackageRecord, LoanProfile } from "./types";
 
+/** Human-readable label for a loan purpose code. */
+const PURPOSE_LABELS: Record<string, string> = {
+  mua_xe: "car loans",
+  mua_nha: "home loans",
+  kinh_doanh: "business loans",
+  tin_chap: "unsecured personal loans",
+};
+function purposeLabel(code: string): string {
+  return PURPOSE_LABELS[code] ?? code;
+}
+
 /**
  * Pure, deterministic eligibility filter. No LLM, no I/O.
  * Filters packages by purpose, amount, term range, and income minimum.
@@ -16,14 +27,14 @@ export function filterEligible(
     if (pkg.muc_dich !== profile.muc_dich) {
       rejected.push({
         packageId: pkg.id,
-        reason: `Purpose mismatch: package is for ${pkg.muc_dich}`,
+        reason: `This package is for ${purposeLabel(pkg.muc_dich)}, but you are applying for ${purposeLabel(profile.muc_dich)}`,
       });
       continue;
     }
     if (profile.so_tien > pkg.han_muc) {
       rejected.push({
         packageId: pkg.id,
-        reason: `Requested amount exceeds package limit of ${pkg.han_muc.toLocaleString()}`,
+        reason: `You asked for ${profile.so_tien.toLocaleString()} VND, but this package only lends up to ${pkg.han_muc.toLocaleString()} VND`,
       });
       continue;
     }
@@ -34,7 +45,7 @@ export function filterEligible(
       ) {
         rejected.push({
           packageId: pkg.id,
-          reason: `Requested term ${profile.thoi_han_thang} months outside package range ${pkg.thoi_han_min}-${pkg.thoi_han_max}`,
+          reason: `You want a ${profile.thoi_han_thang}-month term, but this package only offers ${pkg.thoi_han_min} to ${pkg.thoi_han_max} months`,
         });
         continue;
       }
@@ -47,7 +58,7 @@ export function filterEligible(
       if (profile.thu_nhap_hang_thang < rule.dieu_kien.thu_nhap_toi_thieu) {
         rejected.push({
           packageId: pkg.id,
-          reason: `Monthly income below minimum required ${rule.dieu_kien.thu_nhap_toi_thieu.toLocaleString()}`,
+          reason: `Your monthly income (${profile.thu_nhap_hang_thang.toLocaleString()} VND) is below this package's minimum of ${rule.dieu_kien.thu_nhap_toi_thieu.toLocaleString()} VND`,
         });
         continue;
       }

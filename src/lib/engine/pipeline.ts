@@ -91,7 +91,7 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
       ...rejected.map((r) => ({ packageId: r.packageId, reason: r.reason })),
       ...dtiRejected.map((c) => ({
         packageId: c.pkg.id,
-        reason: `DTI ${c.dti} exceeds affordability cap`,
+        reason: `The monthly payment would be ${Math.round(c.dti * 100)}% of your income, above the safe limit of 60%`,
       })),
     ],
   };

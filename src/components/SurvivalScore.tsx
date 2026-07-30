@@ -43,6 +43,8 @@ export default function SurvivalScore() {
   const { lang, t } = useI18n();
   const sp = useSearchParams();
   const pkgParam = sp.get("pkg");
+  const bankParam = sp.get("bank");
+  const fromChat = bankParam != null || sp.get("a") != null;
   const initPkg =
     pkgParam != null && PKG[parseInt(pkgParam, 10)]
       ? parseInt(pkgParam, 10)
@@ -68,18 +70,18 @@ export default function SurvivalScore() {
         seed ? Math.min(seed.max, 2000000000) : sp.get("a") || "2000000000",
       ),
       term: String(seed ? Math.min(seed.term, 240) : sp.get("t") || "240"),
-      income: "45000000",
-      expenses: "18000000",
-      debt: "4000000",
-      savings: "150000000",
-      down: "600000000",
-      dependents: "1",
-      employment: "salaried",
-      collateral: "re",
+      income: sp.get("i") || "45000000",
+      expenses: fromChat ? "" : "18000000",
+      debt: fromChat ? "" : "4000000",
+      savings: fromChat ? "" : "150000000",
+      down: fromChat ? "" : "600000000",
+      dependents: fromChat ? "" : "1",
+      employment: fromChat ? "" : "salaried",
+      collateral: fromChat ? "" : "re",
       method: "ANNUITY" as RepayMethod,
     };
-    // Restore only financial profile fields from localStorage
-    if (saved) {
+    // Restore only financial profile fields from localStorage (skip when arriving from chat)
+    if (saved && !fromChat) {
       const finKeys = ["income", "expenses", "debt", "savings", "down", "dependents", "employment", "collateral"] as const;
       for (const k of finKeys) {
         if (saved[k] != null) base[k] = saved[k];
@@ -116,6 +118,15 @@ export default function SurvivalScore() {
       ),
     [f.purpose],
   );
+
+  // Pre-select bank package when arriving from chat with a bank param
+  useEffect(() => {
+    if (!bankParam) return;
+    const match = pkgsForPurpose.find(
+      (p) => bankOf(p.code).name.toLowerCase() === bankParam.toLowerCase(),
+    );
+    if (match) setPkgSel(match.idx);
+  }, [bankParam, pkgsForPurpose]);
 
   // Active package policy
   const activePkg = pkgSel != null ? PKG[pkgSel] : null;
@@ -206,6 +217,11 @@ export default function SurvivalScore() {
           <h2>{t("surv_title")}</h2>
           <p>{t("surv_sub")}</p>
         </div>
+        {fromChat && (
+          <div className="surv-notice">
+            {t("surv_from_chat_notice")}
+          </div>
+        )}
         <div className="surv-grid">
           <form className="surv-form" onSubmit={(e) => e.preventDefault()}>
             <div className="fgroup">
@@ -419,7 +435,7 @@ function Result({
     ]);
   }
   recos.push(
-    [t("reco_prob"), (mc.ruin * 100).toFixed(0) + "%"],
+    [t("reco_prob"), (mc.ruin * 100).toFixed(1) + "%"],
     [t("reco_risk"), risks.join(" · ")],
     [t("reco_adjust"), adjust],
   );
@@ -449,7 +465,7 @@ function Result({
         </div>
         <div className="score-ruin">
           <span>{t("r_ruin")}</span>
-          <b>{(mc.ruin * 100).toFixed(0)}%</b>
+          <b>{(mc.ruin * 100).toFixed(1)}%</b>
         </div>
       </div>
       <div className="rc-clab">{t("r_metrics")}</div>
@@ -524,7 +540,7 @@ function Result({
         {mc.ruin > 0.3 && (
           <p className="sc-reason">
             <b>
-              {t("r_ruin")} = {(mc.ruin * 100).toFixed(0)}%
+              {t("r_ruin")} = {(mc.ruin * 100).toFixed(1)}%
             </b>{" "}
             — {t("why_ruin")}
           </p>

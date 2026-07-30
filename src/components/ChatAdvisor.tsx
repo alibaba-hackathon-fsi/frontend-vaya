@@ -22,9 +22,22 @@ import {
   type ChatState,
   type Recommendation,
 } from "@/lib/loanEngine";
+import { LOAN_PACKAGES } from "@/data/loanPackages";
 import { amortSeries, lineMultiSvg, PAL } from "@/lib/survival";
 
 /* ---------------------------------------------------------------- API types */
+
+/** Minimal markdown → HTML for bot chat bubbles (bold, italic, headings, newlines, bullets). */
+function renderMd(raw: string): string {
+  return raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/^#{1,4} (.+)$/gm, "<b>$1</b>")
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/\*(.+?)\*/g, "<i>$1</i>")
+    .replace(/^[-•] /gm, "&bull; ")
+    .replace(/\n/g, "<br/>");
+}
 
 interface ApiRankedOffer {
   packageId: string;
@@ -98,6 +111,9 @@ type ResultData = {
 type ApiResultData = {
   ranked: ApiRankedOffer[];
   rejected: ApiRejectedOffer[];
+  amount: number;
+  term: number;
+  income: number;
   explanation?: string;
 };
 
@@ -124,6 +140,13 @@ type Message =
       typing: boolean;
       kind: "pkgresult";
       pkg: PkgResultData;
+    }
+  | {
+      id: number;
+      role: "bot";
+      typing: boolean;
+      kind: "form";
+      fields: string[];
     };
 
 /** Package-specific consultation result (advisor opened from a package page). */
@@ -386,6 +409,19 @@ export default function ChatAdvisor({
         640 + Math.random() * 300,
       );
       timersRef.current.push(timer);
+    },
+    [rerender, scrollChat],
+  );
+
+  const addBotForm = useCallback(
+    (fields: string[]) => {
+      const id = nextId();
+      messagesRef.current = [
+        ...messagesRef.current,
+        { id, role: "bot", typing: false, kind: "form", fields },
+      ];
+      rerender();
+      scrollChat();
     },
     [rerender, scrollChat],
   );
@@ -868,8 +904,13 @@ export default function ChatAdvisor({
         // Non-SSE JSON response (follow-up question, policy answer, etc.)
         if (contentType.includes("application/json")) {
           const data = await res.json();
-          if (data.reply) addBot(data.reply);
-          if (data.explanation) addBot(data.explanation);
+          if (data.missingFields?.length > 0) {
+            if (data.reply) addBot(data.reply);
+            addBotForm(data.missingFields);
+          } else {
+            if (data.reply) addBot(data.reply);
+            if (data.explanation) addBot(data.explanation);
+          }
           return;
         }
 
@@ -878,6 +919,7 @@ export default function ChatAdvisor({
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
+        let explanationId: number | null = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -895,17 +937,31 @@ export default function ChatAdvisor({
             } else if (line.startsWith("data: ")) {
               const payload = JSON.parse(line.slice(6));
               if (currentEvent === "results" && payload.ranked) {
-                // Convert to local ResultCard format for consistent UI
                 const s = stateRef.current;
-                const recs = recommend(s);
-                addBotResult({
-                  purpose: (s.purpose ?? "personal") as Purpose,
+                addBotApiResult({
+                  ranked: payload.ranked,
+                  rejected: payload.rejected ?? [],
                   amount: (s.amount ?? 0) as number,
                   term: (s.term ?? 60) as number,
-                  recs,
+                  income: payload.profile?.thu_nhap_hang_thang ?? 0,
                 });
               } else if (currentEvent === "explanation" && payload.delta) {
-                addBot(payload.delta);
+                // Accumulate all deltas into a single message bubble
+                if (explanationId === null) {
+                  explanationId = nextId();
+                  messagesRef.current = [
+                    ...messagesRef.current,
+                    { id: explanationId, role: "bot", typing: false, kind: "text", text: payload.delta },
+                  ];
+                } else {
+                  messagesRef.current = messagesRef.current.map((m) =>
+                    m.id === explanationId && m.role === "bot" && m.kind === "text"
+                      ? { ...m, text: (m.text as string) + payload.delta }
+                      : m,
+                  );
+                }
+                rerender();
+                scrollChat();
               } else if (currentEvent === "explanation_error") {
                 addBot(payload.message ?? "Explanation unavailable.");
               }
@@ -917,7 +973,7 @@ export default function ChatAdvisor({
         addBot("Lỗi kết nối — vui lòng thử lại.");
       }
     },
-    [addBot, addBotResult],
+    [addBot, addBotForm, addBotApiResult],
   );
 
   const sendCurrent = () => {
@@ -996,10 +1052,14 @@ export default function ChatAdvisor({
                     <PkgResultCard data={m.pkg} lang={lang} t={t} />
                   </div>
                 ) : m.kind === "text" ? (
-                  <div className="bub">{m.text}</div>
+                  <div className="bub" dangerouslySetInnerHTML={{ __html: renderMd(m.text) }} />
                 ) : m.kind === "api-result" ? (
                   <div className="bub">
-                    <ApiResultCard data={m.result} />
+                    <ApiResultCard data={m.result} lang={lang} t={t} />
+                  </div>
+                ) : m.kind === "form" ? (
+                  <div className="bub">
+                    <FormCard fields={m.fields} lang={lang} t={t} onSubmit={(msg: string) => { addUser(msg); sendToApiChat(msg); }} />
                   </div>
                 ) : (
                   <div className="bub">
@@ -1229,107 +1289,212 @@ function ResultCard({
 
 /* ---------------------------------------------------------------- API result card */
 
-function ApiResultCard({ data }: { data: ApiResultData }) {
-  const { ranked, rejected } = data;
+function ApiResultCard({
+  data,
+  lang,
+  t,
+}: {
+  data: ApiResultData;
+  lang: "en" | "vi" | "zh";
+  t: (k: string) => string;
+}) {
+  const router = useRouter();
+  const { ranked, rejected, amount, term } = data;
 
   if (ranked.length === 0) {
-    return <div>Không tìm thấy gói vay phù hợp.</div>;
+    return (
+      <div className="result api-result">
+        <div className="rh">{t("api_no_result")}</div>
+        <div className="api-roadmap">
+          <div className="api-roadmap-title">{t("api_roadmap_title")}</div>
+          <ol className="api-roadmap-list">
+            {rejected.some((r) => r.reason.includes("% of your income")) && (
+              <li>{t("api_roadmap_dti").replace("{term}", String(term * 2))}</li>
+            )}
+            {rejected.some((r) => r.reason.includes("only lends up to")) && (
+              <li>{t("api_roadmap_amount")}</li>
+            )}
+            {rejected.some((r) => r.reason.includes("below this package's minimum")) && (
+              <li>{t("api_roadmap_income")}</li>
+            )}
+            <li>{t("api_roadmap_general")}</li>
+          </ol>
+        </div>
+        <div className="foot">{t("foot_note")}</div>
+      </div>
+    );
   }
 
-  const maxPayment = Math.max(...ranked.map((r) => r.monthlyPayment));
-  const minPayment = Math.min(...ranked.map((r) => r.monthlyPayment));
+  const top = ranked.slice(0, 3);
+  const bestPayment = top[0].monthlyPayment;
+  const worstPayment = top[top.length - 1].monthlyPayment;
+  const savingsTotal = Math.round((worstPayment - bestPayment) * term);
 
   return (
-    <>
-      <div className="result">
-        <div className="rh">📊 Kết quả xếp hạng từ Decision Engine</div>
-        {ranked.map((r, i) => {
+    <div className="result api-result">
+      <div className="rh">{t("rec_head")}</div>
+
+      {/* Bank cards */}
+      <div className="api-cards">
+        {top.map((r, i) => {
+          const pkg = LOAN_PACKAGES.find((p) => p.id === r.packageId);
           const best = i === 0;
+          const match = Math.min(99, Math.max(50, Math.round(r.score)));
           return (
-            <div
-              className={"rec " + (best ? "best" : "")}
-              key={r.packageId + i}
-            >
-              <div className="rt">
-                <div className="bk2">
-                  <b>{r.bank}</b>
-                  <div className="p">{r.packageId}</div>
-                </div>
-                {best ? (
-                  <span className="tag-best">★ Tốt nhất</span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "var(--green-text)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {Math.round(r.score * 10) / 10} điểm
-                  </span>
-                )}
+            <div className={"api-card" + (best ? " api-best" : "")} key={r.packageId + i}>
+              <div className="api-badge">
+                {best ? `★ ${t("best")} · ${match}%` : `${t("fit")} · ${match}%`}
               </div>
-              <div className="grid3">
-                <div className="cell">
-                  <div className="k">Trả/tháng</div>
-                  <div className="v">{fmtMonthly(r.monthlyPayment)}</div>
+              <div className="api-bank">{r.bank}</div>
+              <div className="api-prod">{r.packageId}</div>
+              <div className="api-metrics">
+                <div className="api-m">
+                  <span className="api-mk">{t("api_loan_range")}</span>
+                  <span className="api-mv">{pkg ? fmtVND(pkg.han_muc, lang) : "—"}</span>
                 </div>
-                <div className="cell">
-                  <div className="k">DTI</div>
-                  <div className="v g">{Math.round(r.dti * 100)}%</div>
+                <div className="api-m">
+                  <span className="api-mk">{t("rate")}</span>
+                  <span className="api-mv">{pkg ? pkg.lai_suat_tu + "%/" + t("yr") : "—"}</span>
                 </div>
-                <div className="cell">
-                  <div className="k">Rủi ro</div>
-                  <div className="v">{r.riskLevel}</div>
+                <div className="api-m">
+                  <span className="api-mk">{t("monthly")}</span>
+                  <span className="api-mv">{fmtMonthly(r.monthlyPayment)}</span>
                 </div>
               </div>
+              <button
+                className="btn btn-ghost btn-sm api-detail-btn"
+                onClick={() => router.push(`/survival?a=${amount}&t=${term}&i=${data.income}&bank=${encodeURIComponent(top[0].bank)}`)}
+              >
+                {t("api_view_detail")} →
+              </button>
             </div>
           );
         })}
-        <div
-          style={{ padding: "12px 15px", borderTop: "1px solid var(--line)" }}
-        >
-          <div
-            style={{
-              fontSize: 10.5,
-              textTransform: "uppercase",
-              letterSpacing: ".04em",
-              color: "var(--muted)",
-              marginBottom: 9,
-            }}
-          >
-            So sánh trả hàng tháng
-          </div>
-          {ranked.map((r, i) => (
-            <div className="mc" key={r.packageId + "mc" + i}>
-              <span className="lbl">{r.bank}</span>
-              <div className="track">
-                <div
-                  className={
-                    "fill " + (r.monthlyPayment === minPayment ? "b" : "")
-                  }
-                  style={{
-                    width:
-                      Math.round((r.monthlyPayment / maxPayment) * 100) + "%",
-                  }}
-                />
-              </div>
-              <span className="vv">{fmtMonthly(r.monthlyPayment)}</span>
-            </div>
-          ))}
-        </div>
-        {rejected.length > 0 && (
-          <div
-            style={{ padding: "8px 15px", fontSize: 11, color: "var(--muted)" }}
-          >
-            {rejected.length} gói không phù hợp đã bị loại.
-          </div>
-        )}
-        <div className="foot">
-          Tính toán bởi Decision Engine — không phải LLM.
-        </div>
       </div>
-    </>
+
+      {/* Savings banner */}
+      {savingsTotal > 0 && top.length >= 2 && (
+        <div className="api-savings">
+          {t("api_savings")
+            .replace("{save}", fmtMonthly(savingsTotal))
+            .replace("{term}", String(term))}
+        </div>
+      )}
+
+      {/* Benefit / warning boxes */}
+      <div className="api-boxes">
+        {(() => {
+          const bestPkg = LOAN_PACKAGES.find((p) => p.id === top[0].packageId);
+          if (!bestPkg) return null;
+          const boxes: { icon: string; title: string; desc: string; warn: boolean }[] = [];
+          if (bestPkg.fast_approval)
+            boxes.push({ icon: "⚡", title: t("api_b_fast"), desc: t("api_b_fast_d"), warn: false });
+          if (bestPkg.online_application)
+            boxes.push({ icon: "🌐", title: t("api_b_online"), desc: t("api_b_online_d"), warn: false });
+          if (bestPkg.ekyc)
+            boxes.push({ icon: "🔒", title: t("api_b_ekyc"), desc: t("api_b_ekyc_d"), warn: false });
+          if (bestPkg.no_cic_required)
+            boxes.push({ icon: "📋", title: t("api_b_nocic"), desc: t("api_b_nocic_d"), warn: false });
+          // Always show interest calculation method
+          boxes.push({ icon: "📊", title: t("api_b_calc"), desc: t("api_b_calc_d"), warn: false });
+          // DTI warning if high
+          if (top[0].dti > 0.35)
+            boxes.push({ icon: "⚠️", title: t("api_w_dti"), desc: t("api_w_dti_d").replace("{dti}", Math.round(top[0].dti * 100) + "%"), warn: true });
+          return boxes.slice(0, 4).map((b, i) => (
+            <div className={"api-box" + (b.warn ? " api-warn" : "")} key={i}>
+              <span className="api-box-ic">{b.icon}</span>
+              <div>
+                <div className="api-box-t">{b.title}</div>
+                <div className="api-box-d">{b.desc}</div>
+              </div>
+            </div>
+          ));
+        })()}
+      </div>
+
+      {rejected.length > 0 && (
+        <div className="api-rejected">
+          {rejected.length} {t("api_rejected")}
+        </div>
+      )}
+      <div className="foot">{t("foot_note")}</div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- inline form card */
+
+const FIELD_LABELS: Record<string, { en: string; vi: string; zh: string; placeholder: string }> = {
+  thoi_han_thang: {
+    en: "Loan term (months)",
+    vi: "Kỳ hạn vay (tháng)",
+    zh: "贷款期限（月）",
+    placeholder: "e.g. 60",
+  },
+  thu_nhap_hang_thang: {
+    en: "Monthly income (VND)",
+    vi: "Thu nhập hàng tháng (VND)",
+    zh: "月收入（VND）",
+    placeholder: "e.g. 25000000",
+  },
+};
+
+function FormCard({
+  fields,
+  lang,
+  t,
+  onSubmit,
+}: {
+  fields: string[];
+  lang: "en" | "vi" | "zh";
+  t: (k: string) => string;
+  onSubmit: (msg: string) => void;
+}) {
+  const [values, setValues] = React.useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = React.useState(false);
+
+  const handleSubmit = () => {
+    const filled = fields.filter((f) => values[f]?.trim());
+    if (filled.length === 0) return;
+    setSubmitted(true);
+    // Human-readable message for the chat bubble
+    const humanParts = filled.map((f) => {
+      const meta = FIELD_LABELS[f];
+      const label = meta ? meta[lang] : f;
+      return `${label}: ${values[f].trim()}`;
+    });
+    onSubmit(humanParts.join(", "));
+  };
+
+  if (submitted) {
+    return <div style={{ fontSize: 12, color: "var(--muted)" }}>✓ {t("api_form_sent")}</div>;
+  }
+
+  return (
+    <div className="form-card">
+      <div className="form-card-title">{t("api_form_title")}</div>
+      {fields.map((f) => {
+        const meta = FIELD_LABELS[f];
+        const label = meta ? meta[lang] : f;
+        const ph = meta ? meta.placeholder : "";
+        return (
+          <div className="form-field" key={f}>
+            <label className="form-label">{label}</label>
+            <input
+              className="form-input"
+              type="text"
+              inputMode="numeric"
+              placeholder={ph}
+              value={values[f] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [f]: e.target.value.replace(/[^0-9]/g, "") }))}
+            />
+          </div>
+        );
+      })}
+      <button className="btn btn-primary btn-sm form-submit" onClick={handleSubmit}>
+        {t("api_form_submit")}
+      </button>
+    </div>
   );
 }
 

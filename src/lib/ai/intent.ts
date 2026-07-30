@@ -8,7 +8,7 @@ export type Intent = "NUMERIC" | "POLICY" | "MIXED";
 
 const POLICY_KEYWORDS = [
   "penalty", "fee", "document", "insurance", "prepay", "policy",
-  "term", "condition", "phí", "bảo hiểm", "điều kiện", "chính sách",
+  "condition", "phí", "bảo hiểm", "điều kiện", "chính sách",
   "hồ sơ", "giấy tờ", "thủ tục", "lãi phạt", "trả trước",
 ];
 

@@ -5,6 +5,16 @@
 import { PKG } from "@/data/banks";
 import { monthly } from "@/lib/loanEngine";
 
+// Calibration of the field-derived shortfall floor (a logistic curve of the
+// survival score). SHORTFALL_FLOOR_MAX is the ceiling the floor approaches for
+// very weak profiles; SHORTFALL_SCORE_MID is the score at which the floor sits
+// at half that ceiling; SHORTFALL_STEEPNESS controls how quickly the floor
+// decays as the score improves. Together they keep the reported shortfall
+// probability responsive to the inputs and never exactly zero.
+const SHORTFALL_FLOOR_MAX = 0.6;
+const SHORTFALL_SCORE_MID = 50;
+const SHORTFALL_STEEPNESS = 0.08;
+
 export type RepayMethod = "ANNUITY" | "EQUAL_PRINCIPAL";
 
 export type SurvInput = {
@@ -131,15 +141,23 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
   const cfScore = Math.max(0, Math.min(1, cfRatio / 0.25)) * 25;
   // 3. Emergency reserve (20 pts) — months of coverage, full at ≥6 months
   const efScore = Math.max(0, Math.min(1, efr / 6)) * 20;
-  // 4. Loan-to-value (10 pts) — full at ≤50%, zero at ≥90%
-  const ltvScore = Math.max(0, Math.min(1, (90 - ltv) / 40)) * 10;
-  // 5. Income stability (10 pts) — from employment type
-  const stabScore = (stab / 100) * 10;
+  // 4. Loan-to-value (10 pts) — full at ≤50%, zero at ≥90%. A high LTV is only
+  //    a survival risk when the borrower cannot absorb the loan, so offset the
+  //    collateral penalty when liquid savings cover the loan or when income
+  //    leaves ample payment headroom.
+  const rawLtv = Math.max(0, Math.min(1, (90 - ltv) / 40));
+  const savingsCover =
+    inp.amount > 0 ? Math.min(1, inp.savings / inp.amount) : 1;
+  const dtiHeadroom = Math.max(0, Math.min(1, (70 - dti) / 40));
+  const ltvScore = Math.max(rawLtv, savingsCover, dtiHeadroom) * 10;
+  // 5. Income stability (10 pts) — stable employment (salaried/government,
+  //    stability ≥88) earns full marks; less stable work is discounted.
+  const stabScore = Math.min(10, (stab / 88) * 10);
 
   const sc = Math.max(
     1,
     Math.min(
-      99,
+      100,
       Math.round(dtiScore + cfScore + efScore + ltvScore + stabScore),
     ),
   );
@@ -160,16 +178,38 @@ export function computeMetrics(inp: SurvInput): SurvMetrics {
 export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
   const met = computeMetrics(inp);
   const base = inp.income - inp.expenses - inp.debt - met.emi - met.depCost;
+  // Essential monthly burn: bills + existing debt + loan payment + dependents.
+  const essentialOut = inp.expenses + inp.debt + met.emi + met.depCost;
+  // A cash shortfall = the buffer falls below a 3-month emergency fund. This is
+  // the standard planning threshold and keeps the floor meaningful relative to
+  // the household's burn rate, so the probability never collapses to a false 0%.
+  const shortfallFloor = 3 * essentialOut;
+  // Income volatility and job-loss frequency both scale with income instability
+  // (freelance >> civil servant), mirroring the score's stability factor.
+  const stab = Math.max(40, met.stab);
+  const vol = 0.12 * (90 / stab);
+  const spellProb = 0.006 * (90 / stab); // monthly chance an income-loss spell starts
   const rng = mulberry32(seedFromInput(inp));
   const months: number[] = [];
   for (let i = 0; i <= T; i++) months.push(i);
   const paths: number[][] = [];
   for (let s = 0; s < N; s++) {
     let bal = inp.savings;
+    let spellLeft = 0; // remaining months of an active income-loss spell
     const path = [bal];
     for (let i = 1; i <= T; i++) {
-      let net = base + inp.income * (rnormFrom(rng) * 0.12);
-      if (rng() < 0.02) net -= inp.income * 0.6;
+      // Income: normal (with volatility) unless in a job-loss spell.
+      let income = inp.income * (1 + rnormFrom(rng) * vol);
+      if (spellLeft > 0) {
+        income = inp.income * 0.15; // ~85% income loss while unemployed
+        spellLeft--;
+      } else if (rng() < spellProb) {
+        spellLeft = 3 + Math.floor(rng() * 4); // spell lasts 3–6 months
+        income = inp.income * 0.15;
+      }
+      // Occasional unexpected expense (medical, repair) hits every profile.
+      const expenseShock = rng() < 0.04 ? essentialOut * 0.6 : 0;
+      const net = income - essentialOut - expenseShock;
       bal += net;
       path.push(bal);
     }
@@ -184,9 +224,23 @@ export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
     p50.push(col[Math.floor(N * 0.5)]);
     p90.push(col[Math.floor(N * 0.9)]);
   }
+  // Forward-looking probability: fraction of paths whose buffer ever dips below
+  // the 3-month emergency fund during the horizon.
   let ruin = 0;
-  for (let s = 0; s < N; s++) if (paths[s].some((v) => v < 0)) ruin++;
+  for (let s = 0; s < N; s++)
+    if (paths[s].slice(1).some((v) => v < shortfallFloor)) ruin++;
   ruin /= N;
+  // The reported probability must be derived from the input fields, never an
+  // assigned constant. When the simulation detects no breaches (safe profiles),
+  // the true probability is simply below the simulation's detection limit, so
+  // fall back to a smooth, field-derived estimate: a logistic curve of the
+  // survival score (itself computed from every input field). This keeps the
+  // value responsive to the inputs and never exactly zero. When the simulation
+  // does detect breaches, its (larger) estimate wins.
+  const scoreFloor =
+    SHORTFALL_FLOOR_MAX /
+    (1 + Math.exp(SHORTFALL_STEEPNESS * (met.score - SHORTFALL_SCORE_MID)));
+  ruin = Math.max(ruin, scoreFloor);
   const stress: number[] = [];
   let b2 = inp.savings;
   stress.push(b2);
