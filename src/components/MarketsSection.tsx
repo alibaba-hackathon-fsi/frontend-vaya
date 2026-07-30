@@ -7,6 +7,7 @@ import { PKG, AVG, bankOf, purpName, prodName, logoSrc, type Purpose, type LoanP
 import { fmtVND, termLabel } from "@/lib/loanEngine";
 import Sparkline from "@/components/charts/Sparkline";
 import LineChart from "@/components/charts/LineChart";
+import { COMPARE_MAX, toggleCompare, useCompare } from "@/lib/compareStore";
 
 type FilterKey = "all" | Purpose;
 type SortKey = "rate" | "max" | "term";
@@ -23,6 +24,17 @@ export default function MarketsSection() {
   const [asc, setAsc] = useState(true);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<ViewKey>("cards");
+
+  const picked = useCompare();
+  const [full, setFull] = useState(false);
+  // Toggling from a card must not also open that card, hence stopPropagation.
+  const onCompare = (e: React.MouseEvent, i: number) => {
+    e.stopPropagation();
+    if (toggleCompare(i) === "full") {
+      setFull(true);
+      setTimeout(() => setFull(false), 2200);
+    }
+  };
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -184,6 +196,8 @@ export default function MarketsSection() {
               </div>
             </div>
 
+            {full && <div className="cmp-flash">{t("cx_full").replace("{n}", String(COMPARE_MAX))}</div>}
+
             {view === "cards" ? (
               <div className="pkg-grid">
                 {rows.length === 0 ? (
@@ -196,6 +210,15 @@ export default function MarketsSection() {
                         <div className="pkg-top">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img className="pkg-logo" src={logoSrc(p.code)} alt={b.name} />
+                          <button
+                            className={"cmp-tog" + (picked.includes(PKG.indexOf(p)) ? " on" : "")}
+                            onClick={(e) => onCompare(e, PKG.indexOf(p))}
+                            title={t("cx_add")}
+                            aria-pressed={picked.includes(PKG.indexOf(p))}
+                          >
+                            {picked.includes(PKG.indexOf(p)) ? "✓" : "⇄"}
+                            <span>{t("cx_add_short")}</span>
+                          </button>
                         </div>
                         <div className="pkg-name">
                           <span className="pkg-bank">{b.name}</span>
@@ -290,9 +313,19 @@ export default function MarketsSection() {
                             <td className="num">{fmtVND(p.max, lang)}</td>
                             <td className="num">{termLabel(p.term, t)}</td>
                             <td className="num">
-                              <button className="ask" onClick={() => router.push(`/package/${PKG.indexOf(p)}`)}>
-                                {t("view")}
-                              </button>
+                              <div className="td-acts">
+                                <button
+                                  className={"cmp-tog tbl" + (picked.includes(PKG.indexOf(p)) ? " on" : "")}
+                                  onClick={(e) => onCompare(e, PKG.indexOf(p))}
+                                  title={t("cx_add")}
+                                  aria-pressed={picked.includes(PKG.indexOf(p))}
+                                >
+                                  {picked.includes(PKG.indexOf(p)) ? "✓" : "⇄"}
+                                </button>
+                                <button className="ask" onClick={() => router.push(`/package/${PKG.indexOf(p)}`)}>
+                                  {t("view")}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

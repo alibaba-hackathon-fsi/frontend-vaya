@@ -1008,6 +1008,14 @@ export default function ChatAdvisor({
             <span className="on-ind">{t("advisor_sub")}</span>
           </div>
           <div className="hact">
+            {/* Hand-off to the human desk. Sits before "new chat" because a user
+                who wants a person has already decided the bot is not enough. */}
+            <button
+              className="btn btn-ghost btn-sm hact-human"
+              onClick={() => router.push("/human")}
+            >
+              <span className="hact-ic">🙋</span> {t("hm_cta")}
+            </button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => {
