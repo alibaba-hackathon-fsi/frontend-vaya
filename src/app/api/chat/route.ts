@@ -8,6 +8,8 @@ import { getAllChunks } from "@/lib/ai/rag/store";
 import { retrieveTopK } from "@/lib/ai/rag/retrieve";
 import { embedText } from "@/lib/ai/rag/embed";
 import { apiT, parseLang, type ApiLang } from "@/lib/i18n/apiMessages";
+import { checkRateLimit } from "@/lib/security/rateLimit";
+import { detectInjection, sanitizeMessage } from "@/lib/security/inputGuard";
 
 /* ================================================================
    Session state — in-memory (demo-grade; swap for Redis before prod)
@@ -22,6 +24,24 @@ const sessions = new Map<string, ChatSession>();
 
 const MAX_FOLLOWUP_TURNS = 3;
 const MANUAL_FORM_STAGE = "fallback_to_manual_form";
+
+/* ================================================================
+   Anti-spam rate limiting (per client IP)
+   ================================================================ */
+
+/** Max chat requests allowed per client within the sliding window. */
+const RATE_LIMIT_MAX = 10;
+/** Sliding window length for the rate limit (ms). */
+const RATE_LIMIT_WINDOW_MS = 30_000;
+
+/** Resolve the client IP for rate limiting (Vercel sets x-forwarded-for). */
+function clientIpOf(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    ""
+  );
+}
 
 /* ================================================================
    SSE helper
@@ -97,6 +117,41 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // --- Security guards: rate limit, then validate/sanitize the input ---
+  // Key on client IP so a bot cannot dodge the limit by rotating sessionIds
+  // (sessionId is client-generated). Fall back to sessionId when there is no
+  // IP header (e.g. local dev).
+  const clientIp = clientIpOf(request);
+  const rateKey = clientIp ? `ip:${clientIp}` : `session:${sessionId}`;
+  const rate = checkRateLimit(rateKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+  if (rate.limited) {
+    return new Response(
+      JSON.stringify({ reply: apiT("rate_limited", lang), error: true }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(Math.ceil(rate.retryAfterMs / 1000)),
+        },
+      },
+    );
+  }
+
+  const sanitized = sanitizeMessage(message);
+  if (!sanitized) {
+    return new Response(JSON.stringify({ error: "Message is empty" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (detectInjection(sanitized)) {
+    return new Response(
+      JSON.stringify({ reply: apiT("injection_blocked", lang), error: true }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   const llm = getLLMProvider();
   const session = sessions.get(sessionId) ?? { profile: {}, turns: 0 };
 
@@ -104,7 +159,7 @@ export async function POST(request: NextRequest) {
   let intentResult;
   try {
     intentResult = await extractAndClassify(
-      message,
+      sanitized,
       session.profile,
       session.turns,
       llm,
@@ -142,7 +197,7 @@ export async function POST(request: NextRequest) {
   // --- Policy-only intent ---
   let policyResult = null;
   if (intent === "POLICY" || intent === "MIXED") {
-    policyResult = await queryPolicyInline(message, lang);
+    policyResult = await queryPolicyInline(sanitized, lang);
   }
 
   if (intent === "POLICY") {

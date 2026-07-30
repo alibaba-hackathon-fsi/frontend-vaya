@@ -46,6 +46,16 @@ const MESSAGES = {
     vi: "Bạn có thể cho biết thêm về {field} không?",
     zh: "您能告诉我更多关于{field}的信息吗？",
   },
+  rate_limited: {
+    en: "You're sending messages too quickly. Please wait a moment and try again.",
+    vi: "Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi một lát rồi thử lại.",
+    zh: "您发送消息太快了。请稍等片刻，然后重试。",
+  },
+  injection_blocked: {
+    en: "I can only help with loan-related questions. Please rephrase your request.",
+    vi: "Tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến khoản vay. Vui lòng diễn đạt lại yêu cầu của bạn.",
+    zh: "我只能帮助回答与贷款相关的问题。请重新表述您的请求。",
+  },
 } as const;
 
 export type ApiMessageKey = keyof typeof MESSAGES;
