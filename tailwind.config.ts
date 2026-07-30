@@ -14,8 +14,23 @@ const config: Config = {
         green: "#00C776",
       },
       fontFamily: {
-        disp: ["Sora", "Plus Jakarta Sans", "Noto Sans SC", "system-ui", "sans-serif"],
-        body: ["Plus Jakarta Sans", "Noto Sans SC", "system-ui", "sans-serif"],
+        // "Be Vietnam Pro" is the Vietnamese-complete fallback (Sora has no
+        // `vietnamese` subset); in VI mode globals.css promotes it to primary.
+        disp: [
+          "Sora",
+          "Be Vietnam Pro",
+          "Plus Jakarta Sans",
+          "Noto Sans SC",
+          "system-ui",
+          "sans-serif",
+        ],
+        body: [
+          "Plus Jakarta Sans",
+          "Be Vietnam Pro",
+          "Noto Sans SC",
+          "system-ui",
+          "sans-serif",
+        ],
       },
     },
   },
