@@ -109,8 +109,17 @@ export async function POST(request: NextRequest) {
       session.turns,
       llm,
     );
-  } catch {
-    // LLM call failed — graceful degradation
+  } catch (err) {
+    // LLM call failed — log the real cause (and whether the key is present at
+    // runtime) for observability, then degrade gracefully. Never log the key.
+    console.error(
+      "[chat] extractAndClassify failed:",
+      err instanceof Error ? err.message : err,
+      "| provider=",
+      process.env.LLM_PROVIDER,
+      "| deepseekKeyPresent=",
+      Boolean(process.env.DEEPSEEK_API_KEY),
+    );
     return new Response(
       JSON.stringify({
         reply: apiT("llm_error", lang),
