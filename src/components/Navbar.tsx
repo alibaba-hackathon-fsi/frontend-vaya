@@ -43,15 +43,17 @@ export default function Navbar() {
 
   // The nav lists real destinations only. Sub-pages are children of a
   // destination, so they light up their parent instead of adding an entry:
-  //   /            + /package/*                  -> Home
+  //   /  + /package/*  + /compare                -> Home
   //   /survival                                  -> Survival Score
-  //   /chat, /checklist, /analysis               -> the advisor CTA
-  const isHome = pathname === "/" || pathname.startsWith("/package");
+  //   /chat, /checklist, /analysis, /human       -> the advisor CTA
+  const isHome =
+    pathname === "/" || pathname.startsWith("/package") || pathname.startsWith("/compare");
   const isSurvival = pathname.startsWith("/survival");
   const inAdvisor =
     pathname.startsWith("/chat") ||
     pathname.startsWith("/checklist") ||
-    pathname.startsWith("/analysis");
+    pathname.startsWith("/analysis") ||
+    pathname.startsWith("/human");
 
   return (
     <header>

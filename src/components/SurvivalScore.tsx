@@ -15,6 +15,7 @@ import {
   type Suggestion,
 } from "@/lib/survival";
 import SurvivalChart from "@/components/charts/SurvivalChart";
+import Term from "@/components/Term";
 import type { Lang } from "@/i18n/dict";
 
 const LS_KEY = "vaya_surv_form";
@@ -219,10 +220,32 @@ export default function SurvivalScore() {
   return (
     <section className="pageview on">
       <div className="wrap">
-        <div className="surv-hero">
-          <span className="sec-tag">{t("nav_surv")}</span>
-          <h2>{t("surv_title")}</h2>
-          <p>{t("surv_sub")}</p>
+        {/* Two columns on purpose: the intro used to stop at 720px and strand the
+            right half of the page, and the score means nothing to a first-time
+            reader without knowing what is being simulated. */}
+        <div className="surv-hero has-aside">
+          <div>
+            <span className="sec-tag">{t("nav_surv")}</span>
+            <h2>{t("surv_title")}</h2>
+            <p>{t("surv_sub")}</p>
+          </div>
+          <div className="surv-how">
+            <div className="glab">{t("sh_title")}</div>
+            <ol className="surv-how-l">
+              <li>
+                <b>{t("sh_1_t")}</b>
+                <span>{t("sh_1_d")}</span>
+              </li>
+              <li>
+                <b>{t("sh_2_t")}</b>
+                <span>{t("sh_2_d")}</span>
+              </li>
+              <li>
+                <b>{t("sh_3_t")}</b>
+                <span>{t("sh_3_d")}</span>
+              </li>
+            </ol>
+          </div>
         </div>
         {fromChat && (
           <div className="surv-notice">
@@ -390,14 +413,17 @@ function Result({
   const sc = met.score;
   const vclass = sc >= 70 ? "good" : sc >= 45 ? "ok" : "risk";
   const vlab = sc >= 70 ? t("r_good") : sc >= 45 ? t("r_ok") : t("r_risk");
-  const metrics: [string, string][] = [
-    ["m_emi", fmtMonthly(met.emi)],
-    ["m_dti", met.dti.toFixed(0) + "%"],
-    ["m_pti", met.pti.toFixed(0) + "%"],
-    ["m_ltv", met.ltv.toFixed(0) + "%"],
-    ["m_disp", fmtMonthly(met.disposable)],
-    ["m_efr", met.efr.toFixed(1) + " " + t("r_mo")],
-    ["m_stab", met.stab + "/100"],
+  // third element is the glossary id — every acronym on this grid gets a
+  // plain-language explanation on tap, since DTI/PTI/LTV mean nothing to most
+  // first-time borrowers.
+  const metrics: [string, string, string][] = [
+    ["m_emi", fmtMonthly(met.emi), "emi"],
+    ["m_dti", met.dti.toFixed(0) + "%", "dti"],
+    ["m_pti", met.pti.toFixed(0) + "%", "pti"],
+    ["m_ltv", met.ltv.toFixed(0) + "%", "ltv"],
+    ["m_disp", fmtMonthly(met.disposable), "disp"],
+    ["m_efr", met.efr.toFixed(1) + " " + t("r_mo"), "efr"],
+    ["m_stab", met.stab + "/100", "stab"],
   ];
   const selP = inp.pkgIdx != null ? PKG[inp.pkgIdx] : null;
   const cheapest = PKG.filter((p) => p.purpose === inp.purpose).sort(
@@ -467,11 +493,15 @@ function Result({
       <div className={"score-head sc-" + vclass}>
         <div className="score-num">{sc}</div>
         <div className="score-meta">
-          <div className="score-lab">{t("r_score")}</div>
+          <div className="score-lab">
+            <Term id="score" label={t("r_score")} />
+          </div>
           <div className="score-verdict">{vlab}</div>
         </div>
         <div className="score-ruin">
-          <span>{t("r_ruin")}</span>
+          <span>
+            <Term id="ruin" label={t("r_ruin")} />
+          </span>
           <b>{(mc.ruin * 100).toFixed(1)}%</b>
         </div>
       </div>
@@ -479,7 +509,9 @@ function Result({
       <div className="sm-grid">
         {metrics.map((m) => (
           <div className="sm" key={m[0]}>
-            <div className="smk">{t(m[0])}</div>
+            <div className="smk">
+              <Term id={m[2]} label={t(m[0])} />
+            </div>
             <div className="smv">{m[1]}</div>
           </div>
         ))}

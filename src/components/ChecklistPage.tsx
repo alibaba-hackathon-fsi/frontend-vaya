@@ -11,6 +11,7 @@ import {
 import { DOCUMENT_CHECKLISTS } from "@/data/checklists";
 import type { IncomeProofType } from "@/lib/engine/types";
 import type { Purpose } from "@/data/banks";
+import EmailChecklist from "@/components/EmailChecklist";
 
 const INCOME_PROOFS: { value: IncomeProofType; labelKey: string }[] = [
   { value: "PAYROLL_TRANSFER", labelKey: "ip_payroll_transfer" },
@@ -108,6 +109,14 @@ export default function ChecklistPage() {
             >
               {t("chk_back_chat")}
             </button>
+            {/* Escape hatch for anyone the document list has not convinced. */}
+            <button
+              type="button"
+              className="btn btn-ghost hm-link"
+              onClick={() => router.push("/human")}
+            >
+              {t("hm_cta")}
+            </button>
           </form>
 
           <div className="chk-results">
@@ -115,6 +124,8 @@ export default function ChecklistPage() {
               <span className="chk-count">{result.required.length}</span>
               <span>{t("chk_required_docs")}</span>
             </div>
+
+            <EmailChecklist docCount={result.required.length} />
 
             {grouped.map((group) => (
               <div className="chk-group" key={group.category}>

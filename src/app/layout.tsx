@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import Navbar from "@/components/Navbar";
+import CompareBar from "@/components/CompareBar";
 
 export const metadata: Metadata = {
   title: "Vaya — Your AI Loan Advisor",
@@ -36,6 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <I18nProvider>
           <Navbar />
           {children}
+          {/* Selection basket for the compare feature — lives above every page so
+              a pick made on the markets table survives navigation. */}
+          <CompareBar />
         </I18nProvider>
       </body>
     </html>

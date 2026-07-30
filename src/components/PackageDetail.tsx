@@ -7,9 +7,11 @@ import { PKG, bankOf, purpName, prodName, logoSrc } from "@/data/banks";
 import { fmtVND, fmtMonthly, termLabel, monthly } from "@/lib/loanEngine";
 import { amortSeries } from "@/lib/survival";
 import RateTrendChart from "@/components/charts/RateTrendChart";
+import { toggleCompare, useCompare } from "@/lib/compareStore";
 
 export default function PackageDetail({ idx }: { idx: number }) {
   const { lang, t } = useI18n();
+  const picked = useCompare();
   const router = useRouter();
   const p = PKG[idx];
   if (!p) return <section className="pageview on"><div className="wrap" style={{ padding: "60px 0" }}>Not found.</div></section>;
@@ -42,7 +44,16 @@ export default function PackageDetail({ idx }: { idx: number }) {
 
   return (
     <section className="pageview on"><div className="wrap">
-      <button className="linkback" onClick={() => router.push("/")}>{t("d_back")}</button>
+      <div className="dt-bar">
+        <button className="linkback" onClick={() => router.push("/")}>{t("d_back")}</button>
+        <button
+          className={"cmp-tog wide" + (picked.includes(idx) ? " on" : "")}
+          onClick={() => toggleCompare(idx)}
+          aria-pressed={picked.includes(idx)}
+        >
+          {picked.includes(idx) ? "✓ " + t("cx_added") : "⇄ " + t("cx_add")}
+        </button>
+      </div>
       <div className="dt-head">
         <div className="dt-logo">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={logoSrc(p.code)} alt={b.name} /></div>
         <div className="dt-h">
