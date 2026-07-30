@@ -127,13 +127,6 @@ export async function POST(request: NextRequest) {
         missingFields: [],
         stage: MANUAL_FORM_STAGE,
         error: true,
-        // TEMPORARY diagnostics — remove once the deployment issue is resolved.
-        diag: {
-          provider: process.env.LLM_PROVIDER ?? null,
-          deepseekKeyPresent: Boolean(process.env.DEEPSEEK_API_KEY),
-          deepseekKeyLen: (process.env.DEEPSEEK_API_KEY ?? "").length,
-          errMsg: err instanceof Error ? err.message : String(err),
-        },
       }),
       { headers: { "Content-Type": "application/json" } },
     );

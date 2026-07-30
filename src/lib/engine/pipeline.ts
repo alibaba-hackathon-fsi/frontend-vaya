@@ -88,7 +88,15 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
     profile,
     ranked,
     rejected: [
-      ...rejected.map((r) => ({ packageId: r.packageId, reason: r.reason })),
+      // Only surface same-category rejections (a financial fit issue). Packages
+      // rejected purely for a purpose mismatch (a different loan category) are
+      // noise to the customer and are excluded from the explanation.
+      ...rejected
+        .filter((r) => {
+          const pkg = LOAN_PACKAGES.find((p) => p.id === r.packageId);
+          return pkg?.muc_dich === profile.muc_dich;
+        })
+        .map((r) => ({ packageId: r.packageId, reason: r.reason })),
       ...dtiRejected.map((c) => ({
         packageId: c.pkg.id,
         reason: `The monthly payment would be ${Math.round(c.dti * 100)}% of your income, above the safe limit of 60%`,
