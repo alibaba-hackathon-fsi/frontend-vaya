@@ -11,13 +11,25 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // `suppressHydrationWarning`: the inline script below rewrites `lang` before
+    // React hydrates, which is intentional.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* "Be Vietnam Pro" carries the full Vietnamese diacritic set that Sora
+            lacks — see the html[lang="vi"] override in globals.css. */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
           rel="stylesheet"
+        />
+        {/* Applies the saved language to <html lang> before the first paint, so
+            the right font is used immediately and nothing flashes. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var v=localStorage.getItem('vaya_lang');if(v==='vi'||v==='zh'||v==='en'){document.documentElement.lang=v;}}catch(e){}})();",
+          }}
         />
       </head>
       <body>

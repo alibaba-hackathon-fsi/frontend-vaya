@@ -127,28 +127,60 @@ export default function MarketsSection() {
                 </svg>
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("search_ph")} />
               </label>
+              {/* Sort sits directly beside the search box (both are "narrowing"
+                  controls); the count + view toggle live on the right edge. */}
+              <select
+                className="sortsel"
+                style={{ display: view === "cards" ? "" : "none" }}
+                value={`${sort}:${asc ? 1 : 0}`}
+                onChange={(e) => onSortSel(e.target.value)}
+                aria-label={t("sort_rate")}
+              >
+                <option value="rate:1">{t("sort_rate")}</option>
+                <option value="max:0">{t("sort_max")}</option>
+                <option value="term:0">{t("sort_term")}</option>
+              </select>
               <div className="mkt-actions">
-                <select
-                  className="sortsel"
-                  style={{ display: view === "cards" ? "" : "none" }}
-                  value={`${sort}:${asc ? 1 : 0}`}
-                  onChange={(e) => onSortSel(e.target.value)}
-                >
-                  <option value="rate:1">{t("sort_rate")}</option>
-                  <option value="max:0">{t("sort_max")}</option>
-                  <option value="term:0">{t("sort_term")}</option>
-                </select>
-                <div className="viewtog">
-                  <button className={view === "cards" ? "on" : ""} onClick={() => setView("cards")} title={t("v_cards")}>
-                    ▦
-                  </button>
-                  <button className={view === "table" ? "on" : ""} onClick={() => setView("table")} title={t("v_table")}>
-                    ≣
-                  </button>
-                </div>
                 <span className="cnt">
                   {rows.length} {t("results")}
                 </span>
+                {/* Toggle is the last child of a right-aligned group, so it stays
+                    pinned to the right edge in both view modes. SVG icons keep
+                    the glyphs optically centred (unicode ▦/≣ did not). */}
+                <div className="viewtog">
+                  <button
+                    className={view === "cards" ? "on" : ""}
+                    onClick={() => setView("cards")}
+                    title={t("v_cards")}
+                    aria-label={t("v_cards")}
+                    aria-pressed={view === "cards"}
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+                      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+                      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+                      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+                    </svg>
+                  </button>
+                  <button
+                    className={view === "table" ? "on" : ""}
+                    onClick={() => setView("table")}
+                    title={t("v_table")}
+                    aria-label={t("v_table")}
+                    aria-pressed={view === "table"}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
