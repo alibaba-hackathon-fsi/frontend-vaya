@@ -1479,6 +1479,10 @@ footer {
 .chart-wrap {
   position: relative;
   margin-top: 10px;
+  /* Safety net: a tooltip must never be able to widen the document and give the
+     whole page a horizontal scrollbar. `clip` (unlike `hidden`) leaves the
+     vertical axis visible, so the bubble can still sit above the chart. */
+  overflow-x: clip;
 }
 .chart-wrap svg {
   display: block;
@@ -1493,7 +1497,12 @@ footer {
   padding: 8px 11px;
   font-size: 12px;
   line-height: 1.4;
-  white-space: nowrap;
+  /* shrink-to-fit, but wrap instead of running off the chart on small screens
+     (VI/ZH strings are noticeably longer than the EN ones) */
+  width: max-content;
+  max-width: min(240px, 68vw);
+  white-space: normal;
+  /* default anchor; tipPos() overrides this inline to re-anchor near the edges */
   transform: translate(-50%, -118%);
   opacity: 0;
   transition: opacity 0.1s;

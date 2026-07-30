@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import type { MCResult } from "@/lib/survival";
 import { fvShort } from "@/lib/survival";
+import { tipPos } from "@/lib/chartTip";
 
 /**
  * Interactive savings-buffer chart — replaces the static SVG string.
@@ -182,11 +183,7 @@ export default function SurvivalChart({
       {hover != null && (
         <div
           className="chart-tip"
-          style={{
-            left: `${(X(hover) / W) * 100}%`,
-            top: `${(Y(p50[hover]) / H) * 100}%`,
-            opacity: 1,
-          }}
+          style={tipPos((X(hover) / W) * 100, (Y(p50[hover]) / H) * 100)}
         >
           <b>
             {t("sc_month")} {months[hover]}

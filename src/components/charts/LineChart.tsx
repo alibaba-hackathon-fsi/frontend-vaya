@@ -3,6 +3,7 @@
 // Interactive average-rate line chart — pure SVG, hover shows a tooltip with the
 // month, rate and month-over-month delta, plus a guide line and highlighted point.
 import React, { useId, useRef, useState } from "react";
+import { tipPos } from "@/lib/chartTip";
 
 export default function LineChart({
   data,
@@ -53,7 +54,7 @@ export default function LineChart({
     const d = prev != null ? data[hover] - prev : 0;
     const low = data[hover] === minV;
     tip = (
-      <div className="chart-tip" style={{ left: `${(X(hover) / w) * 100}%`, top: `${(Y(data[hover]) / h) * 100}%`, opacity: 1 }}>
+      <div className="chart-tip" style={tipPos((X(hover) / w) * 100, (Y(data[hover]) / h) * 100)}>
         <b>{data[hover].toFixed(1)}%</b> · {labels[hover]}
         <br />
         {prev != null && (
