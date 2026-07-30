@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
 import { PKG, AVG, bankOf, purpName, prodName, logoSrc, type Purpose, type LoanPackage } from "@/data/banks";
 import { fmtVND, termLabel } from "@/lib/loanEngine";
+import { useCompare, MAX_SELECTION } from "@/lib/CompareContext";
 import Sparkline from "@/components/charts/Sparkline";
 import LineChart from "@/components/charts/LineChart";
 
@@ -18,6 +19,7 @@ const MONTHS = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "
 export default function MarketsSection() {
   const router = useRouter();
   const { lang, t } = useI18n();
+  const { selected, toggle, full, clear, remove } = useCompare();
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sort, setSort] = useState<SortKey>("rate");
   const [asc, setAsc] = useState(true);
@@ -111,6 +113,7 @@ export default function MarketsSection() {
 
           {/* Packages: filters + tools + (cards | table) */}
           <div className="table-card reveal">
+            <div className="mkt-sel-hint">💡 {t("cmp_sel_hint")}</div>
             <div className="filters">
               {FILTER_KEYS.map((k) => (
                 <button key={k} className={k === filter ? "on" : ""} onClick={() => setFilter(k)}>
@@ -191,8 +194,24 @@ export default function MarketsSection() {
                 ) : (
                   rows.map((p: LoanPackage, i) => {
                     const b = bankOf(p.code);
+                    const gIdx = PKG.indexOf(p);
+                    const isSel = selected.includes(gIdx);
+                    const disabled = !isSel && full;
                     return (
-                      <div className="pkg" key={p.code + i} style={{ cursor: "pointer" }} onClick={() => router.push(`/package/${PKG.indexOf(p)}`)}>
+                      <div className={"pkg" + (isSel ? " pkg-sel" : "")} key={p.code + i} style={{ cursor: "pointer" }} onClick={() => router.push(`/package/${gIdx}`)}>
+                        <label
+                          className="pkg-chk"
+                          title={disabled ? t("cmp_sel_full") : t("cmp_sel_checkbox")}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSel}
+                            disabled={disabled}
+                            onChange={() => toggle(gIdx)}
+                          />
+                          <span className="pkg-chk-label">{t("cmp_sel_checkbox")}</span>
+                        </label>
                         <div className="pkg-top">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img className="pkg-logo" src={logoSrc(p.code)} alt={b.name} />
@@ -236,6 +255,7 @@ export default function MarketsSection() {
                 <table id="mktTable">
                   <thead>
                     <tr>
+                      <th className="chk-col" />
                       {cols.map(({ k, lab, num }) => {
                         const isSortable = sortable.includes(k);
                         const cls = (num ? "num " : "") + (k === "trend" ? "hide-sm " : "") + (sort === k ? "sorted" : "");
@@ -261,8 +281,20 @@ export default function MarketsSection() {
                       rows.map((p: LoanPackage, i) => {
                         const b = bankOf(p.code);
                         const chg = p.change;
+                        const gIdx = PKG.indexOf(p);
+                        const isSel = selected.includes(gIdx);
+                        const disabled = !isSel && full;
                         return (
-                          <tr key={p.code + prodName(p, lang) + i}>
+                          <tr key={p.code + prodName(p, lang) + i} className={isSel ? "tr-sel" : ""}>
+                            <td className="chk-col">
+                              <input
+                                type="checkbox"
+                                checked={isSel}
+                                disabled={disabled}
+                                title={disabled ? t("cmp_sel_full") : t("cmp_sel_checkbox")}
+                                onChange={() => toggle(gIdx)}
+                              />
+                            </td>
                             <td>
                               <div className="bk">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -305,6 +337,54 @@ export default function MarketsSection() {
           </div>
         </div>
       </div>
+
+      {/* Sticky compare bar — visible when at least 1 package is selected. */}
+      {selected.length > 0 && (
+        <div className="cmp-sticky-bar">
+          <div className="wrap cmp-bar-inner">
+            <div className="cmp-bar-info">
+              <span className="cmp-bar-title">{t("cmp_bar_title")}</span>
+              <span className="cmp-bar-count">
+                {t("cmp_bar_selected").replace("{n}", String(selected.length)).replace("{max}", String(MAX_SELECTION))}
+              </span>
+              {/* Mini chip previews of selected packages */}
+              <div className="cmp-bar-chips">
+                {selected.map((idx) => {
+                  const pkg = PKG[idx];
+                  if (!pkg) return null;
+                  const b = bankOf(pkg.code);
+                  return (
+                    <span key={idx} className="cmp-chip">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img className="cmp-chip-logo" src={logoSrc(pkg.code)} alt={b.name} />
+                      <span className="cmp-chip-name">{b.name}</span>
+                      <button
+                        className="cmp-chip-x"
+                        aria-label={t("cmp_remove")}
+                        onClick={(e) => { e.stopPropagation(); remove(idx); }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="cmp-bar-actions">
+              <button className="btn btn-ghost btn-sm" onClick={clear}>
+                {t("cmp_bar_clear")}
+              </button>
+              <button
+                className="btn btn-green btn-sm"
+                onClick={() => router.push("/compare")}
+                disabled={selected.length < 2}
+              >
+                {t("cmp_bar_btn")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

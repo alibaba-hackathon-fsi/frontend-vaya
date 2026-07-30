@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import { CompareProvider } from "@/lib/CompareContext";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
@@ -34,8 +35,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <I18nProvider>
-          <Navbar />
-          {children}
+          <CompareProvider>
+            <Navbar />
+            {children}
+          </CompareProvider>
         </I18nProvider>
       </body>
     </html>

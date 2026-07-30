@@ -46,7 +46,7 @@ export default function Navbar() {
   //   /            + /package/*                  -> Home
   //   /survival                                  -> Survival Score
   //   /chat, /checklist, /analysis               -> the advisor CTA
-  const isHome = pathname === "/" || pathname.startsWith("/package");
+  const isHome = pathname === "/" || pathname.startsWith("/package") || pathname.startsWith("/compare");
   const isSurvival = pathname.startsWith("/survival");
   const inAdvisor =
     pathname.startsWith("/chat") ||
