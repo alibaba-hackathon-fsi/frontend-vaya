@@ -2309,9 +2309,64 @@ img.flag {
   padding: 18px 0 4px;
   font-size: 14px;
 }
-.nav-surv {
-  color: var(--green-text) !important;
-  font-weight: 700 !important;
+/* active page: only the current section is highlighted */
+.nav .links a.on,
+.navpanel a.on {
+  color: var(--green-text);
+  font-weight: 700;
+}
+.nav .links a.on {
+  position: relative;
+}
+.nav .links a.on::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 2px;
+  height: 2px;
+  background: var(--green);
+}
+.navpanel a.on {
+  background: var(--green-soft);
+}
+/* Inside the advisor flow the CTA is redundant as a call to action, so it steps
+   back from a filled button to an outlined "you are here" chip with a live dot.
+   Darkening the fill instead just read as pressed/disabled. */
+.navcta.on {
+  background: #fff;
+  color: var(--green-text);
+  box-shadow: inset 0 0 0 2px var(--green);
+}
+.navcta.on:hover {
+  background: var(--green-soft);
+  color: var(--green-text);
+  transform: none;
+}
+.navcta.on::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--green);
+  animation: livedot 1.6s var(--ease) infinite;
+}
+@keyframes livedot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navcta.on::before {
+    animation: none;
+  }
 }
 /* detail */
 .dt-head {
@@ -2523,21 +2578,54 @@ img.flag {
   font-weight: 600;
   margin-bottom: 5px;
 }
-.fq input,
+.fq input:not([type="radio"]):not([type="checkbox"]),
 .fq select {
   width: 100%;
+  height: 40px;
   border: 1px solid var(--line-2);
   background: #fff;
-  padding: 9px 11px;
+  padding: 0 12px;
   font-family: var(--font-body), sans-serif;
   font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
   border-radius: 0;
+  line-height: normal;
+}
+/* native select chrome differs per OS/browser — replace it with the same
+   control used by the markets sort dropdown so every select looks identical */
+.fq select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230A8F55' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
+}
+.fq select::-ms-expand {
+  display: none;
+}
+.fq input:hover,
+.fq select:hover {
+  border-color: var(--ink-2);
 }
 .fq input:focus,
 .fq select:focus {
   outline: none;
   border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(0, 199, 118, 0.15);
+}
+/* read-only selects (e.g. the loan purpose carried into the checklist) */
+.fq select:disabled {
+  background-color: var(--surface);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
+}
+.fq select:disabled:hover {
+  border-color: var(--line-2);
 }
 .surv-gen {
   width: 100%;

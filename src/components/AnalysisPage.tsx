@@ -18,6 +18,13 @@ const NUM = (s: string) => {
   const x = parseFloat((s || "").replace(/[^\d.]/g, ""));
   return isNaN(x) ? 0 : x;
 };
+/** Digits only, kept as the raw source of truth in state. */
+const DIGITS = (s: string) => (s || "").replace(/\D/g, "");
+/** Renders 2000000000 as "2,000,000,000" for readability while typing. */
+const GROUPED = (s: string) => {
+  const d = DIGITS(s);
+  return d ? Number(d).toLocaleString("en-US") : "";
+};
 
 const TIER_CLASS: Record<string, string> = {
   ROBUST: "good",
@@ -89,8 +96,8 @@ export default function AnalysisPage() {
       <input
         type="text"
         inputMode="numeric"
-        value={f[key]}
-        onChange={(e) => set(key, e.target.value.replace(/[^\d]/g, ""))}
+        value={GROUPED(f[key])}
+        onChange={(e) => set(key, DIGITS(e.target.value))}
       />
     </label>
   );

@@ -36,18 +36,22 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const scrollToId = (id: string) => {
-    if (pathname === "/") {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    } else {
-      router.push("/#" + id);
-    }
-  };
   const goHome = () => {
     if (pathname === "/") window.scrollTo({ top: 0, behavior: "smooth" });
     else router.push("/");
   };
+
+  // The nav lists real destinations only. Sub-pages are children of a
+  // destination, so they light up their parent instead of adding an entry:
+  //   /            + /package/*                  -> Home
+  //   /survival                                  -> Survival Score
+  //   /chat, /checklist, /analysis               -> the advisor CTA
+  const isHome = pathname === "/" || pathname.startsWith("/package");
+  const isSurvival = pathname.startsWith("/survival");
+  const inAdvisor =
+    pathname.startsWith("/chat") ||
+    pathname.startsWith("/checklist") ||
+    pathname.startsWith("/analysis");
 
   return (
     <header>
@@ -56,11 +60,12 @@ export default function Navbar() {
           <Logo /> Vaya
         </a>
         <div className="links">
-          <a onClick={() => scrollToId("markets")}>{t("nav_markets")}</a>
-          <a onClick={() => scrollToId("why")}>{t("nav_why")}</a>
-          <a onClick={() => scrollToId("how")}>{t("nav_how")}</a>
-          <a onClick={() => scrollToId("faq")}>{t("nav_faq")}</a>
-          <a className="nav-surv" onClick={() => router.push("/survival")}>{t("nav_surv")}</a>
+          <a className={isHome ? "on" : ""} onClick={goHome}>
+            {t("nav_home")}
+          </a>
+          <a className={isSurvival ? "on" : ""} onClick={() => router.push("/survival")}>
+            {t("nav_surv")}
+          </a>
         </div>
         <div className="right">
           <div className="langsel" ref={selRef}>
@@ -96,7 +101,10 @@ export default function Navbar() {
               ))}
             </div>
           </div>
-          <button className="btn btn-green btn-sm navcta" onClick={() => router.push("/chat")}>
+          <button
+            className={"btn btn-green btn-sm navcta" + (inAdvisor ? " on" : "")}
+            onClick={() => router.push("/chat")}
+          >
             {t("cta_chat")}
           </button>
           <button
@@ -111,11 +119,12 @@ export default function Navbar() {
       </div>
       {/* Mobile navigation panel (hamburger) */}
       <nav className="navpanel" hidden={!menu}>
-        <a onClick={() => { setMenu(false); scrollToId("markets"); }}>{t("nav_markets")}</a>
-        <a onClick={() => { setMenu(false); scrollToId("why"); }}>{t("nav_why")}</a>
-        <a onClick={() => { setMenu(false); scrollToId("how"); }}>{t("nav_how")}</a>
-        <a onClick={() => { setMenu(false); scrollToId("faq"); }}>{t("nav_faq")}</a>
-        <a className="nav-surv" onClick={() => { setMenu(false); router.push("/survival"); }}>{t("nav_surv")}</a>
+        <a className={isHome ? "on" : ""} onClick={() => { setMenu(false); goHome(); }}>
+          {t("nav_home")}
+        </a>
+        <a className={isSurvival ? "on" : ""} onClick={() => { setMenu(false); router.push("/survival"); }}>
+          {t("nav_surv")}
+        </a>
       </nav>
     </header>
   );
