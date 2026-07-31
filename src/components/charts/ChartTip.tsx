@@ -11,7 +11,7 @@
  */
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { clampTip } from "@/lib/chartTip";
+import { clampTip, safeTop } from "@/lib/chartTip";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -41,15 +41,17 @@ export default function ChartTip({
     const el = ref.current;
     if (!svg || !el) return;
     const box = svg.getBoundingClientRect();
+    // The anchor is the data point itself, so top and bottom coincide.
+    const y = box.top + box.height * yFrac;
     setPos(
       clampTip(
-        box,
+        { left: box.left, width: box.width, top: y, bottom: y },
         xFrac,
-        yFrac,
         el.offsetWidth,
         el.offsetHeight,
         window.innerWidth,
         window.innerHeight,
+        { topBound: safeTop() },
       ),
     );
   }, [svgRef, xFrac, yFrac, children, mounted]);

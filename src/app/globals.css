@@ -4633,51 +4633,6 @@ body:has(.cmpbar) {
   text-align: right;
 }
 
-/* ---- marketplace: composer ---- */
-.mk-open {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  width: 100%;
-  text-align: left;
-  background: #fff;
-  border: 1px dashed var(--line-2);
-  padding: 15px 17px;
-  margin-bottom: 22px;
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: 0.15s var(--ease);
-}
-.mk-open:hover {
-  border-color: var(--green);
-  border-style: solid;
-  background: var(--green-soft);
-}
-.mk-open-ic {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  font-size: 16px;
-  color: var(--green-text);
-  background: var(--green-soft);
-  border: 1px solid rgba(0, 199, 118, 0.35);
-}
-.mk-open > span:nth-child(2) {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.35;
-  min-width: 0;
-}
-.mk-open b {
-  font-size: 14.5px;
-  color: var(--ink);
-}
-.mk-open small {
-  font-size: 12.5px;
-  color: var(--muted);
-}
 .mk-composer {
   background: #fff;
   border: 1px solid var(--line-2);
@@ -4750,36 +4705,6 @@ body:has(.cmpbar) {
   border-color: var(--green);
   box-shadow: inset 3px 0 0 var(--green);
 }
-.mk-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.mk-av {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-disp), sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: var(--green-text);
-  background: var(--green-soft);
-  border: 1px solid rgba(0, 199, 118, 0.3);
-}
-.mk-who {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.mk-who > b {
-  display: block;
-  font-family: var(--font-disp), sans-serif;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
 .mk-mine {
   display: inline-block;
   margin-left: 7px;
@@ -4793,13 +4718,6 @@ body:has(.cmpbar) {
   padding: 2px 6px;
   vertical-align: 1px;
 }
-.mk-badges {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
 .mk-vb {
   font-size: 11px;
   font-weight: 600;
@@ -4812,31 +4730,6 @@ body:has(.cmpbar) {
   color: var(--muted);
 }
 
-/* ---- marketplace: the ask ---- */
-.mk-ask {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 11px 13px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-.mk-amt {
-  font-family: var(--font-disp), sans-serif;
-  font-size: 21px;
-  font-weight: 800;
-  color: var(--ink);
-}
-.mk-meta {
-  font-size: 12.5px;
-  color: var(--muted);
-}
-.mk-meta + .mk-meta::before {
-  content: "·";
-  margin-right: 10px;
-  color: var(--line-2);
-}
 .mk-note {
   margin: 11px 0 0;
   font-size: 14px;
@@ -5081,4 +4974,296 @@ body:has(.cmpbar) {
 }
 .mk-tools .sortsel {
   margin-left: 0;
+}
+
+/* =========================================================================
+   ROUND G — chat header on phones · marketplace as case files · form alignment
+   ========================================================================= */
+
+/* ---- chat header at phone widths ---------------------------------------
+   Three text buttons plus the identity block could not share one row at
+   375px: the name column collapsed to one word per line and "Talk to a
+   human" wrapped to three. Actions get their own row and the hand-off keeps
+   only its icon. */
+@media (max-width: 620px) {
+  .chat-head {
+    flex-wrap: wrap;
+    row-gap: 10px;
+    padding: 14px 0 12px;
+  }
+  .chat-head .who {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .chat-head .who b,
+  .chat-head .who .on-ind {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-head .hact {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: 6px;
+  }
+  .chat-head .hact .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 9px 6px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .chat-head .hact-human {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+  }
+  .chat-head .hact-human .hact-lab {
+    display: none;
+  }
+}
+
+/* ---- marketplace: the invitation to post -------------------------------
+   Nothing on this page matters if nobody posts, so it stops being a dashed
+   ghost box and becomes the loudest element on the screen. */
+.mk-invite {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--ink);
+  color: #fff;
+  border-left: 4px solid var(--green);
+  padding: 18px 20px;
+  margin-bottom: 22px;
+}
+.mk-invite-ic {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  color: #7fe9be;
+  background: rgba(255, 255, 255, 0.1);
+}
+.mk-invite-t {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.mk-invite-t b {
+  display: block;
+  font-family: var(--font-disp), sans-serif;
+  font-size: 18px;
+}
+.mk-invite-t p {
+  margin: 3px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+}
+.mk-invite-btn {
+  flex: 0 0 auto;
+}
+
+/* ---- marketplace: a request reads as a case file ---------------------- */
+.mk-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  /* bleeds to the card edges so it reads as a file header band */
+  margin: -16px -18px 14px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.mk-case {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.mk-status {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+}
+.mk-status.s-live {
+  color: #fff;
+  background: var(--green-cta);
+}
+.mk-status.s-wait {
+  color: #7a5b00;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+}
+.mk-wd {
+  margin-left: auto;
+}
+
+/* spec sheet: 1px gaps over a line-coloured backdrop, so the rules survive
+   however many columns the grid wraps to */
+.mk-spec {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.mk-sp {
+  background: #fff;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.mk-sp span {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.mk-sp b {
+  font-family: var(--font-disp), sans-serif;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.mk-sp.lead b {
+  font-size: 19px;
+}
+.mk-verify {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* offers sit visibly *inside* the file */
+.mk-offers {
+  padding-left: 12px;
+  border-left: 2px solid var(--green);
+}
+.mk-offers-lab {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mk-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.mk-toggle:disabled:hover {
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+
+/* ---- form rows never misalign --------------------------------------------
+   A label that wraps to two lines used to push its own input down out of the
+   row. Subgrid gives every field the same label track and the same control
+   track; the fallback simply bottom-aligns the controls. */
+.mk-comp-grid {
+  align-items: end;
+}
+@supports (grid-template-rows: subgrid) {
+  .mk-comp-grid {
+    align-items: stretch;
+  }
+  .mk-comp-grid > .fq {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 2;
+  }
+}
+@media (max-width: 560px) {
+  .mk-invite-btn {
+    width: 100%;
+  }
+  .mk-file {
+    margin: -16px -18px 12px;
+  }
+}
+
+/* =========================================================================
+   ROUND H — select open/closed chevron · compare button weight · tooltip
+             hardening
+   ========================================================================= */
+
+/* ---- the chevron points up while the list is open -----------------------
+   `data-open` is set by SelectState.tsx. Using :focus instead would leave the
+   arrow flipped after a value is picked, since the select keeps focus. */
+.fq select[data-open],
+.sortsel[data-open],
+select[data-open] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23017a46' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 15l-6-6-6 6'/%3E%3C/svg%3E");
+}
+.fq select[data-open],
+.sortsel[data-open] {
+  border-color: var(--green);
+}
+
+/* ---- compare reads as a real secondary action --------------------------
+   It was a grey ghost button next to a solid dark primary and disappeared.
+   A green tint makes it findable while the dark "view details" stays the
+   loudest thing in the row. */
+.cmp-tog.card {
+  background: var(--green-soft);
+  border-color: rgba(0, 199, 118, 0.55);
+  color: var(--green-cta);
+}
+.cmp-tog.card:hover {
+  background: #d7f4e6;
+  border-color: var(--green-cta);
+  color: var(--green-cta);
+}
+.cmp-tog.card.on {
+  background: var(--green-cta);
+  border-color: var(--green-cta);
+  color: #fff;
+}
+
+/* ---- glossary popover ignores whatever it is nested inside --------------
+   Term's popover is fixed-positioned but still a DOM descendant of its
+   trigger, so container styles reached it: dropped into the marketplace stats
+   panel it inherited `text-align: right` and, because `.mk-stat b` sits later
+   in this file at equal specificity, a 22px display title. Raising the
+   specificity here settles it wherever the component is used next. */
+.term .term-pop {
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 400;
+  font-variant-numeric: normal;
+}
+.term .term-pop b {
+  font-family: var(--font-disp), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin-bottom: 4px;
+}
+.term .term-pop p {
+  font-size: 12.5px;
+  font-weight: 400;
+}
+.term .term-pop .term-ok {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* ---- tooltips sit above the sticky header ------------------------------
+   The header is position:sticky at z-index 100, so at 60 / 70 the bubbles were
+   painted underneath it. 110 clears the header while still yielding to the
+   language menu (200) and the mobile nav panel (120), which are modal-ish and
+   should win. Placement now also avoids the header's band outright — this is
+   the second line of defence, not the fix. */
+.term-pop,
+.chart-tip.pinned {
+  z-index: 110;
 }

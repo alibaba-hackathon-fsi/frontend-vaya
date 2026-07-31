@@ -1210,8 +1210,13 @@ export default function ChatAdvisor({
             <button
               className="btn btn-ghost btn-sm hact-human"
               onClick={() => router.push("/human")}
+              title={t("hm_cta")}
+              aria-label={t("hm_cta")}
             >
-              <span className="hact-ic">🙋</span> {t("hm_cta")}
+              <span className="hact-ic">🙋</span>{" "}
+              {/* Label collapses to the icon on narrow screens so all three
+                  actions still fit one row — the title/aria-label carry it. */}
+              <span className="hact-lab">{t("hm_cta")}</span>
             </button>
             <button
               className="btn btn-ghost btn-sm"

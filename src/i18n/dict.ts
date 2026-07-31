@@ -9,6 +9,17 @@ export type Dict = {
 
 export const T: Record<Lang, Dict> = {
   en: {
+    mk_start: "Create request",
+    mk_case: "REQUEST",
+    mk_status_wait: "Awaiting banks",
+    mk_l_amount: "Amount",
+    mk_l_purpose: "Purpose",
+    mk_l_term: "Term",
+    mk_l_income: "Income",
+    mk_l_collateral: "Collateral",
+    mk_open_file: "See the offers",
+    mk_close_file: "Hide the offers",
+    mk_offers_in: "Offers received",
     mk_seed_6: "Buying in Thao Dien, developer hands over next month. The collateral valuation is already done — what I want is the promo locked for 36 months, not 12.",
     mk_seed_7: "Moving up from an apartment to a townhouse. I am selling the current place to fund the deposit, so flexibility on early repayment matters more to me than the headline rate.",
     mk_seed_8: "Importing a hybrid, papers clear customs next week. I want the longest term on offer so the monthly payment stays under ₫15M.",
@@ -637,6 +648,17 @@ export const T: Record<Lang, Dict> = {
   },
 
   vi: {
+    mk_start: "Tạo yêu cầu",
+    mk_case: "HỒ SƠ",
+    mk_status_wait: "Đang chờ ngân hàng",
+    mk_l_amount: "Số tiền",
+    mk_l_purpose: "Mục đích",
+    mk_l_term: "Kỳ hạn",
+    mk_l_income: "Thu nhập",
+    mk_l_collateral: "Tài sản đảm bảo",
+    mk_open_file: "Xem các đề nghị",
+    mk_close_file: "Ẩn các đề nghị",
+    mk_offers_in: "Đề nghị đã nhận",
     mk_seed_6: "Mua ở Thảo Điền, chủ đầu tư bàn giao tháng sau. Định giá tài sản đã xong — điều tôi cần là ưu đãi khoá trong 36 tháng, không phải 12.",
     mk_seed_7: "Đổi từ căn hộ lên nhà phố. Tôi bán căn đang ở để lấy tiền đặt cọc, nên linh hoạt trả nợ trước hạn quan trọng với tôi hơn là lãi suất niêm yết.",
     mk_seed_8: "Nhập xe hybrid, giấy tờ thông quan tuần sau. Tôi muốn kỳ hạn dài nhất có thể để khoản trả hàng tháng dưới 15 triệu.",
@@ -1264,6 +1286,17 @@ export const T: Record<Lang, Dict> = {
   },
 
   zh: {
+    mk_start: "创建需求",
+    mk_case: "申请档案",
+    mk_status_wait: "等待银行报价",
+    mk_l_amount: "金额",
+    mk_l_purpose: "用途",
+    mk_l_term: "期限",
+    mk_l_income: "收入",
+    mk_l_collateral: "抵押物",
+    mk_open_file: "查看报价",
+    mk_close_file: "收起报价",
+    mk_offers_in: "已收到的报价",
     mk_seed_6: "在草田区购房，开发商下月交房。抵押物估值已完成——我要的是优惠利率锁定 36 个月，而不是 12 个月。",
     mk_seed_7: "从公寓换成联排别墅。我会卖掉现住房来付首付，所以提前还款的灵活度比牌面利率更重要。",
     mk_seed_8: "进口一台混动车，下周清关。希望期限尽量长，把月供压在 1500 万越盾以内。",

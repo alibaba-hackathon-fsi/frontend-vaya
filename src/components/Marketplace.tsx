@@ -201,14 +201,18 @@ export default function Marketplace() {
             </div>
           </form>
         ) : (
-          <button className="mk-open" onClick={() => setComposing(true)}>
-            <span className="mk-open-ic">✎</span>
-            <span>
+          /* The whole page is worthless if nobody posts, so this is the loudest
+             thing on it — a filled panel, not a dashed ghost box. */
+          <div className="mk-invite">
+            <span className="mk-invite-ic">✎</span>
+            <div className="mk-invite-t">
               <b>{t("mk_cta")}</b>
-              <small>{t("mk_cta_sub")}</small>
-            </span>
-            <span className="mail-arrow">→</span>
-          </button>
+              <p>{t("mk_cta_sub")}</p>
+            </div>
+            <button className="btn btn-green mk-invite-btn" onClick={() => setComposing(true)}>
+              {t("mk_start")} →
+            </button>
+          </div>
         )}
 
         {/* Filters */}
@@ -250,38 +254,60 @@ export default function Marketplace() {
             const isOpen = open === p.id;
             return (
               <article className={"mk-post" + (p.mine ? " mine" : "")} key={p.id}>
-                <div className="mk-top">
-                  <span className="mk-av">{p.handle.slice(0, 2)}</span>
-                  <div className="mk-who">
-                    <b>
-                      {t("mk_borrower")} #{p.handle}
-                      {p.mine && <span className="mk-mine">{t("mk_yours")}</span>}
-                    </b>
-                    <div className="mk-badges">
-                      {p.verified.map((v) => (
-                        <span className="mk-vb" key={v}>
-                          ✓ {t(v)}
-                        </span>
-                      ))}
-                      <span className="mk-time">{ago(p.hoursAgo)}</span>
-                    </div>
-                  </div>
+                {/* Read as a case file rather than a forum post: tab strip with a
+                    case number and status, then a spec sheet of the request. */}
+                <div className="mk-file">
+                  <span className="mk-case">
+                    {t("mk_case")} #{p.handle}
+                  </span>
+                  <span className={"mk-status " + (p.offers.length ? "s-live" : "s-wait")}>
+                    {p.offers.length
+                      ? `${p.offers.length} ${t("mk_offers")}`
+                      : t("mk_status_wait")}
+                  </span>
+                  {p.mine && <span className="mk-mine">{t("mk_yours")}</span>}
+                  <span className="mk-time">{ago(p.hoursAgo)}</span>
                   {p.mine && (
-                    <button className="cmp-rm" onClick={() => removePost(p.id)}>
+                    <button className="cmp-rm mk-wd" onClick={() => removePost(p.id)}>
                       {t("mk_withdraw")}
                     </button>
                   )}
                 </div>
 
-                <div className="mk-ask">
-                  <span className="mk-amt">{fmtVND(p.amount, lang)}</span>
-                  <span className="pill">{purpName(p.purpose, lang)}</span>
-                  <span className="mk-meta">{termLabel(p.termMonths, t)}</span>
-                  <span className="mk-meta">{t(p.incomeBand)}</span>
-                  <span className="mk-meta">{p.collateral ? t("mk_has_col") : t("mk_no_col")}</span>
+                <div className="mk-spec">
+                  <div className="mk-sp lead">
+                    <span>{t("mk_l_amount")}</span>
+                    <b>{fmtVND(p.amount, lang)}</b>
+                  </div>
+                  <div className="mk-sp">
+                    <span>{t("mk_l_purpose")}</span>
+                    <b>{purpName(p.purpose, lang)}</b>
+                  </div>
+                  <div className="mk-sp">
+                    <span>{t("mk_l_term")}</span>
+                    <b>{termLabel(p.termMonths, t)}</b>
+                  </div>
+                  <div className="mk-sp">
+                    <span>{t("mk_l_income")}</span>
+                    <b>{t(p.incomeBand)}</b>
+                  </div>
+                  <div className="mk-sp">
+                    <span>{t("mk_l_collateral")}</span>
+                    <b>{p.collateral ? t("mk_yes") : t("mk_no")}</b>
+                  </div>
                 </div>
 
-                {(p.note || p.noteKey) && <p className="mk-note">{p.note || t(p.noteKey as string)}</p>}
+                <div className="mk-verify">
+                  {p.verified.map((v) => (
+                    <span className="mk-vb" key={v}>
+                      ✓ {t(v)}
+                    </span>
+                  ))}
+                </div>
+
+                {(p.note || p.noteKey) && (
+                  <p className="mk-note">{p.note || t(p.noteKey as string)}</p>
+                )}
 
                 <div className="mk-bar">
                   {best ? (
@@ -302,13 +328,20 @@ export default function Marketplace() {
                       )}
                     </span>
                   )}
-                  <button className="mk-toggle" onClick={() => setOpen(isOpen ? null : p.id)}>
-                    {p.offers.length} {t("mk_offers")} {isOpen ? "▴" : "▾"}
+                  <button
+                    className="mk-toggle"
+                    onClick={() => setOpen(isOpen ? null : p.id)}
+                    disabled={!p.offers.length}
+                  >
+                    {isOpen ? t("mk_close_file") : t("mk_open_file")} {isOpen ? "▴" : "▾"}
                   </button>
                 </div>
 
                 {isOpen && p.offers.length > 0 && (
                   <div className="mk-offers">
+                    <div className="mk-offers-lab">
+                      {t("mk_offers_in")} · {p.offers.length}
+                    </div>
                     {[...p.offers]
                       .sort((a, b) => a.rate - b.rate)
                       .map((of, i) => {

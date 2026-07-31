@@ -3,6 +3,7 @@ import "./globals.css";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import Navbar from "@/components/Navbar";
 import CompareBar from "@/components/CompareBar";
+import SelectState from "@/components/SelectState";
 
 export const metadata: Metadata = {
   title: "Vaya — Your AI Loan Advisor",
@@ -40,6 +41,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* Selection basket for the compare feature — lives above every page so
               a pick made on the markets table survives navigation. */}
           <CompareBar />
+          {/* Tracks which native <select> is open so its chevron can point up. */}
+          <SelectState />
         </I18nProvider>
       </body>
     </html>
