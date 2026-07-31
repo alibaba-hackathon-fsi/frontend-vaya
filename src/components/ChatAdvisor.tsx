@@ -939,11 +939,15 @@ export default function ChatAdvisor({
               const payload = JSON.parse(line.slice(6));
               if (currentEvent === "results" && payload.ranked) {
                 const s = stateRef.current;
+                // The server profile is the authoritative source for the numbers
+                // the Decision Engine used — it includes values the customer typed
+                // in free-text chat, which the client wizard state (s.amount/s.term)
+                // never sees. Fall back to wizard state only if the profile lacks them.
                 addBotApiResult({
                   ranked: payload.ranked,
                   rejected: payload.rejected ?? [],
-                  amount: (s.amount ?? 0) as number,
-                  term: (s.term ?? 60) as number,
+                  amount: (payload.profile?.so_tien ?? s.amount ?? 0) as number,
+                  term: (payload.profile?.thoi_han_thang ?? s.term ?? 60) as number,
                   income: payload.profile?.thu_nhap_hang_thang ?? 0,
                 });
               } else if (currentEvent === "explanation" && payload.delta) {
