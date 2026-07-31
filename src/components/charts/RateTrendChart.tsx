@@ -3,7 +3,7 @@
 // Interactive 12-month rate-trend chart for a loan package: area + line + dots,
 // min/max annotations, and a hover tooltip with the month, rate and MoM delta.
 import React, { useRef, useState } from "react";
-import { tipPos } from "@/lib/chartTip";
+import ChartTip from "@/components/charts/ChartTip";
 
 const MO = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
 
@@ -41,7 +41,7 @@ export default function RateTrendChart({
     const prev = hover > 0 ? arr[hover - 1] : null;
     const d = prev != null ? arr[hover] - prev : 0;
     tip = (
-      <div className="chart-tip" style={tipPos((X(hover) / W) * 100, (Y(arr[hover]) / H) * 100)}>
+      <ChartTip svgRef={svgRef} xFrac={X(hover) / W} yFrac={Y(arr[hover]) / H}>
         <b>{arr[hover].toFixed(1)}%</b> · {MO[hover] ?? hover}
         {prev != null && (
           <>
@@ -51,7 +51,7 @@ export default function RateTrendChart({
         )}
         {arr[hover] === lo && <span className="low"> ★ {t("d_low")}</span>}
         {arr[hover] === hi && <span className="low"> {t("d_high")}</span>}
-      </div>
+      </ChartTip>
     );
   }
 

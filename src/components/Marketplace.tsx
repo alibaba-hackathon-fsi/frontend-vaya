@@ -222,6 +222,11 @@ export default function Marketplace() {
               </button>
             ))}
           </div>
+          {/* Visible count: filtering a board this size otherwise looks broken
+              rather than filtered. */}
+          <span className="cnt">
+            {shown.length} {t("mk_st_req")}
+          </span>
           <select className="sortsel" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label={t("mk_sort")}>
             <option value="new">{t("mk_sort_new")}</option>
             <option value="offers">{t("mk_sort_offers")}</option>

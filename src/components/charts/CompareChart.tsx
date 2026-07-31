@@ -6,7 +6,7 @@
  * climbing is visibly different from one that has been falling.
  */
 import React, { useRef, useState } from "react";
-import { tipPos } from "@/lib/chartTip";
+import ChartTip from "@/components/charts/ChartTip";
 
 const MO = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
 
@@ -121,12 +121,10 @@ export default function CompareChart({ series }: { series: Series[] }) {
       </svg>
 
       {hover != null && (
-        <div
-          className="chart-tip"
-          style={tipPos(
-            (X(hover) / W) * 100,
-            (Y(Math.max(...series.map((s) => s.arr[hover]))) / H) * 100,
-          )}
+        <ChartTip
+          svgRef={svgRef}
+          xFrac={X(hover) / W}
+          yFrac={Y(Math.max(...series.map((s) => s.arr[hover]))) / H}
         >
           <b>{MO[hover]}</b>
           {series.map((s) => (
@@ -136,7 +134,7 @@ export default function CompareChart({ series }: { series: Series[] }) {
               {s.name} · {s.arr[hover].toFixed(1)}%
             </React.Fragment>
           ))}
-        </div>
+        </ChartTip>
       )}
     </div>
   );

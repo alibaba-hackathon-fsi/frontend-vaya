@@ -9,6 +9,10 @@ export type Dict = {
 
 export const T: Record<Lang, Dict> = {
   en: {
+    mk_seed_6: "Buying in Thao Dien, developer hands over next month. The collateral valuation is already done — what I want is the promo locked for 36 months, not 12.",
+    mk_seed_7: "Moving up from an apartment to a townhouse. I am selling the current place to fund the deposit, so flexibility on early repayment matters more to me than the headline rate.",
+    mk_seed_8: "Importing a hybrid, papers clear customs next week. I want the longest term on offer so the monthly payment stays under ₫15M.",
+    mk_seed_9: "Paying for a part-time master's. Small amount, short term — what I actually care about is no insurance quietly bundled in.",
     /* ---- round E: report download / marketplace ---- */
     chat_err: "Connection problem — please try again.",
     nav_market: "Marketplace",
@@ -620,6 +624,10 @@ export const T: Record<Lang, Dict> = {
   },
 
   vi: {
+    mk_seed_6: "Mua ở Thảo Điền, chủ đầu tư bàn giao tháng sau. Định giá tài sản đã xong — điều tôi cần là ưu đãi khoá trong 36 tháng, không phải 12.",
+    mk_seed_7: "Đổi từ căn hộ lên nhà phố. Tôi bán căn đang ở để lấy tiền đặt cọc, nên linh hoạt trả nợ trước hạn quan trọng với tôi hơn là lãi suất niêm yết.",
+    mk_seed_8: "Nhập xe hybrid, giấy tờ thông quan tuần sau. Tôi muốn kỳ hạn dài nhất có thể để khoản trả hàng tháng dưới 15 triệu.",
+    mk_seed_9: "Đóng học phí thạc sĩ vừa học vừa làm. Số tiền nhỏ, kỳ hạn ngắn — cái tôi quan tâm là đừng gài bảo hiểm vào hợp đồng.",
     /* ---- round E: report download / marketplace ---- */
     chat_err: "Lỗi kết nối — vui lòng thử lại.",
     nav_market: "Sàn vay",
@@ -1230,6 +1238,10 @@ export const T: Record<Lang, Dict> = {
   },
 
   zh: {
+    mk_seed_6: "在草田区购房，开发商下月交房。抵押物估值已完成——我要的是优惠利率锁定 36 个月，而不是 12 个月。",
+    mk_seed_7: "从公寓换成联排别墅。我会卖掉现住房来付首付，所以提前还款的灵活度比牌面利率更重要。",
+    mk_seed_8: "进口一台混动车，下周清关。希望期限尽量长，把月供压在 1500 万越盾以内。",
+    mk_seed_9: "支付在职硕士学费。金额小、期限短——我真正在意的是别悄悄捆绑保险。",
     /* ---- round E: report download / marketplace ---- */
     chat_err: "连接出现问题——请重试。",
     nav_market: "贷款集市",

@@ -20,6 +20,12 @@
   --muted-2: #95a29f;
   --green: #00c776;
   --green-strong: #00a863;
+  /* Filled green surfaces carry text, and #00C776 only reaches 2.23:1 against
+     white — unusable. So the brand green stays for tints, borders, chart
+     strokes and green-on-white text, while filled buttons/badges use this
+     deeper green, which clears AA at 5.42:1 with white on top. */
+  --green-cta: #017a46;
+  --green-cta-h: #01693c;
   --green-text: #0a8f55;
   --green-soft: #e7f8f0;
   --btn-ink: #04231f;
@@ -90,8 +96,8 @@ body {
   overflow-x: hidden;
 }
 ::selection {
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
 }
 h1,
 h2,
@@ -135,11 +141,11 @@ button {
   font-family: var(--font-body);
 }
 .btn-green {
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
 }
 .btn-green:hover {
-  background: var(--green-strong);
+  background: var(--green-cta-h);
   transform: translateY(-1px);
 }
 .btn-dark {
@@ -373,8 +379,8 @@ header {
   margin-left: auto;
   width: 44px;
   height: 44px;
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
   border: none;
   display: grid;
   place-items: center;
@@ -718,9 +724,9 @@ td .ask {
   white-space: nowrap;
 }
 td .ask:hover {
-  background: var(--green);
+  background: var(--green-cta);
   border-color: var(--green);
-  color: var(--btn-ink);
+  color: #fff;
 }
 @media (max-width: 920px) {
   .hide-sm {
@@ -1217,8 +1223,8 @@ footer {
 }
 .chat-input .send {
   width: 48px;
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
   border: none;
   cursor: pointer;
   display: grid;
@@ -1273,8 +1279,8 @@ footer {
 .rec .tag-best {
   font-size: 10.5px;
   font-weight: 700;
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
   padding: 3px 8px;
 }
 .rec .grid3 {
@@ -1502,7 +1508,7 @@ footer {
   width: max-content;
   max-width: min(240px, 68vw);
   white-space: normal;
-  /* default anchor; tipPos() overrides this inline to re-anchor near the edges */
+  /* default anchor for any absolute use; ChartTip overrides it (see .pinned) */
   transform: translate(-50%, -118%);
   opacity: 0;
   transition: opacity 0.1s;
@@ -1656,8 +1662,8 @@ footer {
   margin-left: auto;
   font-size: 10.5px;
   font-weight: 700;
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
   padding: 3px 8px;
   white-space: nowrap;
 }
@@ -2064,8 +2070,8 @@ footer {
   font-family: var(--font-body);
 }
 .pkg-cta:hover {
-  background: var(--green);
-  color: var(--btn-ink);
+  background: var(--green-cta);
+  color: #fff;
 }
 /* wallet-style loan-purpose tiles */
 .purpose-sec {
@@ -2709,7 +2715,7 @@ img.flag {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--green-cta);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -3407,7 +3413,7 @@ img.flag {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--green);
+  background: var(--green-cta);
   color: #fff;
   font-weight: 800;
   font-size: 15px;
@@ -3794,7 +3800,7 @@ img.flag {
 .term-btn:hover .term-i,
 .term-btn.on .term-i {
   color: #fff;
-  background: var(--green);
+  background: var(--green-cta);
 }
 .term-pop {
   position: fixed;
@@ -3853,12 +3859,6 @@ img.flag {
   background: var(--green-soft);
   border-color: var(--green);
   color: var(--green-text);
-}
-/* card: pinned to the logo strip so it never shifts the card's content */
-.pkg-top .cmp-tog {
-  position: absolute;
-  top: 8px;
-  right: 8px;
 }
 .cmp-tog.tbl {
   padding: 4px 7px;
@@ -4152,7 +4152,7 @@ body:has(.cmpbar) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #fff;
-  background: var(--green);
+  background: var(--green-cta);
   padding: 2px 6px;
   vertical-align: 1px;
 }
@@ -4374,7 +4374,7 @@ body:has(.cmpbar) {
   font-size: 22px;
   font-weight: 800;
   color: #fff;
-  background: var(--green);
+  background: var(--green-cta);
 }
 .hm-done b {
   font-family: var(--font-disp), sans-serif;
@@ -4541,7 +4541,7 @@ body:has(.cmpbar) {
   place-items: center;
   font-weight: 800;
   color: #fff;
-  background: var(--green);
+  background: var(--green-cta);
 }
 .mail-body {
   min-width: 0;
@@ -4787,7 +4787,7 @@ body:has(.cmpbar) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #fff;
-  background: var(--green);
+  background: var(--green-cta);
   padding: 2px 6px;
   vertical-align: 1px;
 }
@@ -4871,7 +4871,7 @@ body:has(.cmpbar) {
   font-size: 11.5px;
   font-weight: 700;
   color: #fff;
-  background: var(--green);
+  background: var(--green-cta);
   padding: 2px 7px;
 }
 .mk-waiting {
@@ -5030,4 +5030,53 @@ body:has(.cmpbar) {
     width: 100%;
     margin-left: 0;
   }
+}
+
+/* =========================================================================
+   ROUND F — CTA legibility · card action row · unclipped chart tooltips
+   ========================================================================= */
+
+/* Tooltips are portaled to <body> and positioned in viewport coordinates by
+   ChartTip, which is what lets a point near one edge borrow the space on the
+   other side instead of losing half the bubble. */
+.chart-tip.pinned {
+  position: fixed;
+  transform: none;
+  z-index: 70;
+}
+
+/* Compare moved out of the logo strip into its own action row. Overlaying the
+   strip meant a wide bank mark (Sacombank, TPBank) slid under the button. */
+.pkg-acts {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 12px 14px 14px;
+}
+.pkg-acts .pkg-cta {
+  margin: 0;
+  flex: 1 1 auto;
+}
+.cmp-tog.card {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  font-size: 12px;
+  gap: 6px;
+}
+@media (max-width: 420px) {
+  /* At this width the two labels stop fitting side by side. */
+  .cmp-tog.card span {
+    display: none;
+  }
+}
+
+/* Marketplace: result count beside the sort control. */
+.mk-tools .cnt {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.mk-tools .sortsel {
+  margin-left: 0;
 }

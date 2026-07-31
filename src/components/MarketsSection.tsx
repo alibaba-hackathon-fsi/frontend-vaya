@@ -210,15 +210,6 @@ export default function MarketsSection() {
                         <div className="pkg-top">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img className="pkg-logo" src={logoSrc(p.code)} alt={b.name} />
-                          <button
-                            className={"cmp-tog" + (picked.includes(PKG.indexOf(p)) ? " on" : "")}
-                            onClick={(e) => onCompare(e, PKG.indexOf(p))}
-                            title={t("cx_add")}
-                            aria-pressed={picked.includes(PKG.indexOf(p))}
-                          >
-                            {picked.includes(PKG.indexOf(p)) ? "✓" : "⇄"}
-                            <span>{t("cx_add_short")}</span>
-                          </button>
                         </div>
                         <div className="pkg-name">
                           <span className="pkg-bank">{b.name}</span>
@@ -246,9 +237,22 @@ export default function MarketsSection() {
                         <div className="pkg-spark">
                           <Sparkline arr={p.trend} />
                         </div>
-                        <button className="pkg-cta" onClick={(e) => { e.stopPropagation(); router.push(`/package/${PKG.indexOf(p)}`); }}>
-                          {t("view_details")}
-                        </button>
+                        {/* Compare sits in the action row, not over the logo strip:
+                            a wide bank logo used to slide under an overlaid button. */}
+                        <div className="pkg-acts">
+                          <button
+                            className={"cmp-tog card" + (picked.includes(PKG.indexOf(p)) ? " on" : "")}
+                            onClick={(e) => onCompare(e, PKG.indexOf(p))}
+                            title={t("cx_add")}
+                            aria-pressed={picked.includes(PKG.indexOf(p))}
+                          >
+                            {picked.includes(PKG.indexOf(p)) ? "✓" : "⇄"}
+                            <span>{t("cx_add_short")}</span>
+                          </button>
+                          <button className="pkg-cta" onClick={(e) => { e.stopPropagation(); router.push(`/package/${PKG.indexOf(p)}`); }}>
+                            {t("view_details")}
+                          </button>
+                        </div>
                       </div>
                     );
                   })
