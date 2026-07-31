@@ -23,7 +23,9 @@ let started = false;
 const subs = new Set<() => void>();
 
 function emit() {
-  for (const cb of subs) cb();
+  // forEach rather than for..of: tsconfig sets no `target`, so TypeScript falls
+  // back to ES5 and refuses to iterate a Set without --downlevelIteration.
+  subs.forEach((cb) => cb());
 }
 
 function commit(next: number[]) {

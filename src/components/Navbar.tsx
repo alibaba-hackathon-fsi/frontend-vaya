@@ -44,10 +44,12 @@ export default function Navbar() {
   // The nav lists real destinations only. Sub-pages are children of a
   // destination, so they light up their parent instead of adding an entry:
   //   /  + /package/*  + /compare                -> Home
+  //   /market                                    -> Marketplace
   //   /survival                                  -> Survival Score
   //   /chat, /checklist, /analysis, /human       -> the advisor CTA
   const isHome =
     pathname === "/" || pathname.startsWith("/package") || pathname.startsWith("/compare");
+  const isMarket = pathname.startsWith("/market");
   const isSurvival = pathname.startsWith("/survival");
   const inAdvisor =
     pathname.startsWith("/chat") ||
@@ -64,6 +66,9 @@ export default function Navbar() {
         <div className="links">
           <a className={isHome ? "on" : ""} onClick={goHome}>
             {t("nav_home")}
+          </a>
+          <a className={isMarket ? "on" : ""} onClick={() => router.push("/market")}>
+            {t("nav_market")}
           </a>
           <a className={isSurvival ? "on" : ""} onClick={() => router.push("/survival")}>
             {t("nav_surv")}
@@ -123,6 +128,9 @@ export default function Navbar() {
       <nav className="navpanel" hidden={!menu}>
         <a className={isHome ? "on" : ""} onClick={() => { setMenu(false); goHome(); }}>
           {t("nav_home")}
+        </a>
+        <a className={isMarket ? "on" : ""} onClick={() => { setMenu(false); router.push("/market"); }}>
+          {t("nav_market")}
         </a>
         <a className={isSurvival ? "on" : ""} onClick={() => { setMenu(false); router.push("/survival"); }}>
           {t("nav_surv")}

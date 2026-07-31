@@ -151,7 +151,6 @@ export default function HumanAdvisor() {
                 <button className="btn btn-green" disabled={!valid || state === "sending"}>
                   {state === "sending" ? t("hm_sending") : t("hm_send")}
                 </button>
-                <p className="hm-demo">{t("demo_note")}</p>
               </form>
             )}
           </div>

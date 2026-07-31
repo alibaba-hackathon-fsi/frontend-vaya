@@ -87,7 +87,6 @@ export default function EmailChecklist({ docCount }: { docCount: number }) {
         <input type="checkbox" checked={copy} onChange={(e) => setCopy(e.target.checked)} />
         <span>{t("mail_attach")}</span>
       </label>
-      <p className="hm-demo">{t("demo_note")}</p>
     </form>
   );
 }
