@@ -21,7 +21,9 @@ let started = false;
 const subs = new Set<() => void>();
 
 function emit() {
-  for (const cb of subs) cb();
+  // See compareStore: no `target` in tsconfig means ES5, which cannot iterate a
+  // Set with for..of.
+  subs.forEach((cb) => cb());
 }
 
 function commit(next: MarketPost[]) {
