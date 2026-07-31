@@ -25,6 +25,9 @@ import {
 import { LOAN_PACKAGES } from "@/data/loanPackages";
 import { amortSeries, lineMultiSvg, PAL } from "@/lib/survival";
 import { downloadLoanReport, type ReportData } from "@/lib/loanReport";
+import { SEED_POSTS, type MarketOffer, type MarketPost } from "@/data/marketplace";
+import { getPosts } from "@/lib/marketStore";
+import type { OfferDiscussionContext } from "@/lib/ai/offerContext";
 
 /* ---------------------------------------------------------------- API types */
 
@@ -219,9 +222,13 @@ function qPurpose(s: string): Purpose | null {
 export default function ChatAdvisor({
   seed,
   pkg,
+  offerId,
+  postId,
 }: {
   seed?: string;
   pkg?: number;
+  offerId?: string;
+  postId?: string;
 }) {
   const router = useRouter();
   const { lang, t, tRaw } = useI18n();
@@ -246,6 +253,9 @@ export default function ChatAdvisor({
     term: number | null;
     income: number | null;
   }>({ amount: null, term: null, income: null });
+  // Offer-discussion mode: when set, the conversation is scoped to this one
+  // marketplace offer and every user message goes to the offer-scoped AI talk.
+  const offerRef = useRef<{ offer: MarketOffer; post: MarketPost } | null>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const idRef = useRef(0);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -253,14 +263,17 @@ export default function ChatAdvisor({
   const [, setTick] = useState(0);
   const rerender = useCallback(() => {
     setTick((n) => n + 1);
-    // Persist chat state for session recovery
-    saveChat({
-      messages: messagesRef.current,
-      state: stateRef.current,
-      pkg: pkgRef.current,
-      pkgAns: pkgAns.current,
-      idCounter: idRef.current,
-    });
+    // Persist chat state for session recovery. Offer-discussion mode is
+    // deliberately NOT persisted — it re-greets from the URL params instead.
+    if (offerRef.current == null) {
+      saveChat({
+        messages: messagesRef.current,
+        state: stateRef.current,
+        pkg: pkgRef.current,
+        pkgAns: pkgAns.current,
+        idCounter: idRef.current,
+      });
+    }
   }, []);
 
   // Keep localized helpers stable per render via refs so async callbacks read
@@ -815,6 +828,61 @@ export default function ChatAdvisor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addBot, addBotResult, clearChips, setChips]);
 
+  /** Build the structured, localized offer context sent to /api/chat. */
+  const buildOfferContext = (
+    offer: MarketOffer,
+    post: MarketPost,
+  ): OfferDiscussionContext => ({
+    bank: bankOf(offer.code).name,
+    offeredRate: offer.rate,
+    listedRate: offer.listed,
+    cutBelowListed: Number((offer.listed - offer.rate).toFixed(2)),
+    termMonths: offer.termMonths,
+    maxAmount: offer.maxAmount,
+    expiresInH: offer.expiresInH,
+    conditions: offer.conditions.map((c) => tRef.current(c)),
+    request: {
+      purpose: purpName(post.purpose, langRef.current),
+      amount: post.amount,
+      termMonths: post.termMonths,
+      collateral: post.collateral,
+    },
+  });
+
+  const startOfferChat = useCallback(
+    (offer: MarketOffer, post: MarketPost) => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      messagesRef.current = [];
+      chipsRef.current = [];
+      sessionIdRef.current = makeSessionId();
+      offerRef.current = { offer, post };
+      rerender();
+      stateRef.current = {
+        step: "offer",
+        purpose: post.purpose,
+        amount: post.amount,
+        term: post.termMonths,
+        age: null,
+      };
+      const T = tRef.current;
+      const b = bankOf(offer.code);
+      const greet = T("mk_discuss_greet")
+        .replace("{bank}", b.name)
+        .replace("{rate}", String(offer.rate))
+        .replace("{listed}", String(offer.listed))
+        .replace("{cut}", String(Number((offer.listed - offer.rate).toFixed(2))))
+        .replace("{max}", fmtVND(offer.maxAmount, langRef.current))
+        .replace("{term}", termLabel(offer.termMonths, T))
+        .replace(
+          "{conditions}",
+          offer.conditions.map((c) => T(c)).join(" · "),
+        );
+      addBot(greet, () => inputRef.current?.focus());
+    },
+    [addBot, rerender],
+  );
+
   const startChat = useCallback(
     (seedText?: string) => {
       timersRef.current.forEach(clearTimeout);
@@ -845,31 +913,52 @@ export default function ChatAdvisor({
   );
 
   // Boot the conversation once on mount.
-  // Only restore from sessionStorage when there is NO new intent (no seed, no pkg).
-  // A seed or pkg means the user clicked a fresh entry point and expects a new conversation.
+  // Only restore from sessionStorage when there is NO new intent (no seed, no pkg, no offer).
+  // A seed, pkg or offer means the user clicked a fresh entry point and expects a new conversation.
   useEffect(() => {
-    const hasNewIntent = seed != null || pkg != null;
-    const saved = !hasNewIntent ? loadChat() : null;
-    if (saved && saved.messages.length > 0) {
-      // Restore persisted session (user navigated back without a new intent)
-      messagesRef.current = saved.messages.map((m) =>
-        m.role === "bot" ? { ...m, typing: false } : m,
-      );
-      stateRef.current = saved.state;
-      pkgRef.current = saved.pkg;
-      pkgAns.current = saved.pkgAns;
-      idRef.current = saved.idCounter;
-      rerender();
-      scrollChat();
-    } else if (pkgRef.current != null) {
-      startPkgChat(pkgRef.current);
-    } else {
-      startChat(seed);
-    }
-    return () => {
+    const clearTimers = () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
+
+    // Offer-discussion mode (?offer=&post=): resolve the params against the
+    // user's own posts plus the seeds. Found → scoped discussion; otherwise
+    // fall through to the normal boot below.
+    let offerStarted = false;
+    if (offerId != null) {
+      const all = [...getPosts(), ...SEED_POSTS];
+      const post =
+        all.find((p) => p.id === postId) ??
+        all.find((p) => p.offers.some((x) => x.id === offerId));
+      const offer = post?.offers.find((x) => x.id === offerId);
+      if (post && offer) {
+        startOfferChat(offer, post);
+        offerStarted = true;
+      }
+    }
+
+    if (!offerStarted) {
+      const hasNewIntent = seed != null || pkg != null || offerId != null;
+      const saved = !hasNewIntent ? loadChat() : null;
+      if (saved && saved.messages.length > 0) {
+        // Restore persisted session (user navigated back without a new intent)
+        messagesRef.current = saved.messages.map((m) =>
+          m.role === "bot" ? { ...m, typing: false } : m,
+        );
+        stateRef.current = saved.state;
+        pkgRef.current = saved.pkg;
+        pkgAns.current = saved.pkgAns;
+        idRef.current = saved.idCounter;
+        rerender();
+        scrollChat();
+      } else if (pkgRef.current != null) {
+        startPkgChat(pkgRef.current);
+      } else {
+        startChat(seed);
+      }
+    }
+
+    return clearTimers;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -881,14 +970,18 @@ export default function ChatAdvisor({
       didMountLang.current = true;
       return;
     }
-    if (pkgRef.current != null) startPkgChat(pkgRef.current);
+    if (offerRef.current) {
+      const oc = offerRef.current;
+      startOfferChat(oc.offer, oc.post);
+    } else if (pkgRef.current != null) startPkgChat(pkgRef.current);
     else startChat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
-  /** Send free-text to /api/chat and consume the SSE stream. */
+  /** Send free-text to /api/chat and consume the SSE stream.
+   *  `offerCtx` switches the server into offer-discussion mode. */
   const sendToApiChat = useCallback(
-    async (txt: string) => {
+    async (txt: string, offerCtx?: OfferDiscussionContext) => {
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -897,6 +990,7 @@ export default function ChatAdvisor({
             sessionId: sessionIdRef.current,
             message: txt,
             lang: langRef.current,
+            ...(offerCtx ? { offer: offerCtx } : {}),
           }),
         });
 
@@ -988,6 +1082,14 @@ export default function ChatAdvisor({
     if (!v) return;
     i.value = "";
 
+    // Offer-discussion mode: every message goes to the offer-scoped AI talk.
+    const oc = offerRef.current;
+    if (oc) {
+      addUser(v);
+      sendToApiChat(v, buildOfferContext(oc.offer, oc.post));
+      return;
+    }
+
     // If the wizard is complete or not started, route through the AI chat API
     const step = stateRef.current.step;
     if (step === "done" || step === "purpose") {
@@ -1025,6 +1127,7 @@ export default function ChatAdvisor({
               className="btn btn-ghost btn-sm"
               onClick={() => {
                 pkgRef.current = null;
+                offerRef.current = null;
                 startChat();
               }}
             >

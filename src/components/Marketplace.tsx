@@ -343,7 +343,11 @@ export default function Marketplace() {
                             <div className="mk-oact">
                               <button
                                 className="btn btn-green btn-sm"
-                                onClick={() => router.push(`/chat?seed=${encodeURIComponent(b.name)}`)}
+                                onClick={() =>
+                                  router.push(
+                                    `/chat?offer=${encodeURIComponent(of.id)}&post=${encodeURIComponent(p.id)}`,
+                                  )
+                                }
                               >
                                 {t("mk_take")}
                               </button>

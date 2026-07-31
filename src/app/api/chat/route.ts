@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { getLLMProvider } from "@/lib/ai/provider";
+import { getLLMProvider, type PolicyChunkContext } from "@/lib/ai/provider";
+import type { OfferDiscussionContext } from "@/lib/ai/offerContext";
 import { extractAndClassify, mergeProfile } from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
 import { validateProfile } from "@/lib/validation/profileSchema";
@@ -18,12 +19,16 @@ import { detectInjection, sanitizeMessage } from "@/lib/security/inputGuard";
 interface ChatSession {
   profile: Record<string, unknown>;
   turns: number;
+  /** Multi-turn history for offer-discussion mode (separate from the wizard profile flow). */
+  offerHistory?: { role: "user" | "assistant"; content: string }[];
 }
 
 const sessions = new Map<string, ChatSession>();
 
 const MAX_FOLLOWUP_TURNS = 3;
 const MANUAL_FORM_STAGE = "fallback_to_manual_form";
+/** Cap on retained offer-discussion messages so long talks don't blow the context window. */
+const OFFER_HISTORY_MAX_MESSAGES = 20;
 
 /* ================================================================
    Anti-spam rate limiting (per client IP)
@@ -49,6 +54,55 @@ function clientIpOf(request: NextRequest): string {
 
 function sseEncode(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+/* ================================================================
+   Offer-discussion helpers
+   ================================================================ */
+
+/** Minimal shape check for the client-supplied offer context (validation first). */
+function isValidOfferContext(o: unknown): o is OfferDiscussionContext {
+  if (typeof o !== "object" || o === null) return false;
+  const c = o as Record<string, unknown>;
+  return (
+    typeof c.bank === "string" &&
+    typeof c.offeredRate === "number" &&
+    typeof c.listedRate === "number" &&
+    typeof c.cutBelowListed === "number" &&
+    typeof c.termMonths === "number" &&
+    typeof c.maxAmount === "number" &&
+    typeof c.expiresInH === "number" &&
+    Array.isArray(c.conditions) &&
+    c.conditions.every((x) => typeof x === "string") &&
+    typeof c.request === "object" &&
+    c.request !== null
+  );
+}
+
+/**
+ * Retrieve the offer bank's policy chunks to ground the discussion (best effort):
+ * filter all chunks by bank name (normalized containment), retrieve top-K within
+ * that subset. Falls back to all chunks when no bank match, and to an empty
+ * list on any embedding/retrieval error — the discussion still works, just
+ * without policy grounding.
+ */
+function retrieveOfferPolicyChunks(
+  queryEmbedding: number[],
+  bank: string,
+): PolicyChunkContext[] {
+  const all = getAllChunks();
+  const bankNorm = bank.trim().toLowerCase();
+  const bankChunks = all.filter(
+    (c) =>
+      c.bank.toLowerCase().includes(bankNorm) ||
+      bankNorm.includes(c.bank.toLowerCase()),
+  );
+  const pool = bankChunks.length > 0 ? bankChunks : all;
+  return retrieveTopK(queryEmbedding, pool, 5).map((t) => ({
+    text: t.chunk.text,
+    bank: t.chunk.bank,
+    section: t.chunk.section,
+  }));
 }
 
 /* ================================================================
@@ -98,7 +152,13 @@ async function queryPolicyInline(question: string, lang: ApiLang) {
    ================================================================ */
 
 export async function POST(request: NextRequest) {
-  let body: { sessionId?: string; message?: string; lang?: string };
+  let body: {
+    sessionId?: string;
+    message?: string;
+    lang?: string;
+    /** Structured offer context — present only in "discuss this offer" mode. */
+    offer?: OfferDiscussionContext;
+  };
   try {
     body = await request.json();
   } catch {
@@ -152,8 +212,80 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (body.offer !== undefined && !isValidOfferContext(body.offer)) {
+    return new Response(JSON.stringify({ error: "Invalid offer context" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const llm = getLLMProvider();
   const session = sessions.get(sessionId) ?? { profile: {}, turns: 0 };
+
+  // --- Offer-discussion mode ---
+  // Client sent a structured offer context: skip intent extraction, profile
+  // merge and the Decision Engine entirely. Ground the talk in the bank's
+  // policy chunks and stream a free LLM discussion (presentation only).
+  if (body.offer) {
+    const offer = body.offer;
+    const history = session.offerHistory ?? [];
+
+    let policyChunks: PolicyChunkContext[] = [];
+    try {
+      const queryEmbedding = await embedText(sanitized);
+      policyChunks = retrieveOfferPolicyChunks(queryEmbedding, offer.bank);
+    } catch {
+      policyChunks = [];
+    }
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const write = (event: string, data: unknown) => {
+          controller.enqueue(encoder.encode(sseEncode(event, data)));
+        };
+
+        let assistantText = "";
+        try {
+          const discussionStream = await llm.discussOffer(
+            offer,
+            policyChunks,
+            sanitized,
+            history,
+            lang,
+          );
+          for await (const delta of discussionStream) {
+            assistantText += delta;
+            write("explanation", { delta });
+          }
+
+          // Multi-turn: remember this exchange within the session.
+          history.push(
+            { role: "user", content: sanitized },
+            { role: "assistant", content: assistantText },
+          );
+          session.offerHistory = history.slice(-OFFER_HISTORY_MAX_MESSAGES);
+          sessions.set(sessionId, session);
+
+          write("done", {});
+        } catch {
+          write("explanation_error", {
+            message: apiT("explanation_error", lang),
+          });
+        }
+
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  }
 
   // --- Intent extraction ---
   let intentResult;

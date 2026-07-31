@@ -5,6 +5,8 @@ import {
 } from "./prompts/extractIntent";
 import { explainResultPrompt } from "./prompts/explainResult";
 import { policyAnswerPrompt } from "./prompts/policyAnswer";
+import { discussOfferPrompt } from "./prompts/discussOffer";
+import type { OfferDiscussionContext } from "./offerContext";
 import type { ApiLang } from "@/lib/i18n/apiMessages";
 
 /* ================================================================
@@ -38,6 +40,14 @@ export interface LLMProvider {
     contextChunks: PolicyChunkContext[],
     lang?: ApiLang,
   ): Promise<string>;
+
+  discussOffer(
+    offer: OfferDiscussionContext,
+    policyChunks: PolicyChunkContext[],
+    message: string,
+    history: { role: "user" | "assistant"; content: string }[],
+    lang?: ApiLang,
+  ): Promise<AsyncIterable<string>>;
 }
 
 /* ================================================================
@@ -156,6 +166,42 @@ class OpenAICompatProvider implements LLMProvider {
     return (
       response.choices[0]?.message?.content ?? "not found in the documents"
     );
+  }
+
+  async discussOffer(
+    offer: OfferDiscussionContext,
+    policyChunks: PolicyChunkContext[],
+    message: string,
+    history: { role: "user" | "assistant"; content: string }[],
+    lang: ApiLang = "vi",
+  ): Promise<AsyncIterable<string>> {
+    // Format the bank's policy excerpts the same way answerPolicyQuery does;
+    // empty string when no relevant policy documents were retrieved.
+    const policyExcerpts = policyChunks
+      .map((c) => `[${c.bank} — ${c.section}]\n${c.text}`)
+      .join("\n\n");
+
+    const stream = await getClient().chat.completions.create({
+      model: getModel(),
+      messages: [
+        {
+          role: "system",
+          content: discussOfferPrompt(offer, policyExcerpts, lang),
+        },
+        ...history,
+        { role: "user", content: message },
+      ],
+      stream: true,
+      temperature: 0.4,
+    });
+
+    async function* iterate() {
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) yield delta;
+      }
+    }
+    return iterate();
   }
 }
 

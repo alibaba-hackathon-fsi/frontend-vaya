@@ -11,8 +11,20 @@ function ChatInner() {
   // generic needs-based flow (used by the AI-advisor button on a package page).
   const pkgRaw = params.get("pkg");
   const pkg = pkgRaw != null && !Number.isNaN(parseInt(pkgRaw, 10)) ? parseInt(pkgRaw, 10) : undefined;
-  // `key` forces a fresh engine instance when the seed/package changes.
-  return <ChatAdvisor key={pkg != null ? "p" + pkg : q ?? "__none__"} seed={q} pkg={pkg} />;
+  // `?offer=<offerId>&post=<postId>` opens the advisor in "discuss this offer"
+  // mode, scoped to one reverse-auction offer (used by the Marketplace button).
+  const offerId = params.get("offer") ?? undefined;
+  const postId = params.get("post") ?? undefined;
+  // `key` forces a fresh engine instance when the seed/package/offer changes.
+  const key =
+    offerId != null
+      ? "offer:" + offerId
+      : pkg != null
+        ? "p" + pkg
+        : q ?? "__none__";
+  return (
+    <ChatAdvisor key={key} seed={q} pkg={pkg} offerId={offerId} postId={postId} />
+  );
 }
 
 export default function ChatPage() {

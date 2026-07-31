@@ -17,7 +17,8 @@ const KEY = "vaya_market_posts";
 const EMPTY: MarketPost[] = [];
 
 let posts: MarketPost[] = EMPTY;
-let started = false;
+let loaded = false;
+let listening = false;
 const subs = new Set<() => void>();
 
 function emit() {
@@ -46,11 +47,18 @@ function read(): MarketPost[] {
   }
 }
 
-function subscribe(cb: () => void) {
-  if (!started) {
-    started = true;
+function ensureLoaded() {
+  if (!loaded) {
+    loaded = true;
     const saved = read();
     if (saved !== EMPTY) posts = saved;
+  }
+}
+
+function subscribe(cb: () => void) {
+  ensureLoaded();
+  if (!listening) {
+    listening = true;
     window.addEventListener("storage", (e) => {
       if (e.key === KEY) {
         posts = read();
@@ -70,6 +78,16 @@ const getServerSnapshot = () => EMPTY;
 /** Reactive list of the requests this user has posted. */
 export function useMyPosts(): MarketPost[] {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+/**
+ * Imperative snapshot of the posted requests. Lazy-loads from localStorage
+ * like `subscribe` does, but without React or the cross-tab listener — for
+ * one-off offer resolution (e.g. the `?offer=` URL param at chat boot).
+ */
+export function getPosts(): MarketPost[] {
+  ensureLoaded();
+  return posts;
 }
 
 /** Four hex characters, so a borrower is identifiable on the board but not identified. */
