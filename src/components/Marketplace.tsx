@@ -17,6 +17,7 @@ import { bankOf, logoSrc, purpName, type Purpose } from "@/data/banks";
 import { fmtVND, termLabel } from "@/lib/loanEngine";
 import { INCOME_BANDS, SEED_POSTS, type MarketOffer, type MarketPost } from "@/data/marketplace";
 import { addBid, addPost, removePost, useMyPosts } from "@/lib/marketStore";
+import Term from "@/components/Term";
 
 const PURPOSES: Purpose[] = ["home", "car", "business", "personal", "secured"];
 type SortKey = "new" | "offers" | "cut";
@@ -129,7 +130,7 @@ export default function Marketplace() {
             </div>
             <div className="mk-stat">
               <b className="g">−{stats.avgCut}%</b>
-              <span>{t("mk_st_cut")}</span>
+              <Term id="mkcut" label={t("mk_st_cut")} />
             </div>
           </div>
         </div>

@@ -3826,7 +3826,9 @@ img.flag {
   margin: 0;
   color: rgba(255, 255, 255, 0.85);
 }
-.term-ok {
+/* Scoped under .term-pop so the green survives ancestor colour overrides
+   (e.g. .mk-stat span) — the fixed popover is still a DOM descendant of its trigger. */
+.term-pop .term-ok {
   display: block;
   margin-top: 7px;
   padding-top: 7px;
