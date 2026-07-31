@@ -1,4 +1,69 @@
 import type { LLMProvider } from "./provider";
+import { EXTRACT_INTENT_TOOL } from "./prompts/extractIntent";
+
+/* ================================================================
+   Extraction sanitization — the LLM trust boundary
+   ================================================================ */
+
+// Valid values are derived from the extraction tool schema — the single source
+// of truth for what the LLM is allowed to return — so the sanitizer can never
+// drift out of sync with the contract the model actually sees.
+const toolProps = EXTRACT_INTENT_TOOL.function.parameters.properties;
+const VALID_PURPOSES = new Set<string>(toolProps.muc_dich.enum);
+const VALID_PRIORITIES = new Set<string>(toolProps.uu_tien.items.enum);
+
+/** Coerce a value to a finite number when unambiguous (handles numeric strings). */
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const s = value.trim();
+    // Reject anything containing letters (e.g. "2 billion") — too ambiguous to
+    // coerce safely; it is dropped so an earlier valid value is preserved.
+    if (!/^-?[\d.,\s]+$/.test(s)) return null;
+    const n = Number(s.replace(/[,.\s]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Sanitize the raw LLM extraction into a profile fragment containing only
+ * valid, correctly-typed fields. LLM output is untrusted: it may return
+ * out-of-enum strings, numbers as text, or garbage for fields the customer
+ * never stated. Dropping an invalid field (instead of merging it) protects the
+ * values the customer already provided in earlier turns from being wiped out.
+ */
+export function sanitizeExtraction(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+
+  if (typeof raw.muc_dich === "string" && VALID_PURPOSES.has(raw.muc_dich)) {
+    clean.muc_dich = raw.muc_dich;
+  }
+
+  const amount = toFiniteNumber(raw.so_tien);
+  if (amount !== null && amount > 0) clean.so_tien = amount;
+
+  const numericFields = [
+    "thoi_han_thang",
+    "thu_nhap_hang_thang",
+    "no_hien_tai_hang_thang",
+  ] as const;
+  for (const key of numericFields) {
+    const n = toFiniteNumber(raw[key]);
+    if (n !== null && n >= 0) clean[key] = n;
+  }
+
+  if (Array.isArray(raw.uu_tien)) {
+    const valid = raw.uu_tien.filter(
+      (p): p is string => typeof p === "string" && VALID_PRIORITIES.has(p),
+    );
+    if (valid.length > 0) clean.uu_tien = valid;
+  }
+
+  return clean;
+}
 
 /* ================================================================
    Intent classification
@@ -69,7 +134,8 @@ export async function extractAndClassify(
   sessionTurns: number,
   llm: LLMProvider,
 ): Promise<IntentExtractionResult> {
-  const { profile: extracted } = await llm.extractIntent(message);
+  const { profile: rawExtracted } = await llm.extractIntent(message);
+  const extracted = sanitizeExtraction(rawExtracted);
 
   const extractedKeys = Object.keys(extracted).filter(
     (k) => extracted[k] !== null && extracted[k] !== undefined,
