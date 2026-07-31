@@ -16,17 +16,13 @@ import {
 } from "@/lib/survival";
 import SurvivalChart from "@/components/charts/SurvivalChart";
 import Term from "@/components/Term";
+import { SURV_FORM_KEY, parseNum as NUM } from "@/lib/savedProfile";
 import type { Lang } from "@/i18n/dict";
 
-const LS_KEY = "vaya_surv_form";
 /** Number of Monte-Carlo paths. Shared by the headline simulation and the
  * improvement-suggestion re-simulations so their scores stay comparable. */
 const MC_PATHS = 220;
 
-const NUM = (s: string) => {
-  const x = parseFloat((s || "").replace(/[^\d.]/g, ""));
-  return isNaN(x) ? 0 : x;
-};
 /** Digits only, kept as the raw source of truth in state. */
 const DIGITS = (s: string) => (s || "").replace(/\D/g, "");
 /** Renders 2000000000 as "2,000,000,000" for readability while typing. */
@@ -65,7 +61,7 @@ export default function SurvivalScore() {
   // Load persisted financial profile from localStorage (NOT pkg/amount/term)
   const saved = useMemo(() => {
     try {
-      const raw = localStorage.getItem(LS_KEY);
+      const raw = localStorage.getItem(SURV_FORM_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
@@ -112,7 +108,7 @@ export default function SurvivalScore() {
   useEffect(() => {
     try {
       const { income, expenses, debt, savings, down, dependents, employment, collateral } = f;
-      localStorage.setItem(LS_KEY, JSON.stringify({ income, expenses, debt, savings, down, dependents, employment, collateral }));
+      localStorage.setItem(SURV_FORM_KEY, JSON.stringify({ income, expenses, debt, savings, down, dependents, employment, collateral }));
     } catch {
       /* noop */
     }
@@ -175,7 +171,7 @@ export default function SurvivalScore() {
       fe.term = t("err_over_term")
         .replace("{max}", String(pkg.term))
         .replace("{bank}", bankOf(pkg.code).name);
-    const rate = pkg ? (pkg.std || pkg.rate) : 10;
+    const rate = pkg ? (pkg.std || pkg.rate) : NUM(sp.get("r")) || 10;
     const emiVal = monthly(amount, rate, Math.max(1, term));
     if (amount > 0 && income > 0 && emiVal > income * 0.9) {
       fe.amount = t("err_emi_income");

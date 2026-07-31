@@ -27,7 +27,12 @@ import { amortSeries, lineMultiSvg, PAL } from "@/lib/survival";
 import { downloadLoanReport, type ReportData } from "@/lib/loanReport";
 import { SEED_POSTS, type MarketOffer, type MarketPost } from "@/data/marketplace";
 import { getPosts } from "@/lib/marketStore";
-import type { OfferDiscussionContext } from "@/lib/ai/offerContext";
+import { readSavedAffordability } from "@/lib/savedProfile";
+import type {
+  OfferDiscussionContext,
+  AffordabilityInputs,
+  AffordabilityVerdict,
+} from "@/lib/ai/offerContext";
 
 /* ---------------------------------------------------------------- API types */
 
@@ -256,6 +261,8 @@ export default function ChatAdvisor({
   // Offer-discussion mode: when set, the conversation is scoped to this one
   // marketplace offer and every user message goes to the offer-scoped AI talk.
   const offerRef = useRef<{ offer: MarketOffer; post: MarketPost } | null>(null);
+  // Set while the affordability flow waits for the borrower to type their income.
+  const awaitingIncomeRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const idRef = useRef(0);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -849,6 +856,67 @@ export default function ChatAdvisor({
     },
   });
 
+  /** Render the engine verdict as deterministic localized text (no LLM words). */
+  const renderVerdict = (v: AffordabilityVerdict): string => {
+    const T = tRef.current;
+    const L = langRef.current;
+    const tpl = T(v.withinLimit ? "mk_verdict_ok" : "mk_verdict_over");
+    return tpl
+      .replace("{amount}", fmtVND(v.amount, L))
+      .replace("{term}", termLabel(v.termMonths, T))
+      .replace("{rate}", String(v.rate))
+      .replace("{payment}", fmtVND(v.monthlyPayment, L))
+      .replace("{dti}", (v.dti * 100).toFixed(1) + "%")
+      .replace("{income}", fmtVND(v.income, L))
+      .replace("{limit}", Math.round(v.dtiCap * 100) + "%")
+      .replace("{risk}", T("mk_risk_" + v.riskLevel));
+  };
+
+  /** CTA chip: stress-test the priced deal in the survival score. */
+  const survivalChip = (v: AffordabilityVerdict): Chip => ({
+    label: tRef.current("mk_run_survival"),
+    action: () =>
+      router.push(
+        `/survival?a=${v.amount}&t=${v.termMonths}&i=${v.income}&r=${v.rate}`,
+      ),
+  });
+
+  const sendAffordability = (income: number, debt: number) => {
+    awaitingIncomeRef.current = false;
+    const oc = offerRef.current;
+    if (!oc) return;
+    const inputs: AffordabilityInputs = { income, debt };
+    sendToApiChat(
+      tRef.current("mk_afford_chip"),
+      buildOfferContext(oc.offer, oc.post),
+      inputs,
+    );
+  };
+
+  /** Kick off the check: saved income goes straight to the engine, else ask once. */
+  const startAffordability = () => {
+    clearChips();
+    addUser(tRef.current("mk_afford_chip"));
+    const saved = readSavedAffordability();
+    if (saved) {
+      sendAffordability(saved.income, saved.debt);
+    } else {
+      awaitingIncomeRef.current = true;
+      addBot(tRef.current("mk_ask_income"), () => inputRef.current?.focus());
+    }
+  };
+
+  const affordChip = (): Chip => ({
+    label: tRef.current("mk_afford_chip"),
+    action: () => startAffordability(),
+  });
+
+  /** Re-run chip shown after a verdict — same flow, distinct label. */
+  const retryChip = (): Chip => ({
+    label: tRef.current("mk_afford_retry"),
+    action: () => startAffordability(),
+  });
+
   const startOfferChat = useCallback(
     (offer: MarketOffer, post: MarketPost) => {
       timersRef.current.forEach(clearTimeout);
@@ -878,9 +946,12 @@ export default function ChatAdvisor({
           "{conditions}",
           offer.conditions.map((c) => T(c)).join(" · "),
         );
-      addBot(greet, () => inputRef.current?.focus());
+      addBot(greet, () => {
+        setChips([affordChip()]);
+        inputRef.current?.focus();
+      });
     },
-    [addBot, rerender],
+    [addBot, rerender, setChips],
   );
 
   const startChat = useCallback(
@@ -979,9 +1050,10 @@ export default function ChatAdvisor({
   }, [lang]);
 
   /** Send free-text to /api/chat and consume the SSE stream.
-   *  `offerCtx` switches the server into offer-discussion mode. */
+   *  `offerCtx` switches the server into offer-discussion mode; `affordability`
+   *  additionally asks the Decision Engine for a DTI verdict. */
   const sendToApiChat = useCallback(
-    async (txt: string, offerCtx?: OfferDiscussionContext) => {
+    async (txt: string, offerCtx?: OfferDiscussionContext, affordability?: AffordabilityInputs) => {
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -991,6 +1063,7 @@ export default function ChatAdvisor({
             message: txt,
             lang: langRef.current,
             ...(offerCtx ? { offer: offerCtx } : {}),
+            ...(affordability ? { affordability } : {}),
           }),
         });
 
@@ -1044,6 +1117,12 @@ export default function ChatAdvisor({
                   term: (payload.profile?.thoi_han_thang ?? s.term ?? 60) as number,
                   income: payload.profile?.thu_nhap_hang_thang ?? 0,
                 });
+              } else if (currentEvent === "affordability" && payload.dti != null) {
+                // Engine verdict (authoritative numbers) — render deterministically,
+                // then offer the stress-test CTA and a re-run.
+                const v = payload as AffordabilityVerdict;
+                addBot(renderVerdict(v));
+                setChips([survivalChip(v), retryChip()]);
               } else if (currentEvent === "explanation" && payload.delta) {
                 // Accumulate all deltas into a single message bubble
                 if (explanationId === null) {
@@ -1072,7 +1151,7 @@ export default function ChatAdvisor({
         addBot(tRef.current("chat_err"));
       }
     },
-    [addBot, addBotForm, addBotApiResult],
+    [addBot, addBotForm, addBotApiResult, setChips],
   );
 
   const sendCurrent = () => {
@@ -1085,6 +1164,17 @@ export default function ChatAdvisor({
     // Offer-discussion mode: every message goes to the offer-scoped AI talk.
     const oc = offerRef.current;
     if (oc) {
+      // Mid affordability check: this message is the borrower's income answer.
+      if (awaitingIncomeRef.current) {
+        addUser(v);
+        const income = qAmount(v);
+        if (income != null && income > 0) {
+          sendAffordability(income, readSavedAffordability()?.debt ?? 0);
+        } else {
+          addBot(tRef.current("mk_ask_income"));
+        }
+        return;
+      }
       addUser(v);
       sendToApiChat(v, buildOfferContext(oc.offer, oc.post));
       return;
@@ -1128,6 +1218,7 @@ export default function ChatAdvisor({
               onClick={() => {
                 pkgRef.current = null;
                 offerRef.current = null;
+                awaitingIncomeRef.current = false;
                 startChat();
               }}
             >

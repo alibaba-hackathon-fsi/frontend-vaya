@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { getLLMProvider, type PolicyChunkContext } from "@/lib/ai/provider";
-import type { OfferDiscussionContext } from "@/lib/ai/offerContext";
+import type {
+  OfferDiscussionContext,
+  AffordabilityInputs,
+  AffordabilityVerdict,
+} from "@/lib/ai/offerContext";
+import { calcMonthlyPayment } from "@/lib/engine/calcMonthlyPayment";
+import { calcDTI, DTI_CAP } from "@/lib/engine/calcDTI";
+import { scoreRisk } from "@/lib/engine/scoreRisk";
 import { extractAndClassify, mergeProfile } from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
 import { validateProfile } from "@/lib/validation/profileSchema";
@@ -21,6 +28,8 @@ interface ChatSession {
   turns: number;
   /** Multi-turn history for offer-discussion mode (separate from the wizard profile flow). */
   offerHistory?: { role: "user" | "assistant"; content: string }[];
+  /** Last engine-computed affordability verdict; injected into later turns. */
+  offerVerdict?: AffordabilityVerdict;
 }
 
 const sessions = new Map<string, ChatSession>();
@@ -29,6 +38,8 @@ const MAX_FOLLOWUP_TURNS = 3;
 const MANUAL_FORM_STAGE = "fallback_to_manual_form";
 /** Cap on retained offer-discussion messages so long talks don't blow the context window. */
 const OFFER_HISTORY_MAX_MESSAGES = 20;
+/** Sanity ceiling for borrower-supplied income/debt (VND) — above this is garbage or abuse. */
+const AFFORDABILITY_MAX_VALUE = 1e12;
 
 /* ================================================================
    Anti-spam rate limiting (per client IP)
@@ -105,6 +116,54 @@ function retrieveOfferPolicyChunks(
   }));
 }
 
+/** Validation-first shape + range check for borrower-supplied affordability inputs. */
+function isValidAffordabilityInputs(o: unknown): o is AffordabilityInputs {
+  if (typeof o !== "object" || o === null) return false;
+  const c = o as Record<string, unknown>;
+  return (
+    typeof c.income === "number" &&
+    Number.isFinite(c.income) &&
+    c.income > 0 &&
+    c.income <= AFFORDABILITY_MAX_VALUE &&
+    typeof c.debt === "number" &&
+    Number.isFinite(c.debt) &&
+    c.debt >= 0 &&
+    c.debt <= AFFORDABILITY_MAX_VALUE
+  );
+}
+
+/**
+ * Compute the affordability verdict for the deal actually on the table:
+ * min(request, offer) amount and term at the offered rate. Pure orchestration
+ * of Decision Engine functions — deterministic, no LLM involved.
+ */
+function computeOfferVerdict(
+  offer: OfferDiscussionContext,
+  inputs: AffordabilityInputs,
+): AffordabilityVerdict {
+  const amount = Math.min(offer.request.amount, offer.maxAmount);
+  const termMonths = Math.min(offer.request.termMonths, offer.termMonths);
+  const payment = calcMonthlyPayment(amount, offer.offeredRate, termMonths);
+  const { dti, withinLimit } = calcDTI(
+    payment.tongThangDau,
+    inputs.income,
+    inputs.debt,
+  );
+  const { level } = scoreRisk(dti, termMonths);
+  return {
+    amount,
+    termMonths,
+    rate: offer.offeredRate,
+    monthlyPayment: payment.tongThangDau,
+    dti,
+    dtiCap: DTI_CAP,
+    withinLimit,
+    riskLevel: level,
+    income: inputs.income,
+    debt: inputs.debt,
+  };
+}
+
 /* ================================================================
    Policy query helper (inline RAG)
    ================================================================ */
@@ -158,6 +217,8 @@ export async function POST(request: NextRequest) {
     lang?: string;
     /** Structured offer context — present only in "discuss this offer" mode. */
     offer?: OfferDiscussionContext;
+    /** Borrower income/debt for the affordability check (offer mode only). */
+    affordability?: AffordabilityInputs;
   };
   try {
     body = await request.json();
@@ -219,6 +280,16 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  if (
+    body.affordability !== undefined &&
+    !isValidAffordabilityInputs(body.affordability)
+  ) {
+    return new Response(
+      JSON.stringify({ error: "Invalid affordability inputs" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   const llm = getLLMProvider();
   const session = sessions.get(sessionId) ?? { profile: {}, turns: 0 };
 
@@ -229,6 +300,20 @@ export async function POST(request: NextRequest) {
   if (body.offer) {
     const offer = body.offer;
     const history = session.offerHistory ?? [];
+
+    // Affordability check requested: compute the verdict with the Decision
+    // Engine and persist it so later turns stay grounded in the same numbers.
+    if (body.affordability) {
+      try {
+        session.offerVerdict = computeOfferVerdict(offer, body.affordability);
+      } catch {
+        // Unpriceable offer context (e.g. non-positive amount/term): skip the
+        // verdict; the discussion still works without it.
+        session.offerVerdict = undefined;
+      }
+      sessions.set(sessionId, session);
+    }
+    const verdict = session.offerVerdict;
 
     let policyChunks: PolicyChunkContext[] = [];
     try {
@@ -247,12 +332,16 @@ export async function POST(request: NextRequest) {
 
         let assistantText = "";
         try {
+          // Engine verdict first (authoritative numbers), LLM narration after.
+          if (verdict) write("affordability", verdict);
+
           const discussionStream = await llm.discussOffer(
             offer,
             policyChunks,
             sanitized,
             history,
             lang,
+            verdict,
           );
           for await (const delta of discussionStream) {
             assistantText += delta;

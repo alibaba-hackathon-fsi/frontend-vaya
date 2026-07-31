@@ -1,5 +1,8 @@
 import type { ApiLang } from "@/lib/i18n/apiMessages";
-import type { OfferDiscussionContext } from "@/lib/ai/offerContext";
+import type {
+  OfferDiscussionContext,
+  AffordabilityVerdict,
+} from "@/lib/ai/offerContext";
 
 const LANG_INSTRUCTION: Record<ApiLang, string> = {
   en: "Answer in English.",
@@ -32,28 +35,49 @@ function offerFacts(offer: OfferDiscussionContext): string {
   ].join("\n");
 }
 
+/** Render the engine-computed affordability verdict as a fact block. */
+function verdictFacts(v: AffordabilityVerdict): string {
+  const money = (n: number) => n.toLocaleString("en-US");
+  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+  return [
+    "AFFORDABILITY VERDICT (computed by the Decision Engine — treat these numbers as fact):",
+    `- Priced deal: ${money(v.amount)} VND over ${v.termMonths} months at ${v.rate}%/year`,
+    `- First-month payment: ${money(v.monthlyPayment)} VND`,
+    `- Monthly income used: ${money(v.income)} VND; existing monthly debt: ${money(v.debt)} VND`,
+    `- DTI: ${pct(v.dti)} (safe limit ${pct(v.dtiCap)}) — ${v.withinLimit ? "WITHIN" : "OVER"} the limit`,
+    `- Risk level: ${v.riskLevel}`,
+  ].join("\n");
+}
+
 /**
  * Build the system prompt for discussing a specific marketplace offer.
  * `policyExcerpts` is the bank's policy text already formatted by the provider
  * (empty string when no relevant policy documents were found).
+ * `verdict` is the engine-computed affordability verdict, when the borrower
+ * has run the check — injected as fact so follow-ups stay grounded.
  */
 export function discussOfferPrompt(
   offer: OfferDiscussionContext,
   policyExcerpts: string,
   lang: ApiLang = "vi",
+  verdict?: AffordabilityVerdict,
 ): string {
   const policyBlock = policyExcerpts
     ? `\nBANK POLICY EXCERPTS (from the bank's published documents):\n${policyExcerpts}\n`
     : "";
+  const verdictBlock = verdict ? `\n${verdictFacts(verdict)}\n` : "";
+  const affordabilityRule = verdict
+    ? "- Answer affordability questions ONLY from the AFFORDABILITY VERDICT block. Explain what the numbers mean; never recompute, alter, or derive new numbers yourself."
+    : "- Do NOT calculate affordability, monthly payments, or DTI. If asked, tell the borrower to tap the \"Can I afford this?\" button for an instant engine-computed verdict, or run the full advisor / survival score for a deeper figure.";
   return `You are a loan advisor discussing ONE specific marketplace offer with a borrower.
 
 ${offerFacts(offer)}
-${policyBlock}
+${policyBlock}${verdictBlock}
 Rules:
 - Ground every answer in the OFFER UNDER DISCUSSION facts and, where provided, the BANK POLICY EXCERPTS.
 - Never invent or alter rates, amounts, terms, or conditions that are not in the provided facts.
 - Always be clear this is an indicative quote, not a credit approval — the bank must still underwrite the borrower's file before anything is binding.
-- Do NOT calculate affordability, monthly payments, or DTI. If asked, say it depends on the borrower's income and expenses, and suggest running the full advisor or survival score for a real number.
+${affordabilityRule}
 - When you rely on a policy excerpt, cite the bank and section it came from. If the excerpts do not cover a policy question, say so plainly instead of guessing.
 - Keep replies concise, conversational, and non-technical — the reader is a loan customer, not an engineer.
 

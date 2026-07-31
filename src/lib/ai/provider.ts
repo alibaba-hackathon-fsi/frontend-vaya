@@ -6,7 +6,10 @@ import {
 import { explainResultPrompt } from "./prompts/explainResult";
 import { policyAnswerPrompt } from "./prompts/policyAnswer";
 import { discussOfferPrompt } from "./prompts/discussOffer";
-import type { OfferDiscussionContext } from "./offerContext";
+import type {
+  OfferDiscussionContext,
+  AffordabilityVerdict,
+} from "./offerContext";
 import type { ApiLang } from "@/lib/i18n/apiMessages";
 
 /* ================================================================
@@ -47,6 +50,7 @@ export interface LLMProvider {
     message: string,
     history: { role: "user" | "assistant"; content: string }[],
     lang?: ApiLang,
+    verdict?: AffordabilityVerdict,
   ): Promise<AsyncIterable<string>>;
 }
 
@@ -174,6 +178,7 @@ class OpenAICompatProvider implements LLMProvider {
     message: string,
     history: { role: "user" | "assistant"; content: string }[],
     lang: ApiLang = "vi",
+    verdict?: AffordabilityVerdict,
   ): Promise<AsyncIterable<string>> {
     // Format the bank's policy excerpts the same way answerPolicyQuery does;
     // empty string when no relevant policy documents were retrieved.
@@ -186,7 +191,7 @@ class OpenAICompatProvider implements LLMProvider {
       messages: [
         {
           role: "system",
-          content: discussOfferPrompt(offer, policyExcerpts, lang),
+          content: discussOfferPrompt(offer, policyExcerpts, lang, verdict),
         },
         ...history,
         { role: "user", content: message },
