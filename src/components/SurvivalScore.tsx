@@ -19,6 +19,9 @@ import Term from "@/components/Term";
 import type { Lang } from "@/i18n/dict";
 
 const LS_KEY = "vaya_surv_form";
+/** Number of Monte-Carlo paths. Shared by the headline simulation and the
+ * improvement-suggestion re-simulations so their scores stay comparable. */
+const MC_PATHS = 220;
 
 const NUM = (s: string) => {
   const x = parseFloat((s || "").replace(/[^\d.]/g, ""));
@@ -201,7 +204,7 @@ export default function SurvivalScore() {
       method: f.method as RepayMethod,
     };
     const T = Math.max(6, Math.min(Math.round(inp.term || 60), 60));
-    setRes({ mc: monteCarlo(inp, T, 220), T, inp });
+    setRes({ mc: monteCarlo(inp, T, MC_PATHS), T, inp });
   };
 
   const numField = (label: string, key: keyof typeof f, step: number) => (
@@ -409,7 +412,10 @@ function Result({
 }) {
   const { mc, T, inp } = res;
   const met = mc.met;
-  const suggestions = useMemo(() => suggestImprovementsSurv(inp), [inp]);
+  const suggestions = useMemo(
+    () => suggestImprovementsSurv(inp, T, MC_PATHS),
+    [inp, T],
+  );
   const sc = met.score;
   const vclass = sc >= 70 ? "good" : sc >= 45 ? "ok" : "risk";
   const vlab = sc >= 70 ? t("r_good") : sc >= 45 ? t("r_ok") : t("r_risk");

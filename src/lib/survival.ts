@@ -241,6 +241,13 @@ export function monteCarlo(inp: SurvInput, T: number, N: number): MCResult {
     SHORTFALL_FLOOR_MAX /
     (1 + Math.exp(SHORTFALL_STEEPNESS * (met.score - SHORTFALL_SCORE_MID)));
   ruin = Math.max(ruin, scoreFloor);
+  // The headline score and the shortfall probability are two views of the same
+  // underlying sustainability, so they must never contradict each other. Bound
+  // the static score by the forward-looking survival probability (1 - ruin): a
+  // profile cannot be labelled "sustainable" (high score) when the simulation
+  // shows its cash buffer is likely to be exhausted. Safe profiles (low ruin)
+  // keep their static score untouched, since the bound sits above it.
+  met.score = Math.max(1, Math.min(met.score, Math.round(100 * (1 - ruin))));
   const stress: number[] = [];
   let b2 = inp.savings;
   stress.push(b2);
@@ -453,14 +460,28 @@ export const PAL = ["#0A8F55", "#2F6BFF", "#E5533B", "#8180C8"];
 
 export type Suggestion = { icon: string; text: string; delta: number };
 
-/** Generate actionable improvement suggestions by trial-testing changes. */
-export function suggestImprovementsSurv(inp: SurvInput): Suggestion[] {
-  const base = computeMetrics(inp).score;
+/**
+ * Generate actionable improvement suggestions by trial-testing changes.
+ *
+ * The "base → new" scores shown to the customer must be the same reconciled
+ * scores as the headline survival score (the static ratio score bounded by the
+ * Monte-Carlo survival probability), so each candidate is re-simulated with the
+ * identical horizon (T) and path count (N) instead of being read from the
+ * static ratio model — otherwise the suggestion numbers would contradict the
+ * headline score the customer is looking at.
+ */
+export function suggestImprovementsSurv(
+  inp: SurvInput,
+  T: number,
+  N: number,
+): Suggestion[] {
+  const score = (candidate: SurvInput) => monteCarlo(candidate, T, N).met.score;
+  const base = score(inp);
   const out: Suggestion[] = [];
 
   // 1. Extend term +60 months
   const extInp = { ...inp, term: inp.term + 60 };
-  const extScore = computeMetrics(extInp).score;
+  const extScore = score(extInp);
   if (extScore > base) {
     out.push({
       icon: "📅",
@@ -471,7 +492,7 @@ export function suggestImprovementsSurv(inp: SurvInput): Suggestion[] {
 
   // 2. Reduce amount by 15%
   const redInp = { ...inp, amount: Math.round(inp.amount * 0.85) };
-  const redScore = computeMetrics(redInp).score;
+  const redScore = score(redInp);
   if (redScore > base) {
     out.push({
       icon: "💰",
@@ -484,7 +505,7 @@ export function suggestImprovementsSurv(inp: SurvInput): Suggestion[] {
   const target = (inp.expenses + inp.debt) * 6;
   if (inp.savings < target) {
     const savInp = { ...inp, savings: Math.round(target) };
-    const savScore = computeMetrics(savInp).score;
+    const savScore = score(savInp);
     if (savScore > base) {
       out.push({
         icon: "🏦",
@@ -497,7 +518,7 @@ export function suggestImprovementsSurv(inp: SurvInput): Suggestion[] {
   // 4. Switch to EQUAL_PRINCIPAL if currently ANNUITY
   if (inp.method !== "EQUAL_PRINCIPAL") {
     const epInp = { ...inp, method: "EQUAL_PRINCIPAL" as RepayMethod };
-    const epScore = computeMetrics(epInp).score;
+    const epScore = score(epInp);
     if (epScore > base) {
       out.push({
         icon: "🔄",
