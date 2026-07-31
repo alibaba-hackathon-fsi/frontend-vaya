@@ -11,9 +11,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
-
-const GAP = 10;
-const MARGIN = 12;
+import { clampTip, safeTop } from "@/lib/chartTip";
 
 export default function Term({ id, label }: { id: string; label: string }) {
   const { t } = useI18n();
@@ -26,16 +24,20 @@ export default function Term({ id, label }: { id: string; label: string }) {
     const b = btnRef.current?.getBoundingClientRect();
     const p = popRef.current?.getBoundingClientRect();
     if (!b) return;
-    const w = p?.width || 260;
-    const h = p?.height || 120;
-    // Prefer above the label; drop below when there is no room up there.
-    const above = b.top - GAP - h;
-    const top = above > MARGIN ? above : b.bottom + GAP;
-    const left = Math.min(
-      Math.max(MARGIN, b.left + b.width / 2 - w / 2),
-      window.innerWidth - w - MARGIN,
+    // Below first: these triggers sit inline in a line of text, so opening
+    // downwards leaves what you were reading visible — and it cannot end up
+    // behind the sticky header, which is what happened when it opened upwards.
+    setPos(
+      clampTip(
+        { left: b.left, width: b.width, top: b.top, bottom: b.bottom },
+        0.5,
+        p?.width || 260,
+        p?.height || 120,
+        window.innerWidth,
+        window.innerHeight,
+        { topBound: safeTop(), preferBelow: true },
+      ),
     );
-    setPos({ top, left });
   }, []);
 
   useEffect(() => {
