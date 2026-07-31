@@ -12,6 +12,7 @@ import { DOCUMENT_CHECKLISTS } from "@/data/checklists";
 import type { IncomeProofType } from "@/lib/engine/types";
 import type { Purpose } from "@/data/banks";
 import EmailChecklist from "@/components/EmailChecklist";
+import { docLabel, docNote } from "@/lib/i18n/engineText";
 
 const INCOME_PROOFS: { value: IncomeProofType; labelKey: string }[] = [
   { value: "PAYROLL_TRANSFER", labelKey: "ip_payroll_transfer" },
@@ -143,9 +144,13 @@ export default function ChecklistPage() {
                         {item.required ? "☐" : "○"}
                       </span>
                       <div className="chk-body">
-                        <span className="chk-label">{item.labelVi}</span>
+                        <span className="chk-label">
+                          {docLabel(item.itemId, item.labelVi, lang)}
+                        </span>
                         {item.noteVi && (
-                          <span className="chk-note">{item.noteVi}</span>
+                          <span className="chk-note">
+                            {docNote(item.itemId, item.noteVi, lang)}
+                          </span>
                         )}
                       </div>
                       <span

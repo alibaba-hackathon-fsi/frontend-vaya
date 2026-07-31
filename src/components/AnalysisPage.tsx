@@ -3,10 +3,19 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
+import type { Lang } from "@/i18n/dict";
 import { computeSurvivability } from "@/lib/engine/survivability";
 import { getAllProducts } from "@/data/products";
 import { SHOCK_DEFINITIONS } from "@/lib/engine/shocks";
 import { BASE_RATE_SCENARIOS } from "@/lib/engine/scenarios";
+import {
+  cliffCause,
+  engineImprovement,
+  engineWarning,
+  scenarioLabel,
+  shockDesc,
+  shockLabel,
+} from "@/lib/i18n/engineText";
 import type {
   AmortizationMethod,
   GraceConfig,
@@ -40,7 +49,7 @@ const STATUS_ICON: Record<string, string> = {
 };
 
 export default function AnalysisPage() {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -164,7 +173,7 @@ export default function AnalysisPage() {
 
           <div className="surv-result">
             {report ? (
-              <AnalysisResult report={report} t={t} />
+              <AnalysisResult report={report} t={t} lang={lang} />
             ) : (
               <div className="surv-empty">{t("ana_empty")}</div>
             )}
@@ -178,22 +187,25 @@ export default function AnalysisPage() {
 function AnalysisResult({
   report,
   t,
+  lang,
 }: {
   report: SurvivabilityReport;
   t: (k: string) => string;
+  lang: Lang;
 }) {
   const vclass = TIER_CLASS[report.tier] || "risk";
 
   const gridRows = useMemo(() => {
-    const rows: { scenario: string; cells: typeof report.grid }[] = [];
+    const rows: { id: string; scenario: string; cells: typeof report.grid }[] = [];
     for (const sc of BASE_RATE_SCENARIOS) {
       rows.push({
-        scenario: sc.labelVi,
+        scenario: scenarioLabel(sc.id, sc.labelVi, lang),
+        id: sc.id,
         cells: report.grid.filter((c) => c.rateScenarioId === sc.id),
       });
     }
     return rows;
-  }, [report]);
+  }, [report, lang]);
 
   return (
     <>
@@ -213,15 +225,15 @@ function AnalysisResult({
             <tr>
               <th></th>
               {Object.values(SHOCK_DEFINITIONS).map((s) => (
-                <th key={s.id} title={s.descriptionVi}>
-                  {s.labelVi.split(" ").slice(0, 3).join(" ")}
+                <th key={s.id} title={shockDesc(s.id, s.descriptionVi, lang)}>
+                  {shockLabel(s.id, s.labelVi, lang).split(" ").slice(0, 3).join(" ")}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {gridRows.map((row) => (
-              <tr key={row.scenario}>
+              <tr key={row.id}>
                 <td className="ana-row-lab">{row.scenario}</td>
                 {row.cells.map((cell) => (
                   <td
@@ -254,7 +266,7 @@ function AnalysisResult({
             <div className="ana-cliff-causes">
               {report.primaryCliff.causesVi.map((c, i) => (
                 <span key={i} className="pill">
-                  {c}
+                  {cliffCause(c, lang)}
                 </span>
               ))}
             </div>
@@ -269,7 +281,7 @@ function AnalysisResult({
           <div className="ana-warnings">
             {report.warningsVi.map((w, i) => (
               <p key={i} className="ana-warn">
-                ⚠ {w}
+                ⚠ {engineWarning(w, lang)}
               </p>
             ))}
           </div>
@@ -283,7 +295,7 @@ function AnalysisResult({
           <div className="ana-improve">
             {report.improvementsVi.map((s, i) => (
               <p key={i} className="ana-sug">
-                💡 {s}
+                💡 {engineImprovement(s, lang)}
               </p>
             ))}
           </div>

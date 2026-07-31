@@ -24,6 +24,7 @@ import {
 } from "@/lib/loanEngine";
 import { LOAN_PACKAGES } from "@/data/loanPackages";
 import { amortSeries, lineMultiSvg, PAL } from "@/lib/survival";
+import { downloadLoanReport, type ReportData } from "@/lib/loanReport";
 
 /* ---------------------------------------------------------------- API types */
 
@@ -970,7 +971,7 @@ export default function ChatAdvisor({
           }
         }
       } catch {
-        addBot("Lỗi kết nối — vui lòng thử lại.");
+        addBot(tRef.current("chat_err"));
       }
     },
     [addBot, addBotForm, addBotApiResult],
@@ -1119,6 +1120,51 @@ export default function ChatAdvisor({
 }
 
 /* ---------------------------------------------------------------- result card */
+
+/**
+ * Turn a finished recommendation set into the shape the report renderer wants.
+ * Every label is resolved here so the downloaded file matches the chat's language.
+ */
+function buildReport(
+  recs: Recommendation[],
+  brief: [string, string][],
+  amount: number,
+  lang: "en" | "vi" | "zh",
+  t: (k: string) => string,
+): ReportData {
+  return {
+    brand: "Vaya",
+    title: t("rep_title"),
+    subtitle: t("rep_sub"),
+    generatedLabel: t("rep_generated"),
+    briefTitle: t("rep_brief"),
+    brief,
+    tableTitle: t("rep_table"),
+    headers: [t("col_bank"), t("col_rate"), t("rep_c_monthly"), t("rep_c_interest"), t("col_term")],
+    rows: recs.map((r, i) => {
+      const P = Math.min(amount || r.max, r.max);
+      const interest = Math.max(0, r.mo * r.usedTerm - P);
+      return {
+        bank: bankOf(r.code).name,
+        product: prodName(r, lang),
+        rate: r.rate,
+        std: r.std,
+        monthly: fmtMonthly(r.mo),
+        interest,
+        interestLabel: fmtMonthly(interest),
+        term: termLabel(r.usedTerm, t),
+        best: i === 0,
+      };
+    }),
+    chartTitle: t("rep_chart"),
+    bestLabel: t("best"),
+    stepsTitle: t("rep_steps"),
+    steps: [t("rep_s1"), t("rep_s2"), t("rep_s3")],
+    disclaimer: t("rep_disc"),
+    printLabel: t("rep_print"),
+    lang,
+  };
+}
 
 function ResultCard({
   data,
@@ -1274,6 +1320,29 @@ function ResultCard({
           })()}
         </div>
         <div className="chk-cta">
+          {/* The conversation is over and every number is on screen — this is the
+              moment the user wants something they can keep. */}
+          <button
+            className="btn btn-dark btn-sm rep-btn"
+            onClick={() =>
+              downloadLoanReport(
+                buildReport(
+                  recs,
+                  [
+                    [t("q_purpose"), purpName(purpose, lang)],
+                    [t("q_amount"), fmtVND(amount, lang)],
+                    [t("q_term"), termLabel(term, t)],
+                  ],
+                  amount,
+                  lang,
+                  t,
+                ),
+                `vaya-report-${purpose}-${new Date().toISOString().slice(0, 10)}.html`,
+              )
+            }
+          >
+            ⤓ {t("rep_btn")}
+          </button>
           <button
             className="btn btn-ghost btn-sm"
             onClick={() => router.push(`/checklist?purpose=${purpose}`)}
@@ -1599,6 +1668,41 @@ function PkgResultCard({
             {s.name}
           </span>
         ))}
+      </div>
+      {/* Same keepsake as the general result, scoped to this one product. */}
+      <div className="chk-cta">
+        <button
+          className="btn btn-dark btn-sm rep-btn"
+          onClick={() =>
+            downloadLoanReport(
+              {
+                ...buildReport([], [], amt, lang, t),
+                brief: [
+                  [t("col_bank"), b.name + " \u00b7 " + prodName(p, lang)],
+                  [t("q_amount"), fmtVND(amt, lang)],
+                  [t("q_term"), termLabel(term, t)],
+                  [t("pk_emi"), fmtMonthly(a.emi)],
+                ],
+                rows: [
+                  {
+                    bank: b.name,
+                    product: prodName(p, lang),
+                    rate: p.rate,
+                    std: p.std,
+                    monthly: fmtMonthly(a.emi),
+                    interest: a.interest,
+                    interestLabel: fmtMonthly(a.interest),
+                    term: termLabel(term, t),
+                    best: true,
+                  },
+                ],
+              },
+              `vaya-report-${p.code}-${new Date().toISOString().slice(0, 10)}.html`,
+            )
+          }
+        >
+          \u2913 {t("rep_btn")}
+        </button>
       </div>
       <div className="foot">{t("foot_note")}</div>
     </div>
