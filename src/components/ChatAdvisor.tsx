@@ -25,14 +25,21 @@ import {
 import { LOAN_PACKAGES } from "@/data/loanPackages";
 import { amortSeries, lineMultiSvg, PAL } from "@/lib/survival";
 import { downloadLoanReport, type ReportData } from "@/lib/loanReport";
-import { SEED_POSTS, type MarketOffer, type MarketPost } from "@/data/marketplace";
+import {
+  SEED_POSTS,
+  type MarketOffer,
+  type MarketPost,
+} from "@/data/marketplace";
 import { getPosts } from "@/lib/marketStore";
 import { readSavedAffordability } from "@/lib/savedProfile";
-import type {
-  OfferDiscussionContext,
-  AffordabilityInputs,
-  AffordabilityVerdict,
+import {
+  OFFER_HISTORY_MAX_MESSAGES,
+  type OfferDiscussionContext,
+  type AffordabilityInputs,
+  type AffordabilityVerdict,
+  type ConversationTurn,
 } from "@/lib/ai/offerContext";
+import { archiveConversation, loadConversation } from "@/lib/chatHistory";
 
 /* ---------------------------------------------------------------- API types */
 
@@ -81,29 +88,59 @@ function makeSessionId(): string {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const CHAT_SS_KEY = "vaya_chat_session";
+const CHAT_LS_KEY = "vaya_chat_session";
 
+/**
+ * The durable client-side conversation snapshot. The client is the source of
+ * truth (no database): this is persisted to localStorage so the advisor
+ * remembers the context across page reloads and browser restarts. The profile
+ * and offer history within it are also re-sent to the server on each request to
+ * rehydrate its in-memory cache after a server restart/redeploy.
+ */
 type PersistedChat = {
   messages: Message[];
   state: ChatState;
   pkg: number | null;
   pkgAns: { amount: number | null; term: number | null; income: number | null };
   idCounter: number;
+  /** Wizard profile mirror — re-sent to the server to rehydrate after a restart. */
+  profile?: Record<string, unknown>;
+  /** Offer-discussion snapshot — present only when the saved talk was an offer discussion. */
+  offer?: {
+    offerId: string;
+    postId: string;
+    history: ConversationTurn[];
+  };
 };
 
 function saveChat(d: PersistedChat) {
   try {
-    sessionStorage.setItem(CHAT_SS_KEY, JSON.stringify(d));
-  } catch { /* noop */ }
+    localStorage.setItem(CHAT_LS_KEY, JSON.stringify(d));
+  } catch {
+    /* noop */
+  }
 }
 
 function loadChat(): PersistedChat | null {
   try {
-    const raw = sessionStorage.getItem(CHAT_SS_KEY);
+    const raw = localStorage.getItem(CHAT_LS_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
+}
+
+/** Resolve an offer and its post from ids (against the user's posts plus the seeds). */
+function resolveOffer(
+  offerId: string,
+  postId?: string,
+): { offer: MarketOffer; post: MarketPost } | null {
+  const all = [...getPosts(), ...SEED_POSTS];
+  const post =
+    all.find((p) => p.id === postId) ??
+    all.find((p) => p.offers.some((x) => x.id === offerId));
+  const offer = post?.offers.find((x) => x.id === offerId);
+  return post && offer ? { offer, post } : null;
 }
 
 /* ---------------------------------------------------------------- types */
@@ -229,11 +266,13 @@ export default function ChatAdvisor({
   pkg,
   offerId,
   postId,
+  restoreId,
 }: {
   seed?: string;
   pkg?: number;
   offerId?: string;
   postId?: string;
+  restoreId?: string;
 }) {
   const router = useRouter();
   const { lang, t, tRaw } = useI18n();
@@ -260,7 +299,14 @@ export default function ChatAdvisor({
   }>({ amount: null, term: null, income: null });
   // Offer-discussion mode: when set, the conversation is scoped to this one
   // marketplace offer and every user message goes to the offer-scoped AI talk.
-  const offerRef = useRef<{ offer: MarketOffer; post: MarketPost } | null>(null);
+  const offerRef = useRef<{ offer: MarketOffer; post: MarketPost } | null>(
+    null,
+  );
+  // Durable client-side mirrors of the server session. The server keeps an
+  // in-memory cache that is lost on restart/redeploy, so each request re-sends
+  // these and the server rehydrates from them (the client is the source of truth).
+  const profileRef = useRef<Record<string, unknown>>({});
+  const offerHistoryRef = useRef<ConversationTurn[]>([]);
   // Set while the affordability flow waits for the borrower to type their income.
   const awaitingIncomeRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -268,20 +314,32 @@ export default function ChatAdvisor({
   const bodyRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [, setTick] = useState(0);
+  /** Snapshot the live conversation into the durable persistence shape. Shared
+   *  by the active-session save (rerender) and the history-index archive. */
+  const buildSnapshot = useCallback((): PersistedChat => {
+    const oc = offerRef.current;
+    return {
+      messages: messagesRef.current,
+      state: stateRef.current,
+      pkg: pkgRef.current,
+      pkgAns: pkgAns.current,
+      idCounter: idRef.current,
+      profile: profileRef.current,
+      offer: oc
+        ? {
+            offerId: oc.offer.id,
+            postId: oc.post.id,
+            history: offerHistoryRef.current,
+          }
+        : undefined,
+    };
+  }, []);
+
   const rerender = useCallback(() => {
     setTick((n) => n + 1);
-    // Persist chat state for session recovery. Offer-discussion mode is
-    // deliberately NOT persisted — it re-greets from the URL params instead.
-    if (offerRef.current == null) {
-      saveChat({
-        messages: messagesRef.current,
-        state: stateRef.current,
-        pkg: pkgRef.current,
-        pkgAns: pkgAns.current,
-        idCounter: idRef.current,
-      });
-    }
-  }, []);
+    // Persist the active conversation for recovery (both modes are durable).
+    saveChat(buildSnapshot());
+  }, [buildSnapshot]);
 
   // Keep localized helpers stable per render via refs so async callbacks read
   // the current language.
@@ -917,14 +975,48 @@ export default function ChatAdvisor({
     action: () => startAffordability(),
   });
 
+  /** Auto-title for the history index: offer bank · purpose, else the first
+   *  user message (truncated), else the purpose name. */
+  const deriveTitle = useCallback((): string => {
+    const oc = offerRef.current;
+    if (oc) {
+      return `${bankOf(oc.offer.code).name} · ${purpName(oc.post.purpose, langRef.current)}`;
+    }
+    const firstUser = messagesRef.current.find(
+      (m): m is Extract<Message, { role: "user" }> => m.role === "user",
+    );
+    if (firstUser) {
+      const text = firstUser.text.trim();
+      return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+    }
+    const purpose = stateRef.current.purpose;
+    return purpose ? purpName(purpose, langRef.current) : "Conversation";
+  }, []);
+
+  /** Archive the current conversation into the history index (auto on new chat).
+   *  Skips conversations with no user input so boot/fresh starts aren't archived. */
+  const archiveCurrent = useCallback(() => {
+    const hasUserMessage = messagesRef.current.some((m) => m.role === "user");
+    if (!hasUserMessage) return;
+    archiveConversation<PersistedChat>({
+      id: sessionIdRef.current,
+      title: deriveTitle(),
+      mode: offerRef.current != null ? "offer" : "wizard",
+      snapshot: buildSnapshot(),
+    });
+  }, [buildSnapshot, deriveTitle]);
+
   const startOfferChat = useCallback(
     (offer: MarketOffer, post: MarketPost) => {
+      // Archive the conversation being left (auto history) before resetting.
+      archiveCurrent();
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
       messagesRef.current = [];
       chipsRef.current = [];
       sessionIdRef.current = makeSessionId();
       offerRef.current = { offer, post };
+      offerHistoryRef.current = [];
       rerender();
       stateRef.current = {
         step: "offer",
@@ -939,28 +1031,31 @@ export default function ChatAdvisor({
         .replace("{bank}", b.name)
         .replace("{rate}", String(offer.rate))
         .replace("{listed}", String(offer.listed))
-        .replace("{cut}", String(Number((offer.listed - offer.rate).toFixed(2))))
+        .replace(
+          "{cut}",
+          String(Number((offer.listed - offer.rate).toFixed(2))),
+        )
         .replace("{max}", fmtVND(offer.maxAmount, langRef.current))
         .replace("{term}", termLabel(offer.termMonths, T))
-        .replace(
-          "{conditions}",
-          offer.conditions.map((c) => T(c)).join(" · "),
-        );
+        .replace("{conditions}", offer.conditions.map((c) => T(c)).join(" · "));
       addBot(greet, () => {
         setChips([affordChip()]);
         inputRef.current?.focus();
       });
     },
-    [addBot, rerender, setChips],
+    [addBot, rerender, setChips, archiveCurrent],
   );
 
   const startChat = useCallback(
     (seedText?: string) => {
+      // Archive the conversation being left (auto history) before resetting.
+      archiveCurrent();
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
       messagesRef.current = [];
       chipsRef.current = [];
       sessionIdRef.current = makeSessionId();
+      profileRef.current = {};
       rerender();
       stateRef.current = {
         step: "purpose",
@@ -980,38 +1075,86 @@ export default function ChatAdvisor({
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addBot, addUser, rerender, setChips, purposeChips],
+    [addBot, addUser, rerender, setChips, purposeChips, archiveCurrent],
   );
 
-  // Boot the conversation once on mount.
-  // Only restore from sessionStorage when there is NO new intent (no seed, no pkg, no offer).
-  // A seed, pkg or offer means the user clicked a fresh entry point and expects a new conversation.
+  // Boot the conversation once on mount. Priority: an explicit history restore
+  // (?restore=<id>), then offer mode (?offer=&post=), then the active-session
+  // restore from localStorage. A seed/pkg/offer/restore is a fresh entry point.
   useEffect(() => {
     const clearTimers = () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
     };
 
-    // Offer-discussion mode (?offer=&post=): resolve the params against the
-    // user's own posts plus the seeds. Found → scoped discussion; otherwise
-    // fall through to the normal boot below.
-    let offerStarted = false;
-    if (offerId != null) {
-      const all = [...getPosts(), ...SEED_POSTS];
-      const post =
-        all.find((p) => p.id === postId) ??
-        all.find((p) => p.offers.some((x) => x.id === offerId));
-      const offer = post?.offers.find((x) => x.id === offerId);
-      if (post && offer) {
-        startOfferChat(offer, post);
-        offerStarted = true;
+    // Restore an archived conversation from the history index (?restore=<id>).
+    // The history panel links here; the snapshot reproduces the exact talk and,
+    // by reusing its session id, lets the server rehydrate the same session.
+    let booted = false;
+    if (restoreId != null) {
+      const record = loadConversation<PersistedChat>(restoreId);
+      const snap = record?.snapshot;
+      if (record && snap && snap.messages.length > 0) {
+        messagesRef.current = snap.messages.map((m) =>
+          m.role === "bot" ? { ...m, typing: false } : m,
+        );
+        stateRef.current = snap.state;
+        pkgRef.current = snap.pkg;
+        pkgAns.current = snap.pkgAns;
+        idRef.current = snap.idCounter;
+        profileRef.current = snap.profile ?? {};
+        offerHistoryRef.current = snap.offer?.history ?? [];
+        sessionIdRef.current = record.id;
+        // Re-enter offer mode when the archived talk was an offer discussion.
+        if (snap.offer) {
+          const resolved = resolveOffer(snap.offer.offerId, snap.offer.postId);
+          if (resolved) offerRef.current = resolved;
+        }
+        rerender();
+        scrollChat();
+        booted = true;
       }
     }
 
-    if (!offerStarted) {
-      const hasNewIntent = seed != null || pkg != null || offerId != null;
+    // Offer-discussion mode (?offer=&post=): resolve the params against the
+    // user's own posts plus the seeds. Found → scoped discussion; otherwise
+    // fall through to the normal boot below.
+    if (!booted && offerId != null) {
+      const resolved = resolveOffer(offerId, postId);
+      if (resolved) {
+        // Restore the saved discussion for this exact offer so the advisor
+        // remembers the context across a reload; otherwise greet fresh.
+        const saved = loadChat();
+        const savedOffer = saved?.offer;
+        if (
+          saved &&
+          savedOffer &&
+          savedOffer.offerId === offerId &&
+          saved.messages.length > 0
+        ) {
+          messagesRef.current = saved.messages.map((m) =>
+            m.role === "bot" ? { ...m, typing: false } : m,
+          );
+          stateRef.current = saved.state;
+          idRef.current = saved.idCounter;
+          offerRef.current = resolved;
+          offerHistoryRef.current = savedOffer.history;
+          rerender();
+          scrollChat();
+        } else {
+          startOfferChat(resolved.offer, resolved.post);
+        }
+        booted = true;
+      }
+    }
+
+    if (!booted) {
+      const hasNewIntent =
+        seed != null || pkg != null || offerId != null || restoreId != null;
       const saved = !hasNewIntent ? loadChat() : null;
-      if (saved && saved.messages.length > 0) {
+      // Only restore a saved wizard conversation (saved.offer == null); a saved
+      // offer discussion is incompatible with this entry point, so start fresh.
+      if (saved && saved.messages.length > 0 && saved.offer == null) {
         // Restore persisted session (user navigated back without a new intent)
         messagesRef.current = saved.messages.map((m) =>
           m.role === "bot" ? { ...m, typing: false } : m,
@@ -1020,6 +1163,7 @@ export default function ChatAdvisor({
         pkgRef.current = saved.pkg;
         pkgAns.current = saved.pkgAns;
         idRef.current = saved.idCounter;
+        profileRef.current = saved.profile ?? {};
         rerender();
         scrollChat();
       } else if (pkgRef.current != null) {
@@ -1053,7 +1197,11 @@ export default function ChatAdvisor({
    *  `offerCtx` switches the server into offer-discussion mode; `affordability`
    *  additionally asks the Decision Engine for a DTI verdict. */
   const sendToApiChat = useCallback(
-    async (txt: string, offerCtx?: OfferDiscussionContext, affordability?: AffordabilityInputs) => {
+    async (
+      txt: string,
+      offerCtx?: OfferDiscussionContext,
+      affordability?: AffordabilityInputs,
+    ) => {
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -1062,7 +1210,11 @@ export default function ChatAdvisor({
             sessionId: sessionIdRef.current,
             message: txt,
             lang: langRef.current,
-            ...(offerCtx ? { offer: offerCtx } : {}),
+            // Re-send the durable state so the server can rehydrate after a
+            // restart: the wizard profile, or the offer-discussion transcript.
+            ...(offerCtx
+              ? { offer: offerCtx, history: offerHistoryRef.current }
+              : { profile: profileRef.current }),
             ...(affordability ? { affordability } : {}),
           }),
         });
@@ -1072,6 +1224,9 @@ export default function ChatAdvisor({
         // Non-SSE JSON response (follow-up question, policy answer, etc.)
         if (contentType.includes("application/json")) {
           const data = await res.json();
+          // The server profile is the authoritative merged snapshot — mirror it
+          // so the next request can rehydrate the session after a restart.
+          if (data.profile) profileRef.current = data.profile;
           if (data.missingFields?.length > 0) {
             if (data.reply) addBot(data.reply);
             addBotForm(data.missingFields);
@@ -1088,6 +1243,9 @@ export default function ChatAdvisor({
         const decoder = new TextDecoder();
         let buffer = "";
         let explanationId: number | null = null;
+        // Accumulates the assistant's narration so the offer transcript mirror
+        // (offerHistoryRef) can record this turn for restart rehydration.
+        let assistantText = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -1106,6 +1264,8 @@ export default function ChatAdvisor({
               const payload = JSON.parse(line.slice(6));
               if (currentEvent === "results" && payload.ranked) {
                 const s = stateRef.current;
+                // Mirror the authoritative profile snapshot (see JSON handler).
+                if (payload.profile) profileRef.current = payload.profile;
                 // The server profile is the authoritative source for the numbers
                 // the Decision Engine used — it includes values the customer typed
                 // in free-text chat, which the client wizard state (s.amount/s.term)
@@ -1114,10 +1274,15 @@ export default function ChatAdvisor({
                   ranked: payload.ranked,
                   rejected: payload.rejected ?? [],
                   amount: (payload.profile?.so_tien ?? s.amount ?? 0) as number,
-                  term: (payload.profile?.thoi_han_thang ?? s.term ?? 60) as number,
+                  term: (payload.profile?.thoi_han_thang ??
+                    s.term ??
+                    60) as number,
                   income: payload.profile?.thu_nhap_hang_thang ?? 0,
                 });
-              } else if (currentEvent === "affordability" && payload.dti != null) {
+              } else if (
+                currentEvent === "affordability" &&
+                payload.dti != null
+              ) {
                 // Engine verdict (authoritative numbers) — render deterministically,
                 // then offer the stress-test CTA and a re-run.
                 const v = payload as AffordabilityVerdict;
@@ -1125,15 +1290,24 @@ export default function ChatAdvisor({
                 setChips([survivalChip(v), retryChip()]);
               } else if (currentEvent === "explanation" && payload.delta) {
                 // Accumulate all deltas into a single message bubble
+                assistantText += payload.delta;
                 if (explanationId === null) {
                   explanationId = nextId();
                   messagesRef.current = [
                     ...messagesRef.current,
-                    { id: explanationId, role: "bot", typing: false, kind: "text", text: payload.delta },
+                    {
+                      id: explanationId,
+                      role: "bot",
+                      typing: false,
+                      kind: "text",
+                      text: payload.delta,
+                    },
                   ];
                 } else {
                   messagesRef.current = messagesRef.current.map((m) =>
-                    m.id === explanationId && m.role === "bot" && m.kind === "text"
+                    m.id === explanationId &&
+                    m.role === "bot" &&
+                    m.kind === "text"
                       ? { ...m, text: (m.text as string) + payload.delta }
                       : m,
                   );
@@ -1146,6 +1320,16 @@ export default function ChatAdvisor({
               currentEvent = "";
             }
           }
+        }
+
+        // Mirror the server's offer-history bookkeeping so a restart can be
+        // rehydrated: remember this exchange (capped) within the offer talk.
+        if (offerCtx && assistantText) {
+          offerHistoryRef.current = [
+            ...offerHistoryRef.current,
+            { role: "user" as const, content: txt },
+            { role: "assistant" as const, content: assistantText },
+          ].slice(-OFFER_HISTORY_MAX_MESSAGES);
         }
       } catch {
         addBot(tRef.current("chat_err"));
@@ -1264,14 +1448,25 @@ export default function ChatAdvisor({
                     <PkgResultCard data={m.pkg} lang={lang} t={t} />
                   </div>
                 ) : m.kind === "text" ? (
-                  <div className="bub" dangerouslySetInnerHTML={{ __html: renderMd(m.text) }} />
+                  <div
+                    className="bub"
+                    dangerouslySetInnerHTML={{ __html: renderMd(m.text) }}
+                  />
                 ) : m.kind === "api-result" ? (
                   <div className="bub">
                     <ApiResultCard data={m.result} lang={lang} t={t} />
                   </div>
                 ) : m.kind === "form" ? (
                   <div className="bub">
-                    <FormCard fields={m.fields} lang={lang} t={t} onSubmit={(msg: string) => { addUser(msg); sendToApiChat(msg); }} />
+                    <FormCard
+                      fields={m.fields}
+                      lang={lang}
+                      t={t}
+                      onSubmit={(msg: string) => {
+                        addUser(msg);
+                        sendToApiChat(msg);
+                      }}
+                    />
                   </div>
                 ) : (
                   <div className="bub">
@@ -1343,7 +1538,13 @@ function buildReport(
     briefTitle: t("rep_brief"),
     brief,
     tableTitle: t("rep_table"),
-    headers: [t("col_bank"), t("col_rate"), t("rep_c_monthly"), t("rep_c_interest"), t("col_term")],
+    headers: [
+      t("col_bank"),
+      t("col_rate"),
+      t("rep_c_monthly"),
+      t("rep_c_interest"),
+      t("col_term"),
+    ],
     rows: recs.map((r, i) => {
       const P = Math.min(amount || r.max, r.max);
       const interest = Math.max(0, r.mo * r.usedTerm - P);
@@ -1589,14 +1790,16 @@ function ApiResultCard({
           <div className="api-roadmap-title">{t("api_roadmap_title")}</div>
           <ol className="api-roadmap-list">
             {rejected.some((r) => r.reason.includes("% of your income")) && (
-              <li>{t("api_roadmap_dti").replace("{term}", String(term * 2))}</li>
+              <li>
+                {t("api_roadmap_dti").replace("{term}", String(term * 2))}
+              </li>
             )}
             {rejected.some((r) => r.reason.includes("only lends up to")) && (
               <li>{t("api_roadmap_amount")}</li>
             )}
-            {rejected.some((r) => r.reason.includes("below this package's minimum")) && (
-              <li>{t("api_roadmap_income")}</li>
-            )}
+            {rejected.some((r) =>
+              r.reason.includes("below this package's minimum"),
+            ) && <li>{t("api_roadmap_income")}</li>}
             <li>{t("api_roadmap_general")}</li>
           </ol>
         </div>
@@ -1621,20 +1824,29 @@ function ApiResultCard({
           const best = i === 0;
           const match = Math.min(99, Math.max(50, Math.round(r.score)));
           return (
-            <div className={"api-card" + (best ? " api-best" : "")} key={r.packageId + i}>
+            <div
+              className={"api-card" + (best ? " api-best" : "")}
+              key={r.packageId + i}
+            >
               <div className="api-badge">
-                {best ? `★ ${t("best")} · ${match}%` : `${t("fit")} · ${match}%`}
+                {best
+                  ? `★ ${t("best")} · ${match}%`
+                  : `${t("fit")} · ${match}%`}
               </div>
               <div className="api-bank">{r.bank}</div>
               <div className="api-prod">{r.packageId}</div>
               <div className="api-metrics">
                 <div className="api-m">
                   <span className="api-mk">{t("api_loan_range")}</span>
-                  <span className="api-mv">{pkg ? fmtVND(pkg.han_muc, lang) : "—"}</span>
+                  <span className="api-mv">
+                    {pkg ? fmtVND(pkg.han_muc, lang) : "—"}
+                  </span>
                 </div>
                 <div className="api-m">
                   <span className="api-mk">{t("rate")}</span>
-                  <span className="api-mv">{pkg ? pkg.lai_suat_tu + "%/" + t("yr") : "—"}</span>
+                  <span className="api-mv">
+                    {pkg ? pkg.lai_suat_tu + "%/" + t("yr") : "—"}
+                  </span>
                 </div>
                 <div className="api-m">
                   <span className="api-mk">{t("monthly")}</span>
@@ -1643,7 +1855,11 @@ function ApiResultCard({
               </div>
               <button
                 className="btn btn-ghost btn-sm api-detail-btn"
-                onClick={() => router.push(`/survival?a=${amount}&t=${term}&i=${data.income}&bank=${encodeURIComponent(top[0].bank)}`)}
+                onClick={() =>
+                  router.push(
+                    `/survival?a=${amount}&t=${term}&i=${data.income}&bank=${encodeURIComponent(top[0].bank)}`,
+                  )
+                }
               >
                 {t("api_view_detail")} →
               </button>
@@ -1666,20 +1882,58 @@ function ApiResultCard({
         {(() => {
           const bestPkg = LOAN_PACKAGES.find((p) => p.id === top[0].packageId);
           if (!bestPkg) return null;
-          const boxes: { icon: string; title: string; desc: string; warn: boolean }[] = [];
+          const boxes: {
+            icon: string;
+            title: string;
+            desc: string;
+            warn: boolean;
+          }[] = [];
           if (bestPkg.fast_approval)
-            boxes.push({ icon: "⚡", title: t("api_b_fast"), desc: t("api_b_fast_d"), warn: false });
+            boxes.push({
+              icon: "⚡",
+              title: t("api_b_fast"),
+              desc: t("api_b_fast_d"),
+              warn: false,
+            });
           if (bestPkg.online_application)
-            boxes.push({ icon: "🌐", title: t("api_b_online"), desc: t("api_b_online_d"), warn: false });
+            boxes.push({
+              icon: "🌐",
+              title: t("api_b_online"),
+              desc: t("api_b_online_d"),
+              warn: false,
+            });
           if (bestPkg.ekyc)
-            boxes.push({ icon: "🔒", title: t("api_b_ekyc"), desc: t("api_b_ekyc_d"), warn: false });
+            boxes.push({
+              icon: "🔒",
+              title: t("api_b_ekyc"),
+              desc: t("api_b_ekyc_d"),
+              warn: false,
+            });
           if (bestPkg.no_cic_required)
-            boxes.push({ icon: "📋", title: t("api_b_nocic"), desc: t("api_b_nocic_d"), warn: false });
+            boxes.push({
+              icon: "📋",
+              title: t("api_b_nocic"),
+              desc: t("api_b_nocic_d"),
+              warn: false,
+            });
           // Always show interest calculation method
-          boxes.push({ icon: "📊", title: t("api_b_calc"), desc: t("api_b_calc_d"), warn: false });
+          boxes.push({
+            icon: "📊",
+            title: t("api_b_calc"),
+            desc: t("api_b_calc_d"),
+            warn: false,
+          });
           // DTI warning if high
           if (top[0].dti > 0.35)
-            boxes.push({ icon: "⚠️", title: t("api_w_dti"), desc: t("api_w_dti_d").replace("{dti}", Math.round(top[0].dti * 100) + "%"), warn: true });
+            boxes.push({
+              icon: "⚠️",
+              title: t("api_w_dti"),
+              desc: t("api_w_dti_d").replace(
+                "{dti}",
+                Math.round(top[0].dti * 100) + "%",
+              ),
+              warn: true,
+            });
           return boxes.slice(0, 4).map((b, i) => (
             <div className={"api-box" + (b.warn ? " api-warn" : "")} key={i}>
               <span className="api-box-ic">{b.icon}</span>
@@ -1704,7 +1958,10 @@ function ApiResultCard({
 
 /* ---------------------------------------------------------------- inline form card */
 
-const FIELD_LABELS: Record<string, { en: string; vi: string; zh: string; placeholder: string }> = {
+const FIELD_LABELS: Record<
+  string,
+  { en: string; vi: string; zh: string; placeholder: string }
+> = {
   thoi_han_thang: {
     en: "Loan term (months)",
     vi: "Kỳ hạn vay (tháng)",
@@ -1747,7 +2004,11 @@ function FormCard({
   };
 
   if (submitted) {
-    return <div style={{ fontSize: 12, color: "var(--muted)" }}>✓ {t("api_form_sent")}</div>;
+    return (
+      <div style={{ fontSize: 12, color: "var(--muted)" }}>
+        ✓ {t("api_form_sent")}
+      </div>
+    );
   }
 
   return (
@@ -1766,12 +2027,20 @@ function FormCard({
               inputMode="numeric"
               placeholder={ph}
               value={values[f] ?? ""}
-              onChange={(e) => setValues((v) => ({ ...v, [f]: e.target.value.replace(/[^0-9]/g, "") }))}
+              onChange={(e) =>
+                setValues((v) => ({
+                  ...v,
+                  [f]: e.target.value.replace(/[^0-9]/g, ""),
+                }))
+              }
             />
           </div>
         );
       })}
-      <button className="btn btn-primary btn-sm form-submit" onClick={handleSubmit}>
+      <button
+        className="btn btn-primary btn-sm form-submit"
+        onClick={handleSubmit}
+      >
         {t("api_form_submit")}
       </button>
     </div>

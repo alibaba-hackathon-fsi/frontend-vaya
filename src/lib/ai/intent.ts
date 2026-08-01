@@ -11,6 +11,9 @@ import { EXTRACT_INTENT_TOOL } from "./prompts/extractIntent";
 const toolProps = EXTRACT_INTENT_TOOL.function.parameters.properties;
 const VALID_PURPOSES = new Set<string>(toolProps.muc_dich.enum);
 const VALID_PRIORITIES = new Set<string>(toolProps.uu_tien.items.enum);
+const VALID_ASSET_CLASSES = new Set<string>(
+  toolProps.tai_san_dam_bao.properties.loai.enum,
+);
 
 /** Coerce a value to a finite number when unambiguous (handles numeric strings). */
 function toFiniteNumber(value: unknown): number | null {
@@ -62,6 +65,23 @@ export function sanitizeExtraction(
     if (valid.length > 0) clean.uu_tien = valid;
   }
 
+  // Collateral is only accepted as a well-formed { loai, gia_tri } object; a
+  // malformed value is dropped so the request falls back to the unsecured path
+  // rather than being rejected outright.
+  const collateral = raw.tai_san_dam_bao;
+  if (typeof collateral === "object" && collateral !== null) {
+    const c = collateral as Record<string, unknown>;
+    const giaTri = toFiniteNumber(c.gia_tri);
+    if (
+      typeof c.loai === "string" &&
+      VALID_ASSET_CLASSES.has(c.loai) &&
+      giaTri !== null &&
+      giaTri > 0
+    ) {
+      clean.tai_san_dam_bao = { loai: c.loai, gia_tri: giaTri };
+    }
+  }
+
   return clean;
 }
 
@@ -72,9 +92,22 @@ export function sanitizeExtraction(
 export type Intent = "NUMERIC" | "POLICY" | "MIXED";
 
 const POLICY_KEYWORDS = [
-  "penalty", "fee", "document", "insurance", "prepay", "policy",
-  "condition", "phí", "bảo hiểm", "điều kiện", "chính sách",
-  "hồ sơ", "giấy tờ", "thủ tục", "lãi phạt", "trả trước",
+  "penalty",
+  "fee",
+  "document",
+  "insurance",
+  "prepay",
+  "policy",
+  "condition",
+  "phí",
+  "bảo hiểm",
+  "điều kiện",
+  "chính sách",
+  "hồ sơ",
+  "giấy tờ",
+  "thủ tục",
+  "lãi phạt",
+  "trả trước",
 ];
 
 /**
@@ -86,7 +119,9 @@ export function classifyIntent(
   extractedKeys: string[],
   sessionTurns: number,
 ): Intent {
-  const isPolicy = POLICY_KEYWORDS.some((kw) => message.toLowerCase().includes(kw));
+  const isPolicy = POLICY_KEYWORDS.some((kw) =>
+    message.toLowerCase().includes(kw),
+  );
 
   if (!isPolicy) return "NUMERIC";
   if (extractedKeys.length > 0 || sessionTurns > 1) return "MIXED";
@@ -101,11 +136,26 @@ export function classifyIntent(
 // diacritic and common no-diacritic Vietnamese spellings plus EN/ZH, so the
 // server knows to compute engine pricing and let the LLM narrate it.
 const PRICING_KEYWORDS = [
-  "mỗi tháng", "moi thang", "hàng tháng", "hang thang",
-  "bao nhiêu", "bao nhieu", "trả bao nhiêu", "tra bao nhieu",
-  "trả góp", "tra gop", "góp mỗi tháng",
-  "monthly", "per month", "a month", "how much", "payment", "installment",
-  "每月", "月供", "多少钱",
+  "mỗi tháng",
+  "moi thang",
+  "hàng tháng",
+  "hang thang",
+  "bao nhiêu",
+  "bao nhieu",
+  "trả bao nhiêu",
+  "tra bao nhieu",
+  "trả góp",
+  "tra gop",
+  "góp mỗi tháng",
+  "monthly",
+  "per month",
+  "a month",
+  "how much",
+  "payment",
+  "installment",
+  "每月",
+  "月供",
+  "多少钱",
 ];
 
 /** True when the message asks what the loan costs per month / per period. */

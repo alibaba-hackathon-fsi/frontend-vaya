@@ -1,4 +1,15 @@
-import type { EligibilityResult, EligibilityRule, LoanPackageRecord, LoanProfile } from "./types";
+import type {
+  EligibilityResult,
+  EligibilityRule,
+  LoanPackageRecord,
+  LoanProfile,
+} from "./types";
+import {
+  LTV_CAP_BY_ASSET,
+  hasStrongCollateral,
+  maxSecuredAmount,
+  withinCollateralCap,
+} from "./collateral";
 
 /** Human-readable label for a loan purpose code. */
 const PURPOSE_LABELS: Record<string, string> = {
@@ -9,6 +20,16 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 function purposeLabel(code: string): string {
   return PURPOSE_LABELS[code] ?? code;
+}
+
+/** Human-readable label for a collateral asset class. */
+const ASSET_LABELS: Record<string, string> = {
+  bat_dong_san: "property",
+  o_to: "vehicle",
+  so_tiet_kiem: "savings book",
+};
+function assetLabel(code: string): string {
+  return ASSET_LABELS[code] ?? code;
 }
 
 /**
@@ -23,7 +44,24 @@ export function filterEligible(
   const eligible: LoanPackageRecord[] = [];
   const rejected: { packageId: string; reason: string }[] = [];
 
+  // Secured-loan gates (profile-level): a request backed by collateral must
+  // stay within the asset's LTV cap. Strong collateral (low LTV) also waives
+  // the per-package income floor so the borrower can qualify on asset coverage.
+  const collateral = profile.tai_san_dam_bao ?? null;
+  const overCap =
+    collateral != null && !withinCollateralCap(profile.so_tien, collateral);
+  const incomeRelief = hasStrongCollateral(profile.so_tien, collateral);
+
   for (const pkg of packages) {
+    if (overCap && collateral) {
+      const cap = maxSecuredAmount(collateral);
+      const pct = Math.round(LTV_CAP_BY_ASSET[collateral.loai] * 100);
+      rejected.push({
+        packageId: pkg.id,
+        reason: `With your ${assetLabel(collateral.loai)} collateral worth ${collateral.gia_tri.toLocaleString()} VND, the maximum secured loan is ${cap.toLocaleString()} VND (${pct}% of collateral value), but you asked for ${profile.so_tien.toLocaleString()} VND`,
+      });
+      continue;
+    }
     if (pkg.muc_dich !== profile.muc_dich) {
       rejected.push({
         packageId: pkg.id,
@@ -52,6 +90,7 @@ export function filterEligible(
     }
     const rule = rules.find((r) => r.package_id === pkg.id);
     if (
+      !incomeRelief &&
       rule?.dieu_kien.thu_nhap_toi_thieu != null &&
       profile.thu_nhap_hang_thang != null
     ) {

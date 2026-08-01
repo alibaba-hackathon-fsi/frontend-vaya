@@ -89,7 +89,16 @@ export default function SurvivalScore() {
     };
     // Restore only financial profile fields from localStorage (skip when arriving from chat)
     if (saved && !fromChat) {
-      const finKeys = ["income", "expenses", "debt", "savings", "down", "dependents", "employment", "collateral"] as const;
+      const finKeys = [
+        "income",
+        "expenses",
+        "debt",
+        "savings",
+        "down",
+        "dependents",
+        "employment",
+        "collateral",
+      ] as const;
       for (const k of finKeys) {
         if (saved[k] != null) base[k] = saved[k];
       }
@@ -102,13 +111,39 @@ export default function SurvivalScore() {
     inp: SurvInput;
   } | null>(null);
   const [fieldErrs, setFieldErrs] = useState<Record<string, string>>({});
-  const [emiBreakdown, setEmiBreakdown] = useState<{ emi: number; income: number; pct: number; rate: number } | null>(null);
+  const [emiBreakdown, setEmiBreakdown] = useState<{
+    emi: number;
+    income: number;
+    pct: number;
+    rate: number;
+  } | null>(null);
 
   // Persist only financial profile to localStorage
   useEffect(() => {
     try {
-      const { income, expenses, debt, savings, down, dependents, employment, collateral } = f;
-      localStorage.setItem(SURV_FORM_KEY, JSON.stringify({ income, expenses, debt, savings, down, dependents, employment, collateral }));
+      const {
+        income,
+        expenses,
+        debt,
+        savings,
+        down,
+        dependents,
+        employment,
+        collateral,
+      } = f;
+      localStorage.setItem(
+        SURV_FORM_KEY,
+        JSON.stringify({
+          income,
+          expenses,
+          debt,
+          savings,
+          down,
+          dependents,
+          employment,
+          collateral,
+        }),
+      );
     } catch {
       /* noop */
     }
@@ -171,7 +206,7 @@ export default function SurvivalScore() {
       fe.term = t("err_over_term")
         .replace("{max}", String(pkg.term))
         .replace("{bank}", bankOf(pkg.code).name);
-    const rate = pkg ? (pkg.std || pkg.rate) : NUM(sp.get("r")) || 10;
+    const rate = pkg ? pkg.std || pkg.rate : NUM(sp.get("r")) || 10;
     const emiVal = monthly(amount, rate, Math.max(1, term));
     if (amount > 0 && income > 0 && emiVal > income * 0.9) {
       fe.amount = t("err_emi_income");
@@ -247,9 +282,7 @@ export default function SurvivalScore() {
           </div>
         </div>
         {fromChat && (
-          <div className="surv-notice">
-            {t("surv_from_chat_notice")}
-          </div>
+          <div className="surv-notice">{t("surv_from_chat_notice")}</div>
         )}
         <div className="surv-grid">
           <form className="surv-form" onSubmit={(e) => e.preventDefault()}>
@@ -307,7 +340,9 @@ export default function SurvivalScore() {
                   onChange={(e) => set("method", e.target.value)}
                 >
                   <option value="ANNUITY">{t("ana_annuity")}</option>
-                  <option value="EQUAL_PRINCIPAL">{t("ana_equal_principal")}</option>
+                  <option value="EQUAL_PRINCIPAL">
+                    {t("ana_equal_principal")}
+                  </option>
                 </select>
               </label>
             </div>
@@ -365,15 +400,35 @@ export default function SurvivalScore() {
                 <div className="emi-flow-steps">
                   <div className="emi-step">
                     <span className="emi-step-n">1</span>
-                    <span>{t("emi_flow_1").replace("{amt}", fvShort(emiBreakdown.emi * Math.max(1, NUM(f.term)))).replace("{rate}", emiBreakdown.rate.toFixed(1)).replace("{term}", f.term)}</span>
+                    <span>
+                      {t("emi_flow_1")
+                        .replace(
+                          "{amt}",
+                          fvShort(emiBreakdown.emi * Math.max(1, NUM(f.term))),
+                        )
+                        .replace("{rate}", emiBreakdown.rate.toFixed(1))
+                        .replace("{term}", f.term)}
+                    </span>
                   </div>
                   <div className="emi-step">
                     <span className="emi-step-n">2</span>
-                    <span>{t("emi_flow_2").replace("{emi}", fmtMonthly(emiBreakdown.emi))}</span>
+                    <span>
+                      {t("emi_flow_2").replace(
+                        "{emi}",
+                        fmtMonthly(emiBreakdown.emi),
+                      )}
+                    </span>
                   </div>
                   <div className="emi-step">
                     <span className="emi-step-n">3</span>
-                    <span>{t("emi_flow_3").replace("{inc}", fmtMonthly(emiBreakdown.income)).replace("{pct}", Math.round(emiBreakdown.pct).toString())}</span>
+                    <span>
+                      {t("emi_flow_3")
+                        .replace("{inc}", fmtMonthly(emiBreakdown.income))
+                        .replace(
+                          "{pct}",
+                          Math.round(emiBreakdown.pct).toString(),
+                        )}
+                    </span>
                   </div>
                   <div className="emi-step emi-step-fail">
                     <span className="emi-step-n">✗</span>

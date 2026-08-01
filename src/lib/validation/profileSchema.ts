@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { hasStrongCollateral } from "@/lib/engine/collateral";
 
 export const MAX_LOAN_AMOUNT_VND = 50_000_000_000;
 export const MAX_MONTHLY_INCOME_VND = 1_000_000_000;
+export const MAX_COLLATERAL_VND = 1_000_000_000_000;
 
 export const LoanProfileSchema = z.object({
   muc_dich: z.enum(["mua_xe", "mua_nha", "kinh_doanh", "tin_chap"], {
@@ -21,6 +23,19 @@ export const LoanProfileSchema = z.object({
     .optional(),
   no_hien_tai_hang_thang: z.number().nonnegative().nullable().optional(),
   uu_tien: z.array(z.string()).optional().default([]),
+  tai_san_dam_bao: z
+    .object({
+      loai: z.enum(["bat_dong_san", "o_to", "so_tiet_kiem"], {
+        message:
+          "Collateral type must be one of: bat_dong_san, o_to, so_tiet_kiem",
+      }),
+      gia_tri: z
+        .number()
+        .positive("Collateral value must be greater than 0 VND")
+        .max(MAX_COLLATERAL_VND, "Collateral value implausibly large"),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type LoanProfileInput = z.infer<typeof LoanProfileSchema>;
@@ -37,6 +52,7 @@ export type RejectionCode =
   | "amount_too_large"
   | "income_too_large"
   | "invalid_term"
+  | "invalid_collateral"
   | "invalid_input";
 
 export interface ValidationResult {
@@ -64,6 +80,8 @@ function rejectionCodeFromIssues(
         return "income_too_large";
       case "thoi_han_thang":
         return "invalid_term";
+      case "tai_san_dam_bao":
+        return "invalid_collateral";
     }
   }
   return "invalid_input";
@@ -89,7 +107,16 @@ export function validateProfile(raw: unknown): {
     };
   }
 
-  const missingFields = REQUIRED_FOR_CALCULATION.filter(
+  // Strong collateral (low LTV) qualifies on asset coverage, so income is not
+  // required to price the loan; otherwise income stays mandatory.
+  const incomeRequired = !hasStrongCollateral(
+    parsed.data.so_tien,
+    parsed.data.tai_san_dam_bao ?? null,
+  );
+  const requiredFields = incomeRequired
+    ? REQUIRED_FOR_CALCULATION
+    : REQUIRED_FOR_CALCULATION.filter((f) => f !== "thu_nhap_hang_thang");
+  const missingFields = requiredFields.filter(
     (field) => parsed.data[field] === null || parsed.data[field] === undefined,
   );
 

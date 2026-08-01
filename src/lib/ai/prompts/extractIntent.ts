@@ -22,13 +22,23 @@ living expenses). If the customer says they want to buy a house or home, ALWAYS 
 The "so_tien" (loan amount) field MUST be a plain number in VND whenever the customer states an
 amount. Convert Vietnamese number words to digits — this is parsing what was said, not guessing:
 "nghìn" / "ngàn" = ×1,000, "triệu" = ×1,000,000 (e.g. "120 triệu" → 120000000),
-"tỷ" = ×1,000,000,000 (e.g. "2 tỷ" → 2000000000). Only leave "so_tien" null when no amount was stated.`;
+"tỷ" = ×1,000,000,000 (e.g. "2 tỷ" → 2000000000). Only leave "so_tien" null when no amount was stated.
+
+The "tai_san_dam_bao" (collateral) field MUST only be filled when the customer explicitly states an
+asset they can pledge to secure the loan (a secured loan / vay thế chấp). Set "loai" to the asset class:
+- "bat_dong_san" = house / land / property / real estate offered as collateral / sổ đỏ / sổ hồng
+- "o_to" = car / vehicle offered as collateral
+- "so_tiet_kiem" = savings book / deposit certificate / valuable papers
+and "gia_tri" to the asset's estimated value in VND (convert number words: "2 tỷ" → 2000000000).
+Never infer collateral the customer did not mention — leave "tai_san_dam_bao" null otherwise.
+A customer can state a loan PURPOSE (muc_dich) and separately offer collateral; fill both when both are stated.`;
 
 export const EXTRACT_INTENT_TOOL = {
   type: "function" as const,
   function: {
     name: "extract_loan_intent",
-    description: "Extract structured loan intent from the customer message. Leave unstated fields null — never guess.",
+    description:
+      "Extract structured loan intent from the customer message. Leave unstated fields null — never guess.",
     parameters: {
       type: "object",
       properties: {
@@ -48,7 +58,33 @@ export const EXTRACT_INTENT_TOOL = {
         no_hien_tai_hang_thang: { type: ["number", "null"] },
         uu_tien: {
           type: "array",
-          items: { type: "string", enum: ["lai_suat_thap", "giai_ngan_nhanh", "han_muc_cao", "thoi_han_dai"] },
+          items: {
+            type: "string",
+            enum: [
+              "lai_suat_thap",
+              "giai_ngan_nhanh",
+              "han_muc_cao",
+              "thoi_han_dai",
+            ],
+          },
+        },
+        tai_san_dam_bao: {
+          type: ["object", "null"],
+          description:
+            "Collateral the customer explicitly offers to secure the loan (vay thế chấp). Only fill when stated. loai=asset class (bat_dong_san=property/sổ đỏ, o_to=vehicle, so_tiet_kiem=savings book); gia_tri=estimated value in VND.",
+          properties: {
+            loai: {
+              type: "string",
+              enum: ["bat_dong_san", "o_to", "so_tiet_kiem"],
+              description:
+                "Asset class. bat_dong_san=house/land/property/sổ đỏ; o_to=car/vehicle; so_tiet_kiem=savings book/deposit certificate.",
+            },
+            gia_tri: {
+              type: "number",
+              description:
+                "Estimated asset value in VND as a plain number. Convert number words: '2 tỷ' → 2000000000.",
+            },
+          },
         },
       },
       // No fields are required: only fill what the customer actually stated.

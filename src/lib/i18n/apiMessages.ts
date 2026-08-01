@@ -81,6 +81,11 @@ const MESSAGES = {
     vi: "Thời hạn vay cần từ 1 đến 360 tháng.",
     zh: "贷款期限需在 1 到 360 个月之间。",
   },
+  reject_invalid_collateral: {
+    en: "The collateral details don't look right — please restate the asset and its value.",
+    vi: "Thông tin tài sản đảm bảo chưa hợp lệ — vui lòng nêu lại tài sản và giá trị.",
+    zh: "抵押物信息有误 — 请重新说明资产及其价值。",
+  },
   reject_invalid_input: {
     en: "I couldn't quite understand the loan details — please rephrase.",
     vi: "Tôi chưa hiểu rõ thông tin khoản vay — vui lòng diễn đạt lại.",

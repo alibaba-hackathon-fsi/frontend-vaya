@@ -90,3 +90,17 @@ export interface OfferPricing {
   /** First month's total payment (principal + interest), VND. */
   firstMonthPayment: number;
 }
+
+/**
+ * A single turn of the offer-discussion transcript. The client keeps this
+ * transcript and re-sends it on every request so the server can rehydrate its
+ * in-memory session after a restart/redeploy — the client is the durable source
+ * of truth (no database), the server map is only a cache.
+ */
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Cap on retained offer-discussion messages so long talks don't blow the context window. */
+export const OFFER_HISTORY_MAX_MESSAGES = 20;

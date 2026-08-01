@@ -261,6 +261,19 @@ export interface RiskResult {
    Eligibility / ranking types
    ================================================================ */
 
+/**
+ * Class of collateral a borrower pledges for a secured loan (vay thế chấp).
+ * The LTV cap applied to each class lives in engine/collateral.ts and is
+ * sourced from published Vietnamese bank policies.
+ */
+export type AssetClass = "bat_dong_san" | "o_to" | "so_tiet_kiem";
+
+/** Collateral offered to secure a loan: its class and estimated value in VND. */
+export interface Collateral {
+  loai: AssetClass;
+  gia_tri: number;
+}
+
 export interface LoanProfile {
   muc_dich: "mua_xe" | "mua_nha" | "kinh_doanh" | "tin_chap";
   so_tien: number;
@@ -268,6 +281,8 @@ export interface LoanProfile {
   thu_nhap_hang_thang?: number | null;
   no_hien_tai_hang_thang?: number | null;
   uu_tien?: string[];
+  /** Present only for a secured loan; absent means an unsecured request. */
+  tai_san_dam_bao?: Collateral | null;
 }
 
 export interface LoanPackageRecord {

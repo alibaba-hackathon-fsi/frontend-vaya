@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
 import { getLLMProvider, type PolicyChunkContext } from "@/lib/ai/provider";
-import type {
-  OfferDiscussionContext,
-  AffordabilityInputs,
-  AffordabilityVerdict,
-  OfferPricing,
+import {
+  OFFER_HISTORY_MAX_MESSAGES,
+  type OfferDiscussionContext,
+  type AffordabilityInputs,
+  type AffordabilityVerdict,
+  type OfferPricing,
+  type ConversationTurn,
 } from "@/lib/ai/offerContext";
 import { calcMonthlyPayment } from "@/lib/engine/calcMonthlyPayment";
 import { calcDTI, DTI_CAP } from "@/lib/engine/calcDTI";
@@ -13,6 +15,7 @@ import {
   extractAndClassify,
   mergeProfile,
   isPricingQuestion,
+  sanitizeExtraction,
 } from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
 import {
@@ -40,7 +43,7 @@ interface ChatSession {
   profile: Record<string, unknown>;
   turns: number;
   /** Multi-turn history for offer-discussion mode (separate from the wizard profile flow). */
-  offerHistory?: { role: "user" | "assistant"; content: string }[];
+  offerHistory?: ConversationTurn[];
   /** Last engine-computed affordability verdict; injected into later turns. */
   offerVerdict?: AffordabilityVerdict;
 }
@@ -49,8 +52,6 @@ const sessions = new Map<string, ChatSession>();
 
 const MAX_FOLLOWUP_TURNS = 3;
 const MANUAL_FORM_STAGE = "fallback_to_manual_form";
-/** Cap on retained offer-discussion messages so long talks don't blow the context window. */
-const OFFER_HISTORY_MAX_MESSAGES = 20;
 /** Sanity ceiling for borrower-supplied income/debt (VND) — above this is garbage or abuse. */
 const AFFORDABILITY_MAX_VALUE = 1e12;
 
@@ -65,6 +66,7 @@ const REJECTION_MESSAGE_KEY: Record<RejectionCode, ApiMessageKey> = {
   amount_too_large: "reject_amount_too_large",
   income_too_large: "reject_income_too_large",
   invalid_term: "reject_invalid_term",
+  invalid_collateral: "reject_invalid_collateral",
   invalid_input: "reject_invalid_input",
 };
 
@@ -157,6 +159,19 @@ function isValidAffordabilityInputs(o: unknown): o is AffordabilityInputs {
     c.debt >= 0 &&
     c.debt <= AFFORDABILITY_MAX_VALUE
   );
+}
+
+/** Minimal shape check for client-supplied conversation history (validation first). */
+function isValidHistory(h: unknown): h is ConversationTurn[] {
+  if (!Array.isArray(h)) return false;
+  return h.every((m) => {
+    if (typeof m !== "object" || m === null) return false;
+    const turn = m as Record<string, unknown>;
+    return (
+      (turn.role === "user" || turn.role === "assistant") &&
+      typeof turn.content === "string"
+    );
+  });
 }
 
 /**
@@ -293,6 +308,10 @@ export async function POST(request: NextRequest) {
     offer?: OfferDiscussionContext;
     /** Borrower income/debt for the affordability check (offer mode only). */
     affordability?: AffordabilityInputs;
+    /** Client-held wizard profile, re-sent each request to rehydrate after a restart. */
+    profile?: Record<string, unknown>;
+    /** Client-held offer-discussion transcript, re-sent each request for the same reason. */
+    history?: ConversationTurn[];
   };
   try {
     body = await request.json();
@@ -365,7 +384,19 @@ export async function POST(request: NextRequest) {
   }
 
   const llm = getLLMProvider();
-  const session = sessions.get(sessionId) ?? { profile: {}, turns: 0 };
+  // The in-memory session is a cache; the client is the durable source of truth
+  // (it survives server restarts/redeploys — no database). Rehydrate from the
+  // client's re-sent state only on a cache miss; within a live session the
+  // server stays authoritative and ignores the re-sent state. The profile is
+  // untrusted input, so it passes the same sanitizer as the LLM extraction.
+  const existing = sessions.get(sessionId);
+  const session: ChatSession = existing ?? {
+    profile: sanitizeExtraction(body.profile ?? {}),
+    turns: 0,
+    offerHistory: isValidHistory(body.history)
+      ? body.history.slice(-OFFER_HISTORY_MAX_MESSAGES)
+      : undefined,
+  };
 
   // --- Offer-discussion mode ---
   // Client sent a structured offer context: skip intent extraction, profile
@@ -593,7 +624,9 @@ export async function POST(request: NextRequest) {
   const scoreLog = runCalculation({
     ...profile,
     thoi_han_thang: profile.thoi_han_thang!,
-    thu_nhap_hang_thang: profile.thu_nhap_hang_thang!,
+    // Income may be null when strong collateral qualifies the loan on asset
+    // coverage; the pipeline handles the absent-income case deterministically.
+    thu_nhap_hang_thang: profile.thu_nhap_hang_thang ?? null,
   });
 
   const encoder = new TextEncoder();

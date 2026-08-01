@@ -41,7 +41,9 @@ function read(): MarketPost[] {
   try {
     const raw = localStorage.getItem(KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) && parsed.length ? (parsed as MarketPost[]) : EMPTY;
+    return Array.isArray(parsed) && parsed.length
+      ? (parsed as MarketPost[])
+      : EMPTY;
   } catch {
     return EMPTY;
   }
@@ -117,7 +119,9 @@ export function addPost(p: NewPost): string {
     termMonths: p.termMonths,
     incomeBand: p.incomeBand,
     collateral: p.collateral,
-    verified: p.collateral ? ["mk_v_income", "mk_v_collateral"] : ["mk_v_income"],
+    verified: p.collateral
+      ? ["mk_v_income", "mk_v_collateral"]
+      : ["mk_v_income"],
     note: p.note?.trim() || undefined,
     hoursAgo: 0,
     offers: [],
@@ -155,7 +159,11 @@ export function addBid(postId: string, n: number) {
     hoursAgo: 0,
     expiresInH: 48,
   };
-  commit(posts.map((p) => (p.id === postId ? { ...p, offers: [...p.offers, offer] } : p)));
+  commit(
+    posts.map((p) =>
+      p.id === postId ? { ...p, offers: [...p.offers, offer] } : p,
+    ),
+  );
 }
 
 export function clearPosts() {

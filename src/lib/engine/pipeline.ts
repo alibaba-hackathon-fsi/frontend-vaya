@@ -4,6 +4,7 @@ import { calcMonthlyPayment } from "./calcMonthlyPayment";
 import { calcDTI } from "./calcDTI";
 import { scoreRisk } from "./scoreRisk";
 import { rankMCDA } from "./rankMCDA";
+import { hasStrongCollateral, ltvRiskLevel, requestLtv } from "./collateral";
 import { LOAN_PACKAGES } from "@/data/loanPackages";
 import { ELIGIBILITY_RULES } from "@/data/eligibilityRules";
 
@@ -19,6 +20,10 @@ export interface RankedOffer {
     giai_ngan_nhanh: number;
     do_an_toan: number;
   };
+  /** True for a loan secured by collateral (qualified on asset coverage). */
+  assetBacked?: boolean;
+  /** Loan-to-value ratio of the request (present only when asset-backed). */
+  ltv?: number;
 }
 
 export interface RejectedOffer {
@@ -43,6 +48,15 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
     ELIGIBILITY_RULES,
   );
 
+  // Secured-loan relief: strong collateral (low LTV) lets a borrower qualify
+  // on asset coverage even when income is low or absent, in which case risk is
+  // scored from LTV rather than DTI. With no collateral these flags are inert,
+  // so the unsecured path is unchanged.
+  const collateral = profile.tai_san_dam_bao ?? null;
+  const secured = collateral != null;
+  const relief = hasStrongCollateral(profile.so_tien, collateral);
+  const ltv = requestLtv(profile.so_tien, collateral);
+
   const candidates = eligible.map((pkg) => {
     const payment = calcMonthlyPayment(
       profile.so_tien,
@@ -51,11 +65,13 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
     );
     const { dti, withinLimit } = calcDTI(
       payment.tongThangDau,
-      profile.thu_nhap_hang_thang!,
+      profile.thu_nhap_hang_thang ?? 0,
       profile.no_hien_tai_hang_thang ?? 0,
     );
-    const risk = scoreRisk(dti, profile.thoi_han_thang!);
-    return { pkg, payment, dti, withinLimit, risk };
+    const risk = relief
+      ? ltvRiskLevel(ltv)
+      : scoreRisk(dti, profile.thoi_han_thang!);
+    return { pkg, payment, dti, withinLimit: withinLimit || relief, risk };
   });
 
   const dtiRejected = candidates.filter((c) => !c.withinLimit);
@@ -78,9 +94,12 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
       bank: c.pkg.bank,
       score: r.score,
       monthlyPayment: c.payment.tongThangDau,
-      dti: c.dti,
+      dti: Number.isFinite(c.dti) ? c.dti : 0,
       riskLevel: c.risk.level,
       breakdown: r.breakdown,
+      ...(secured
+        ? { assetBacked: true, ltv: Math.round(ltv * 1000) / 1000 }
+        : {}),
     };
   });
 
@@ -99,7 +118,9 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
         .map((r) => ({ packageId: r.packageId, reason: r.reason })),
       ...dtiRejected.map((c) => ({
         packageId: c.pkg.id,
-        reason: `The monthly payment would be ${Math.round(c.dti * 100)}% of your income, above the safe limit of 60%`,
+        reason: Number.isFinite(c.dti)
+          ? `The monthly payment would be ${Math.round(c.dti * 100)}% of your income, above the safe limit of 60%`
+          : `The monthly payment cannot be covered by the stated income`,
       })),
     ],
   };
