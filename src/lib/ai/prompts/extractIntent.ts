@@ -13,7 +13,16 @@ The "muc_dich" (loan purpose) field MUST be one of these exact values:
 - "kinh_doanh" = business / working capital / trading / investment for business
 - "tin_chap" = unsecured personal loan / consumption / daily expenses / no collateral
 
-Map the customer's stated purpose to the correct value above. If the customer says they want to buy a house or home, ALWAYS use "mua_nha" — never "mua_xe".`;
+Always pick the closest match for the customer's REAL purpose — never leave "muc_dich" null
+just because their wording differs from the labels above. Use "tin_chap" as the catch-all for
+any personal or consumption need that is not a vehicle, home, or business loan (for example:
+education / study, medical / health, travel, wedding, home repair, debt refinancing, or general
+living expenses). If the customer says they want to buy a house or home, ALWAYS use "mua_nha" — never "mua_xe".
+
+The "so_tien" (loan amount) field MUST be a plain number in VND whenever the customer states an
+amount. Convert Vietnamese number words to digits — this is parsing what was said, not guessing:
+"nghìn" / "ngàn" = ×1,000, "triệu" = ×1,000,000 (e.g. "120 triệu" → 120000000),
+"tỷ" = ×1,000,000,000 (e.g. "2 tỷ" → 2000000000). Only leave "so_tien" null when no amount was stated.`;
 
 export const EXTRACT_INTENT_TOOL = {
   type: "function" as const,
@@ -27,9 +36,13 @@ export const EXTRACT_INTENT_TOOL = {
           type: "string",
           enum: ["mua_xe", "mua_nha", "kinh_doanh", "tin_chap"],
           description:
-            "Loan purpose. mua_xe=buy a car/vehicle; mua_nha=buy a house/home/apartment/real estate; kinh_doanh=business/working capital; tin_chap=unsecured personal loan/consumption",
+            "Loan purpose. mua_xe=buy a car/vehicle; mua_nha=buy a house/home/apartment/real estate; kinh_doanh=business/working capital; tin_chap=unsecured personal loan/consumption. Pick the closest match; tin_chap is the catch-all for personal needs like education, medical, travel, or debt refinancing.",
         },
-        so_tien: { type: "number" },
+        so_tien: {
+          type: "number",
+          description:
+            "Loan amount in VND as a plain number. Convert number words: '120 triệu' → 120000000, '2 tỷ' → 2000000000.",
+        },
         thoi_han_thang: { type: ["number", "null"] },
         thu_nhap_hang_thang: { type: ["number", "null"] },
         no_hien_tai_hang_thang: { type: ["number", "null"] },
