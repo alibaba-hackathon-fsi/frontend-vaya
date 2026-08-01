@@ -56,6 +56,36 @@ const MESSAGES = {
     vi: "Tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến khoản vay. Vui lòng diễn đạt lại yêu cầu của bạn.",
     zh: "我只能帮助回答与贷款相关的问题。请重新表述您的请求。",
   },
+  reject_invalid_purpose: {
+    en: "This loan purpose isn't one we can match yet.",
+    vi: "Mục đích vay này hiện chưa được hỗ trợ.",
+    zh: "暂不支持此贷款用途。",
+  },
+  reject_invalid_amount: {
+    en: "Please provide the loan amount as a specific figure.",
+    vi: "Vui lòng cho biết số tiền vay cụ thể.",
+    zh: "请提供具体的贷款金额。",
+  },
+  reject_amount_too_large: {
+    en: "The loan amount is larger than we can support.",
+    vi: "Số tiền vay lớn hơn mức chúng tôi có thể hỗ trợ.",
+    zh: "贷款金额超出我们可支持的范围。",
+  },
+  reject_income_too_large: {
+    en: "The income figure looks implausibly high.",
+    vi: "Mức thu nhập có vẻ cao bất thường.",
+    zh: "收入数字似乎高得不切实际。",
+  },
+  reject_invalid_term: {
+    en: "The loan term needs to be between 1 and 360 months.",
+    vi: "Thời hạn vay cần từ 1 đến 360 tháng.",
+    zh: "贷款期限需在 1 到 360 个月之间。",
+  },
+  reject_invalid_input: {
+    en: "I couldn't quite understand the loan details — please rephrase.",
+    vi: "Tôi chưa hiểu rõ thông tin khoản vay — vui lòng diễn đạt lại.",
+    zh: "我无法完全理解贷款信息 — 请重新表述。",
+  },
 } as const;
 
 export type ApiMessageKey = keyof typeof MESSAGES;

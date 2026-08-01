@@ -25,16 +25,49 @@ export const LoanProfileSchema = z.object({
 
 export type LoanProfileInput = z.infer<typeof LoanProfileSchema>;
 
+/**
+ * Stable, machine-readable reason a profile was rejected at the trust boundary.
+ * The validation layer reports WHY as a code; turning it into localized,
+ * human-readable text is the API layer's job — so raw schema messages and enum
+ * values never reach the borrower.
+ */
+export type RejectionCode =
+  | "invalid_purpose"
+  | "invalid_amount"
+  | "amount_too_large"
+  | "income_too_large"
+  | "invalid_term"
+  | "invalid_input";
+
 export interface ValidationResult {
   valid: boolean;
   missingFields: string[];
-  rejectedReason?: string;
+  rejectedCode?: RejectionCode;
 }
 
 const REQUIRED_FOR_CALCULATION = [
   "thoi_han_thang",
   "thu_nhap_hang_thang",
 ] as const;
+
+/** Collapse the schema's issues into the single primary rejection code. */
+function rejectionCodeFromIssues(
+  issues: readonly { path: readonly PropertyKey[]; code: string }[],
+): RejectionCode {
+  for (const issue of issues) {
+    switch (issue.path[0]) {
+      case "muc_dich":
+        return "invalid_purpose";
+      case "so_tien":
+        return issue.code === "too_big" ? "amount_too_large" : "invalid_amount";
+      case "thu_nhap_hang_thang":
+        return "income_too_large";
+      case "thoi_han_thang":
+        return "invalid_term";
+    }
+  }
+  return "invalid_input";
+}
 
 /**
  * Trust boundary between LLM/user output and the Decision Engine.
@@ -46,20 +79,12 @@ export function validateProfile(raw: unknown): {
 } {
   const parsed = LoanProfileSchema.safeParse(raw);
   if (!parsed.success) {
-    const formattedError = parsed.error.issues
-      .map((i) => {
-        if (i.code === "invalid_value")
-          return "Invalid profile preference selected.";
-        return i.message;
-      })
-      .join("; ");
-
     return {
       profile: null,
       result: {
         valid: false,
         missingFields: [],
-        rejectedReason: formattedError,
+        rejectedCode: rejectionCodeFromIssues(parsed.error.issues),
       },
     };
   }

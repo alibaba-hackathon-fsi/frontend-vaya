@@ -10,12 +10,12 @@ import { calcDTI, DTI_CAP } from "@/lib/engine/calcDTI";
 import { scoreRisk } from "@/lib/engine/scoreRisk";
 import { extractAndClassify, mergeProfile } from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
-import { validateProfile } from "@/lib/validation/profileSchema";
+import { validateProfile, type RejectionCode } from "@/lib/validation/profileSchema";
 import { runCalculation } from "@/lib/engine/pipeline";
 import { getAllChunks } from "@/lib/ai/rag/store";
 import { retrieveTopK } from "@/lib/ai/rag/retrieve";
 import { embedText } from "@/lib/ai/rag/embed";
-import { apiT, parseLang, type ApiLang } from "@/lib/i18n/apiMessages";
+import { apiT, parseLang, type ApiLang, type ApiMessageKey } from "@/lib/i18n/apiMessages";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { detectInjection, sanitizeMessage } from "@/lib/security/inputGuard";
 
@@ -40,6 +40,20 @@ const MANUAL_FORM_STAGE = "fallback_to_manual_form";
 const OFFER_HISTORY_MAX_MESSAGES = 20;
 /** Sanity ceiling for borrower-supplied income/debt (VND) — above this is garbage or abuse. */
 const AFFORDABILITY_MAX_VALUE = 1e12;
+
+/**
+ * Translate a validation rejection code (domain fact from the validation layer)
+ * into its localized message key — the API layer owns turning codes into text
+ * the borrower sees, so no raw schema messages or enum values ever leak.
+ */
+const REJECTION_MESSAGE_KEY: Record<RejectionCode, ApiMessageKey> = {
+  invalid_purpose: "reject_invalid_purpose",
+  invalid_amount: "reject_invalid_amount",
+  amount_too_large: "reject_amount_too_large",
+  income_too_large: "reject_income_too_large",
+  invalid_term: "reject_invalid_term",
+  invalid_input: "reject_invalid_input",
+};
 
 /* ================================================================
    Anti-spam rate limiting (per client IP)
@@ -437,15 +451,18 @@ export async function POST(request: NextRequest) {
   const { profile, result } = validateProfile(session.profile);
 
   if (!profile) {
-    const reasonSuffix = result.rejectedReason
-      ? ` ${apiT("reason_prefix", lang)}: ${result.rejectedReason}.`
+    const reasonText = result.rejectedCode
+      ? apiT(REJECTION_MESSAGE_KEY[result.rejectedCode], lang)
+      : "";
+    const reasonSuffix = reasonText
+      ? ` ${apiT("reason_prefix", lang)}: ${reasonText}`
       : "";
     return new Response(
       JSON.stringify({
         reply: `${apiT("out_of_scope", lang)}${reasonSuffix}`,
         profile: session.profile,
         missingFields: [],
-        rejectedReason: result.rejectedReason,
+        rejectedReason: reasonText,
         stage: MANUAL_FORM_STAGE,
       }),
       { headers: { "Content-Type": "application/json" } },
