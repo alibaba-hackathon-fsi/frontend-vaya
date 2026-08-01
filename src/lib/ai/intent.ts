@@ -94,6 +94,27 @@ export function classifyIntent(
 }
 
 /* ================================================================
+   Pricing-question detection (offer-discussion mode)
+   ================================================================ */
+
+// Signals the borrower is asking what the loan costs per period. Covers
+// diacritic and common no-diacritic Vietnamese spellings plus EN/ZH, so the
+// server knows to compute engine pricing and let the LLM narrate it.
+const PRICING_KEYWORDS = [
+  "mỗi tháng", "moi thang", "hàng tháng", "hang thang",
+  "bao nhiêu", "bao nhieu", "trả bao nhiêu", "tra bao nhieu",
+  "trả góp", "tra gop", "góp mỗi tháng",
+  "monthly", "per month", "a month", "how much", "payment", "installment",
+  "每月", "月供", "多少钱",
+];
+
+/** True when the message asks what the loan costs per month / per period. */
+export function isPricingQuestion(message: string): boolean {
+  const text = message.toLowerCase();
+  return PRICING_KEYWORDS.some((kw) => text.includes(kw));
+}
+
+/* ================================================================
    Profile merge — only overwrite with non-null stated values
    ================================================================ */
 

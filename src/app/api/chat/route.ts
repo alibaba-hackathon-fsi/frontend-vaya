@@ -4,11 +4,12 @@ import type {
   OfferDiscussionContext,
   AffordabilityInputs,
   AffordabilityVerdict,
+  OfferPricing,
 } from "@/lib/ai/offerContext";
 import { calcMonthlyPayment } from "@/lib/engine/calcMonthlyPayment";
 import { calcDTI, DTI_CAP } from "@/lib/engine/calcDTI";
 import { scoreRisk } from "@/lib/engine/scoreRisk";
-import { extractAndClassify, mergeProfile } from "@/lib/ai/intent";
+import { extractAndClassify, mergeProfile, isPricingQuestion } from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
 import { validateProfile, type RejectionCode } from "@/lib/validation/profileSchema";
 import { runCalculation } from "@/lib/engine/pipeline";
@@ -147,16 +148,29 @@ function isValidAffordabilityInputs(o: unknown): o is AffordabilityInputs {
 }
 
 /**
- * Compute the affordability verdict for the deal actually on the table:
- * min(request, offer) amount and term at the offered rate. Pure orchestration
- * of Decision Engine functions — deterministic, no LLM involved.
+ * The deal actually on the table: min(request, offer) amount and term at the
+ * offered rate. Shared by the affordability verdict and the pricing-only path
+ * so the "what deal do we price" rule lives in exactly one place.
+ */
+function pricedDealTerms(offer: OfferDiscussionContext): {
+  amount: number;
+  termMonths: number;
+} {
+  return {
+    amount: Math.min(offer.request.amount, offer.maxAmount),
+    termMonths: Math.min(offer.request.termMonths, offer.termMonths),
+  };
+}
+
+/**
+ * Compute the affordability verdict for the deal actually on the table.
+ * Pure orchestration of Decision Engine functions — deterministic, no LLM.
  */
 function computeOfferVerdict(
   offer: OfferDiscussionContext,
   inputs: AffordabilityInputs,
 ): AffordabilityVerdict {
-  const amount = Math.min(offer.request.amount, offer.maxAmount);
-  const termMonths = Math.min(offer.request.termMonths, offer.termMonths);
+  const { amount, termMonths } = pricedDealTerms(offer);
   const payment = calcMonthlyPayment(amount, offer.offeredRate, termMonths);
   const { dti, withinLimit } = calcDTI(
     payment.tongThangDau,
@@ -175,6 +189,24 @@ function computeOfferVerdict(
     riskLevel: level,
     income: inputs.income,
     debt: inputs.debt,
+  };
+}
+
+/**
+ * Compute pricing-only facts for the deal (no income/debt needed). Lets the
+ * advisor quote a concrete monthly payment for pricing questions while the
+ * numbers stay the Decision Engine's — the LLM only narrates them.
+ */
+function computeOfferPricing(offer: OfferDiscussionContext): OfferPricing {
+  const { amount, termMonths } = pricedDealTerms(offer);
+  const payment = calcMonthlyPayment(amount, offer.offeredRate, termMonths);
+  return {
+    amount,
+    termMonths,
+    rate: offer.offeredRate,
+    principalMonthly: payment.goc,
+    firstMonthInterest: payment.laiThangDau,
+    firstMonthPayment: payment.tongThangDau,
   };
 }
 
@@ -329,6 +361,18 @@ export async function POST(request: NextRequest) {
     }
     const verdict = session.offerVerdict;
 
+    // Pricing question with no full verdict yet: compute engine pricing so the
+    // advisor can quote a concrete monthly payment (numbers stay the engine's).
+    // When a verdict exists it already carries the payment, so pricing is moot.
+    let pricing: OfferPricing | undefined;
+    if (!verdict && isPricingQuestion(sanitized)) {
+      try {
+        pricing = computeOfferPricing(offer);
+      } catch {
+        pricing = undefined;
+      }
+    }
+
     let policyChunks: PolicyChunkContext[] = [];
     try {
       const queryEmbedding = await embedText(sanitized);
@@ -356,6 +400,7 @@ export async function POST(request: NextRequest) {
             history,
             lang,
             verdict,
+            pricing,
           );
           for await (const delta of discussionStream) {
             assistantText += delta;

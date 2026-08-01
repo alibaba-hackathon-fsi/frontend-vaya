@@ -71,3 +71,22 @@ export interface AffordabilityVerdict {
   income: number;
   debt: number;
 }
+
+/**
+ * Engine-computed pricing for the deal on the table, needing no income/debt
+ * (unlike the full AffordabilityVerdict, which also derives DTI and risk).
+ * Lets the advisor quote a concrete monthly payment for pricing questions while
+ * the numbers stay the Decision Engine's — the LLM only narrates them.
+ */
+export interface OfferPricing {
+  /** The priced deal: min(request, offer) amount and term at the offered rate. */
+  amount: number;
+  termMonths: number;
+  rate: number;
+  /** Monthly principal (declining balance), VND. */
+  principalMonthly: number;
+  /** First month's interest, VND. */
+  firstMonthInterest: number;
+  /** First month's total payment (principal + interest), VND. */
+  firstMonthPayment: number;
+}
