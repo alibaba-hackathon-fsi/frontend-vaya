@@ -9,14 +9,26 @@ import type {
 import { calcMonthlyPayment } from "@/lib/engine/calcMonthlyPayment";
 import { calcDTI, DTI_CAP } from "@/lib/engine/calcDTI";
 import { scoreRisk } from "@/lib/engine/scoreRisk";
-import { extractAndClassify, mergeProfile, isPricingQuestion } from "@/lib/ai/intent";
+import {
+  extractAndClassify,
+  mergeProfile,
+  isPricingQuestion,
+} from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
-import { validateProfile, type RejectionCode } from "@/lib/validation/profileSchema";
+import {
+  validateProfile,
+  type RejectionCode,
+} from "@/lib/validation/profileSchema";
 import { runCalculation } from "@/lib/engine/pipeline";
 import { getAllChunks } from "@/lib/ai/rag/store";
 import { retrieveTopK } from "@/lib/ai/rag/retrieve";
 import { embedText } from "@/lib/ai/rag/embed";
-import { apiT, parseLang, type ApiLang, type ApiMessageKey } from "@/lib/i18n/apiMessages";
+import {
+  apiT,
+  parseLang,
+  type ApiLang,
+  type ApiMessageKey,
+} from "@/lib/i18n/apiMessages";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { detectInjection, sanitizeMessage } from "@/lib/security/inputGuard";
 
@@ -214,41 +226,57 @@ function computeOfferPricing(offer: OfferDiscussionContext): OfferPricing {
    Policy query helper (inline RAG)
    ================================================================ */
 
+/** Retrieve the top-K policy chunks for a question and derive their citations. */
+async function retrievePolicyContext(question: string): Promise<{
+  chunks: PolicyChunkContext[];
+  citations: { bank: string; section: string }[];
+}> {
+  const queryEmbedding = await embedText(question);
+  const top = retrieveTopK(queryEmbedding, getAllChunks(), 5);
+  const chunks = top.map((t) => ({
+    text: t.chunk.text,
+    bank: t.chunk.bank,
+    section: t.chunk.section,
+  }));
+  const citations = Array.from(
+    new Set(top.map((t) => `${t.chunk.bank}|${t.chunk.section}`)),
+  ).map((str) => {
+    const [bank, section] = str.split("|");
+    return { bank, section };
+  });
+  return { chunks, citations };
+}
+
 async function queryPolicyInline(question: string, lang: ApiLang) {
   try {
-    const queryEmbedding = await embedText(question);
-    const chunks = getAllChunks();
-    const top = retrieveTopK(queryEmbedding, chunks, 5);
-
-    if (top.length === 0) {
+    const { chunks, citations } = await retrievePolicyContext(question);
+    if (chunks.length === 0) {
       return {
         answer: "not found in the documents",
         citations: [],
         error: false,
       };
     }
-
-    const llm = getLLMProvider();
-    const answer = await llm.answerPolicyQuery(
-      question,
-      top.map((t) => ({
-        text: t.chunk.text,
-        bank: t.chunk.bank,
-        section: t.chunk.section,
-      })),
-      lang,
-    );
-
-    const citations = Array.from(
-      new Set(top.map((t) => `${t.chunk.bank}|${t.chunk.section}`)),
-    ).map((str) => {
-      const [bank, section] = str.split("|");
-      return { bank, section };
-    });
-
+    const answer = await getLLMProvider().answerPolicyQuery(question, chunks, lang);
     return { answer, citations, error: false };
   } catch {
     return { answer: "not found in the documents", citations: [], error: true };
+  }
+}
+
+/**
+ * General advisory fallback: answer a real-world question the wizard cannot
+ * price, grounded in the banks' policy documents. The LLM only advises — no
+ * Decision Engine runs here. Any failure degrades to { error: true } so the
+ * caller can fall back to a friendly rejection.
+ */
+async function queryAdvisoryInline(question: string, lang: ApiLang) {
+  try {
+    const { chunks, citations } = await retrievePolicyContext(question);
+    const answer = await getLLMProvider().adviseFallback(question, chunks, lang);
+    return { answer, citations, error: false };
+  } catch {
+    return { answer: "", citations: [], error: true };
   }
 }
 
@@ -496,6 +524,22 @@ export async function POST(request: NextRequest) {
   const { profile, result } = validateProfile(session.profile);
 
   if (!profile) {
+    // The request isn't a priceable loan. Rather than turn the borrower away,
+    // answer as a professional advisor grounded in the banks' policy documents.
+    // No Decision Engine runs here (nothing to price) — the LLM only advises.
+    const advisory = await queryAdvisoryInline(sanitized, lang);
+    if (!advisory.error && advisory.answer) {
+      return new Response(
+        JSON.stringify({
+          reply: advisory.answer,
+          stage: "advisory_answer",
+          citations: advisory.citations,
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Advisory unavailable — graceful fallback to the friendly localized rejection.
     const reasonText = result.rejectedCode
       ? apiT(REJECTION_MESSAGE_KEY[result.rejectedCode], lang)
       : "";

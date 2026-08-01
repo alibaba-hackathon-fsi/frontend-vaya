@@ -4,12 +4,7 @@ import type {
   AffordabilityVerdict,
   OfferPricing,
 } from "@/lib/ai/offerContext";
-
-const LANG_INSTRUCTION: Record<ApiLang, string> = {
-  en: "Answer in English.",
-  vi: "Answer in Vietnamese (tiếng Việt).",
-  zh: "Answer in Chinese (中文).",
-};
+import { LANG_INSTRUCTION } from "./lang";
 
 /** Render the structured offer facts as a readable block for the model. */
 function offerFacts(offer: OfferDiscussionContext): string {
@@ -94,10 +89,10 @@ export function discussOfferPrompt(
   } else if (pricing) {
     numberRule =
       "- Answer monthly-payment / pricing questions ONLY from the PRICING block: quote the first month's total payment and explain the principal-vs-interest split. Never recompute, alter, or derive new numbers yourself.\n" +
-      "- Do NOT calculate DTI or full affordability. If asked, tell the borrower to tap the \"Can I afford this?\" button for an instant engine-computed verdict.";
+      '- Do NOT calculate DTI or full affordability. If asked, tell the borrower to tap the "Can I afford this?" button for an instant engine-computed verdict.';
   } else {
     numberRule =
-      "- Do NOT calculate affordability, monthly payments, or DTI. If asked, tell the borrower to tap the \"Can I afford this?\" button for an instant engine-computed verdict, or run the full advisor / survival score for a deeper figure.";
+      '- Do NOT calculate affordability, monthly payments, or DTI. If asked, tell the borrower to tap the "Can I afford this?" button for an instant engine-computed verdict, or run the full advisor / survival score for a deeper figure.';
   }
   return `You are a loan advisor discussing ONE specific marketplace offer with a borrower.
 

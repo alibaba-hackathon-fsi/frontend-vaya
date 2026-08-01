@@ -1,10 +1,5 @@
 import type { ApiLang } from "@/lib/i18n/apiMessages";
-
-const LANG_INSTRUCTION: Record<ApiLang, string> = {
-  en: "Answer in English.",
-  vi: "Answer in Vietnamese (tiếng Việt).",
-  zh: "Answer in Chinese (中文).",
-};
+import { LANG_INSTRUCTION } from "./lang";
 
 /** Build the policy-answer system prompt with the target output language. */
 export function policyAnswerPrompt(lang: ApiLang = "vi"): string {

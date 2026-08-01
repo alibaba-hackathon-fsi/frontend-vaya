@@ -6,6 +6,7 @@ import {
 import { explainResultPrompt } from "./prompts/explainResult";
 import { policyAnswerPrompt } from "./prompts/policyAnswer";
 import { discussOfferPrompt } from "./prompts/discussOffer";
+import { advisoryFallbackPrompt } from "./prompts/advisoryFallback";
 import type {
   OfferDiscussionContext,
   AffordabilityVerdict,
@@ -54,6 +55,12 @@ export interface LLMProvider {
     verdict?: AffordabilityVerdict,
     pricing?: OfferPricing,
   ): Promise<AsyncIterable<string>>;
+
+  adviseFallback(
+    question: string,
+    contextChunks: PolicyChunkContext[],
+    lang?: ApiLang,
+  ): Promise<string>;
 }
 
 /* ================================================================
@@ -91,6 +98,13 @@ function getModel(): string {
     return process.env.DEEPSEEK_MODEL ?? "deepseek-chat";
   }
   return process.env.DASHSCOPE_MODEL ?? "qwen-plus";
+}
+
+/** Format retrieved policy chunks as the [bank — section] text block fed to the model. */
+function formatPolicyExcerpts(chunks: PolicyChunkContext[]): string {
+  return chunks
+    .map((c) => `[${c.bank} — ${c.section}]\n${c.text}`)
+    .join("\n\n");
 }
 
 /* ================================================================
@@ -153,9 +167,7 @@ class OpenAICompatProvider implements LLMProvider {
     contextChunks: PolicyChunkContext[],
     lang: ApiLang = "vi",
   ): Promise<string> {
-    const context = contextChunks
-      .map((c) => `[${c.bank} — ${c.section}]\n${c.text}`)
-      .join("\n\n");
+    const context = formatPolicyExcerpts(contextChunks);
 
     const response = await getClient().chat.completions.create({
       model: getModel(),
@@ -185,16 +197,20 @@ class OpenAICompatProvider implements LLMProvider {
   ): Promise<AsyncIterable<string>> {
     // Format the bank's policy excerpts the same way answerPolicyQuery does;
     // empty string when no relevant policy documents were retrieved.
-    const policyExcerpts = policyChunks
-      .map((c) => `[${c.bank} — ${c.section}]\n${c.text}`)
-      .join("\n\n");
+    const policyExcerpts = formatPolicyExcerpts(policyChunks);
 
     const stream = await getClient().chat.completions.create({
       model: getModel(),
       messages: [
         {
           role: "system",
-          content: discussOfferPrompt(offer, policyExcerpts, lang, verdict, pricing),
+          content: discussOfferPrompt(
+            offer,
+            policyExcerpts,
+            lang,
+            verdict,
+            pricing,
+          ),
         },
         ...history,
         { role: "user", content: message },
@@ -210,6 +226,28 @@ class OpenAICompatProvider implements LLMProvider {
       }
     }
     return iterate();
+  }
+
+  async adviseFallback(
+    question: string,
+    contextChunks: PolicyChunkContext[],
+    lang: ApiLang = "vi",
+  ): Promise<string> {
+    const context = formatPolicyExcerpts(contextChunks);
+
+    const response = await getClient().chat.completions.create({
+      model: getModel(),
+      messages: [
+        { role: "system", content: advisoryFallbackPrompt(lang) },
+        {
+          role: "user",
+          content: `Excerpts:\n${context}\n\nQuestion: ${question}`,
+        },
+      ],
+      temperature: 0.3,
+    });
+
+    return response.choices[0]?.message?.content ?? "";
   }
 }
 
