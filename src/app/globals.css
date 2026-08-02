@@ -5267,3 +5267,177 @@ select[data-open] {
 .chart-tip.pinned {
   z-index: 110;
 }
+
+/* =========================================================================
+   ROUND J — footer curtain reveal · scroll-driven rate flow band
+   ========================================================================= */
+
+/* ---- footer reveal -----------------------------------------------------
+   The page column is opaque and painted over a footer pinned to the bottom of
+   the viewport, so the last screenful of scrolling wipes the page away and
+   uncovers it. FooterReveal.tsx adds `.on` only when the footer both fits on
+   screen and there is enough page to scroll; without it everything below is
+   inert and the footer is an ordinary block. */
+.page-above {
+  position: relative;
+  z-index: 2;
+  background: var(--bg);
+}
+.foot-slot.on {
+  position: relative;
+  z-index: 1;
+}
+.foot-slot.on .foot-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.foot-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--green-text);
+}
+.foot-top:hover {
+  color: var(--green-cta);
+}
+.foot-top span {
+  transition: transform 0.2s var(--ease);
+}
+.foot-top:hover span {
+  transform: translateY(-3px);
+}
+
+.foot-mark {
+  margin-top: 34px;
+  background: var(--ink);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  /* shorter than the glyphs, which is what crops them */
+  height: clamp(58px, 9.5vw, 124px);
+}
+.foot-mark span {
+  font-family: var(--font-disp), sans-serif;
+  font-weight: 800;
+  font-size: clamp(88px, 17vw, 232px);
+  line-height: 0.74;
+  letter-spacing: -0.03em;
+  color: var(--green);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ---- scroll-driven arrow band ------------------------------------------
+   Columns of chevrons drift in alternating directions as the page scrolls.
+   Each column tiles one chevron as a repeating background and RateFlow.tsx
+   translates it, wrapping at a single tile so the loop has no seam. */
+.flow-sec {
+  padding-top: 0;
+}
+.flow-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+}
+.flow-field {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  /* fade the columns out top and bottom so they read as endless */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
+}
+.flow-col {
+  position: relative;
+  overflow: hidden;
+}
+.flow-run {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* one tile of slack at each end so the wrap is never visible */
+  top: -54px;
+  bottom: -54px;
+  background-repeat: repeat-y;
+  background-position: center top;
+  background-size: 26px 54px;
+  will-change: transform;
+}
+.flow-run.dn {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 20l7 7 7-7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.flow-run.up {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 27l7-7 7 7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.flow-body {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  margin-left: clamp(20px, 6vw, 64px);
+  padding: 44px 0;
+}
+.flow-body .sec-tag {
+  color: #7fe9be;
+}
+.flow-body .sec-tag::before {
+  background: var(--green);
+}
+.flow-body h2 {
+  font-size: clamp(26px, 3.4vw, 40px);
+  font-weight: 800;
+  color: #fff;
+  margin: 10px 0 0;
+  line-height: 1.15;
+}
+.flow-body p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 14px 0 22px;
+}
+/* a scrim behind the copy so the arrows never fight the text */
+.flow-body::before {
+  content: "";
+  position: absolute;
+  inset: -30px -60px -30px -80px;
+  background: radial-gradient(
+    120% 100% at 20% 50%,
+    rgba(1, 61, 59, 0.96) 40%,
+    rgba(1, 61, 59, 0) 100%
+  );
+  z-index: -1;
+}
+@media (max-width: 760px) {
+  .flow-card {
+    min-height: 300px;
+  }
+  .flow-body {
+    margin-inline: 18px;
+    padding: 34px 0;
+  }
+  .flow-body::before {
+    inset: -24px -24px;
+    background: rgba(1, 61, 59, 0.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-run {
+    opacity: 0.16 !important;
+  }
+}
