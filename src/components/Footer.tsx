@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import { Logo } from "@/components/Logo";
+import { LogoLight } from "@/components/Logo";
 
 export default function Footer() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function Footer() {
         <div className="foot-grid">
           <div>
             <a className="brand" onClick={goHome} style={{ cursor: "pointer" }}>
-              <Logo /> Vaya
+              <LogoLight /> Vaya
             </a>
             <p>{t("foot_about")}</p>
           </div>
@@ -56,9 +56,21 @@ export default function Footer() {
         </div>
         <div className="foot-bot">
           <span>© 2026 Vaya. Built for the Alibaba Cloud Hackathon.</span>
-          <span>Vaya · Deep Teal &amp; Green</span>
+          <button className="foot-top" onClick={goHome}>
+            {t("foot_top")} <span aria-hidden="true">↑</span>
+          </button>
         </div>
         <p className="disc">{t("disc")}</p>
+      </div>
+
+      {/* Full-bleed sign-off. The letters are deliberately cropped by the band:
+          the mark carries on past the edge of the page rather than sitting
+          politely inside it. Decorative, so it is hidden from screen readers. */}
+      <div className="foot-mark" aria-hidden="true">
+        <span className="foot-mark-logo">
+          <LogoLight />
+        </span>
+        <span className="foot-mark-word">VAYA</span>
       </div>
     </footer>
   );

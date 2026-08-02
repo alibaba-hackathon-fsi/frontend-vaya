@@ -13,6 +13,18 @@ export function Logo() {
 }
 
 /**
+ * The same mark, recoloured white for dark surfaces. Generated from logo.png by
+ * keeping its alpha channel and painting the pixels white, so the shape and the
+ * antialiasing are identical to the header logo rather than an approximation.
+ */
+export function LogoLight() {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className="brandmark" src="/logo-white.png" alt="Vaya" />
+  );
+}
+
+/**
  * White version of the Vaya pixel-arrow — used on dark surfaces (chat avatar).
  * Extracted verbatim from the source app.
  */

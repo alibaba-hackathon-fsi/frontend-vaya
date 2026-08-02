@@ -5267,3 +5267,219 @@ select[data-open] {
 .chart-tip.pinned {
   z-index: 110;
 }
+
+/* =========================================================================
+   ROUND J — footer curtain reveal · scroll-driven arrows behind the final CTA
+   ========================================================================= */
+
+/* ---- footer reveal -----------------------------------------------------
+   The page column is opaque and painted over a footer pinned to the bottom of
+   the viewport, so the last screenful of scrolling wipes the page away and
+   uncovers it. FooterReveal.tsx adds `.on` only when the footer both fits on
+   screen and there is page enough to scroll; otherwise everything below is
+   inert and the footer is an ordinary block. */
+.page-above {
+  position: relative;
+  z-index: 2;
+  background: var(--bg);
+}
+.foot-slot.on {
+  position: relative;
+  z-index: 1;
+}
+.foot-slot.on .foot-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+/* ---- the footer is one dark green panel -------------------------------- */
+footer {
+  background: var(--ink);
+  border-top: none;
+  padding: 54px 0 0;
+}
+/* `.foot-grid a { display: block }` outranks `.brand` and had been stacking the
+   mark above the wordmark ever since the footer was written. */
+.foot-grid a.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  margin-bottom: 0;
+}
+footer .brand svg {
+  width: 30px;
+  height: 30px;
+}
+.foot-grid p {
+  color: rgba(255, 255, 255, 0.62);
+}
+.foot-grid h5 {
+  color: #7fe9be;
+}
+.foot-grid a {
+  color: rgba(255, 255, 255, 0.8);
+}
+.foot-grid a:hover {
+  color: var(--green);
+}
+.foot-bot {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.58);
+}
+.disc {
+  color: rgba(255, 255, 255, 0.42);
+}
+.foot-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--green);
+}
+.foot-top:hover {
+  color: #7fe9be;
+}
+.foot-top span {
+  transition: transform 0.2s var(--ease);
+}
+.foot-top:hover span {
+  transform: translateY(-3px);
+}
+
+/* ---- the sign-off lockup ----------------------------------------------
+   Mark and wordmark at the same cap height, cropped by the band: the logo
+   carries on past the bottom of the page rather than sitting politely inside
+   it. Decorative, hidden from screen readers. */
+/* No rule above it and real air below: the lockup is a sign-off, not another
+   row of the table. */
+.foot-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 2.6vw, 40px);
+  margin-top: clamp(30px, 4.5vw, 60px);
+  padding-bottom: clamp(34px, 5vw, 66px);
+}
+.foot-mark-logo {
+  flex: 0 0 auto;
+  display: block;
+  width: clamp(66px, 11vw, 156px);
+}
+.foot-mark-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.foot-mark-word {
+  font-family: var(--font-disp), sans-serif;
+  font-weight: 800;
+  font-size: clamp(78px, 14.5vw, 204px);
+  line-height: 0.82;
+  letter-spacing: -0.035em;
+  color: var(--green);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ---- drifting arrows behind a dark panel ------------------------------- */
+.arrow-field {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  /* fade top and bottom so the columns read as endless */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  pointer-events: none;
+}
+.arrow-col {
+  position: relative;
+  overflow: hidden;
+}
+.arrow-run {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* a tile of slack at each end so the wrap never shows */
+  top: -54px;
+  bottom: -54px;
+  background-repeat: repeat-y;
+  background-position: center top;
+  background-size: 26px 54px;
+  will-change: transform;
+}
+.arrow-run.dn {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 20l7 7 7-7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.arrow-run.up {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 27l7-7 7 7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+/* ---- the market band ---------------------------------------------------
+   Full-bleed rather than a card: floating inside a section it read as an
+   orphan panel, and against the dark section above it there was no edge to
+   see. The copy sits left so the arrows keep the right half to themselves. */
+.flow-band {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  padding: clamp(52px, 7vw, 92px) 0;
+}
+.flow-body {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+}
+.flow-body .sec-tag {
+  color: #7fe9be;
+}
+.flow-body .sec-tag::before {
+  background: var(--green);
+}
+.flow-body h2 {
+  font-size: clamp(27px, 3.6vw, 42px);
+  font-weight: 800;
+  color: #fff;
+  margin: 10px 0 0;
+  line-height: 1.15;
+}
+.flow-body p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 14px 0 24px;
+}
+/* scrim anchored left, under the copy only */
+.flow-body::before {
+  content: "";
+  position: absolute;
+  inset: -40px -140px -40px -50vw;
+  background: linear-gradient(
+    to right,
+    rgba(1, 61, 59, 0.99) 62%,
+    rgba(1, 61, 59, 0.9) 78%,
+    rgba(1, 61, 59, 0) 100%
+  );
+  z-index: -1;
+}
+@media (max-width: 760px) {
+  .flow-body::before {
+    inset: -28px -24px;
+    background: rgba(1, 61, 59, 0.92);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrow-run {
+    opacity: 0.15 !important;
+  }
+}

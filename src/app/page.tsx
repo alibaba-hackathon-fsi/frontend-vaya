@@ -12,6 +12,8 @@ import Testimonials from "@/components/Testimonials";
 import Faq from "@/components/Faq";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
+import RateFlow from "@/components/RateFlow";
+import FooterReveal from "@/components/FooterReveal";
 import { useI18n } from "@/i18n/I18nProvider";
 import { BANKS } from "@/data/banks";
 
@@ -67,31 +69,38 @@ export default function Home() {
 
   return (
     <main id="homeView">
-      <Hero />
+      {/* Opaque column that slides away to uncover the pinned footer. */}
+      <div className="page-above">
+        <Hero />
 
-      <section className="trust">
-        <div className="lab">{t("trust")}</div>
-        <div className="mq" id="mq">
-          {[...Array(10)].flatMap(() => BANKS).map((b, i) => (
-            <span key={i}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="mqlogo" src={`/banks/${b.code}.png`} alt={b.name} title={b.name} />
-            </span>
-          ))}
-        </div>
-      </section>
+        <section className="trust">
+          <div className="lab">{t("trust")}</div>
+          <div className="mq" id="mq">
+            {[...Array(10)].flatMap(() => BANKS).map((b, i) => (
+              <span key={i}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="mqlogo" src={`/banks/${b.code}.png`} alt={b.name} title={b.name} />
+              </span>
+            ))}
+          </div>
+        </section>
 
-      <PurposePicker />
+        <PurposePicker />
 
-      <MarketsSection />
-      <WhySection />
-      <HowSection />
-      <Manifesto />
-      <ValueBand />
-      <Testimonials />
-      <Faq />
-      <CTA />
-      <Footer />
+        <MarketsSection />
+        <WhySection />
+        <HowSection />
+        <Manifesto />
+        <ValueBand />
+        <RateFlow />
+        <Testimonials />
+        <Faq />
+        <CTA />
+      </div>
+
+      <FooterReveal>
+        <Footer />
+      </FooterReveal>
     </main>
   );
 }
