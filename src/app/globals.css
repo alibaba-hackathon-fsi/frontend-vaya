@@ -5332,7 +5332,6 @@ footer .brand svg {
 }
 .disc {
   color: rgba(255, 255, 255, 0.42);
-  padding-bottom: 26px;
 }
 .foot-top {
   display: inline-flex;
@@ -5361,23 +5360,22 @@ footer .brand svg {
    Mark and wordmark at the same cap height, cropped by the band: the logo
    carries on past the bottom of the page rather than sitting politely inside
    it. Decorative, hidden from screen readers. */
+/* No rule above it and real air below: the lockup is a sign-off, not another
+   row of the table. */
 .foot-mark {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  gap: clamp(14px, 2.6vw, 38px);
-  overflow: hidden;
-  /* shorter than the glyphs — this is what crops them */
-  height: clamp(76px, 13vw, 178px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: clamp(10px, 1.6vw, 22px);
+  gap: clamp(14px, 2.6vw, 40px);
+  margin-top: clamp(30px, 4.5vw, 60px);
+  padding-bottom: clamp(34px, 5vw, 66px);
 }
 .foot-mark-logo {
   flex: 0 0 auto;
   display: block;
-  width: clamp(74px, 13.5vw, 190px);
+  width: clamp(66px, 11vw, 156px);
 }
-.foot-mark-logo svg {
+.foot-mark-logo img {
   display: block;
   width: 100%;
   height: auto;
@@ -5385,8 +5383,8 @@ footer .brand svg {
 .foot-mark-word {
   font-family: var(--font-disp), sans-serif;
   font-weight: 800;
-  font-size: clamp(94px, 17.5vw, 246px);
-  line-height: 0.72;
+  font-size: clamp(78px, 14.5vw, 204px);
+  line-height: 0.82;
   letter-spacing: -0.035em;
   color: var(--green);
   white-space: nowrap;
@@ -5427,23 +5425,58 @@ footer .brand svg {
 .arrow-run.up {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 27l7-7 7 7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-/* the CTA copy is centred, so the scrim is too — the arrows stay legible at
-   the edges and never fight the headline */
-.cta-band.has-arrows > *:not(.arrow-field) {
+/* ---- the market band ---------------------------------------------------
+   Full-bleed rather than a card: floating inside a section it read as an
+   orphan panel, and against the dark section above it there was no edge to
+   see. The copy sits left so the arrows keep the right half to themselves. */
+.flow-band {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  padding: clamp(52px, 7vw, 92px) 0;
+}
+.flow-body {
   position: relative;
   z-index: 1;
+  max-width: 560px;
 }
-.cta-band.has-arrows::before {
+.flow-body .sec-tag {
+  color: #7fe9be;
+}
+.flow-body .sec-tag::before {
+  background: var(--green);
+}
+.flow-body h2 {
+  font-size: clamp(27px, 3.6vw, 42px);
+  font-weight: 800;
+  color: #fff;
+  margin: 10px 0 0;
+  line-height: 1.15;
+}
+.flow-body p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 14px 0 24px;
+}
+/* scrim anchored left, under the copy only */
+.flow-body::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    74% 92% at 50% 50%,
-    rgba(1, 61, 59, 0.99) 46%,
-    rgba(1, 61, 59, 0.86) 66%,
+  inset: -40px -140px -40px -50vw;
+  background: linear-gradient(
+    to right,
+    rgba(1, 61, 59, 0.99) 62%,
+    rgba(1, 61, 59, 0.9) 78%,
     rgba(1, 61, 59, 0) 100%
   );
-  z-index: 0;
+  z-index: -1;
+}
+@media (max-width: 760px) {
+  .flow-body::before {
+    inset: -28px -24px;
+    background: rgba(1, 61, 59, 0.92);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .arrow-run {

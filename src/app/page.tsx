@@ -12,6 +12,7 @@ import Testimonials from "@/components/Testimonials";
 import Faq from "@/components/Faq";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
+import RateFlow from "@/components/RateFlow";
 import FooterReveal from "@/components/FooterReveal";
 import { useI18n } from "@/i18n/I18nProvider";
 import { BANKS } from "@/data/banks";
@@ -91,6 +92,7 @@ export default function Home() {
         <HowSection />
         <Manifesto />
         <ValueBand />
+        <RateFlow />
         <Testimonials />
         <Faq />
         <CTA />

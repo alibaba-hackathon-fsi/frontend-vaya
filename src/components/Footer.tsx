@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import { LogoWhite } from "@/components/Logo";
+import { LogoLight } from "@/components/Logo";
 
 export default function Footer() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function Footer() {
         <div className="foot-grid">
           <div>
             <a className="brand" onClick={goHome} style={{ cursor: "pointer" }}>
-              <LogoWhite /> Vaya
+              <LogoLight /> Vaya
             </a>
             <p>{t("foot_about")}</p>
           </div>
@@ -68,7 +68,7 @@ export default function Footer() {
           politely inside it. Decorative, so it is hidden from screen readers. */}
       <div className="foot-mark" aria-hidden="true">
         <span className="foot-mark-logo">
-          <LogoWhite />
+          <LogoLight />
         </span>
         <span className="foot-mark-word">VAYA</span>
       </div>
