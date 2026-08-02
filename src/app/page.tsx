@@ -13,7 +13,6 @@ import Faq from "@/components/Faq";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
 import FooterReveal from "@/components/FooterReveal";
-import RateFlow from "@/components/RateFlow";
 import { useI18n } from "@/i18n/I18nProvider";
 import { BANKS } from "@/data/banks";
 
@@ -91,7 +90,6 @@ export default function Home() {
         <WhySection />
         <HowSection />
         <Manifesto />
-        <RateFlow />
         <ValueBand />
         <Testimonials />
         <Faq />

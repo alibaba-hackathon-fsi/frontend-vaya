@@ -3,7 +3,7 @@
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import { Logo } from "@/components/Logo";
+import { LogoWhite } from "@/components/Logo";
 
 export default function Footer() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function Footer() {
         <div className="foot-grid">
           <div>
             <a className="brand" onClick={goHome} style={{ cursor: "pointer" }}>
-              <Logo /> Vaya
+              <LogoWhite /> Vaya
             </a>
             <p>{t("foot_about")}</p>
           </div>
@@ -67,7 +67,10 @@ export default function Footer() {
           the mark carries on past the edge of the page rather than sitting
           politely inside it. Decorative, so it is hidden from screen readers. */}
       <div className="foot-mark" aria-hidden="true">
-        <span>VAYA</span>
+        <span className="foot-mark-logo">
+          <LogoWhite />
+        </span>
+        <span className="foot-mark-word">VAYA</span>
       </div>
     </footer>
   );

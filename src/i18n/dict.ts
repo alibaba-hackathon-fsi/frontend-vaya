@@ -10,9 +10,6 @@ export type Dict = {
 export const T: Record<Lang, Dict> = {
   en: {
     foot_top: "Back to top",
-    fl_tag: "THE MARKET",
-    fl_title: "Rates move every day. Vaya is the one watching.",
-    fl_sub: "Twenty-plus lenders repricing constantly, promos quietly expiring. The moment something beats the deal you are on, you hear about it — you do not have to go looking.",
     mk_start: "Create request",
     mk_case: "REQUEST",
     mk_status_wait: "Awaiting banks",
@@ -653,9 +650,6 @@ export const T: Record<Lang, Dict> = {
 
   vi: {
     foot_top: "Về đầu trang",
-    fl_tag: "THỊ TRƯỜNG",
-    fl_title: "Lãi suất đổi mỗi ngày. Vaya là bên ngồi canh.",
-    fl_sub: "Hơn 20 ngân hàng chỉnh giá liên tục, ưu đãi lặng lẽ hết hạn. Ngay khi có gói tốt hơn gói bạn đang trả, bạn sẽ biết — khỏi phải tự đi dò.",
     mk_start: "Tạo yêu cầu",
     mk_case: "HỒ SƠ",
     mk_status_wait: "Đang chờ ngân hàng",
@@ -1295,9 +1289,6 @@ export const T: Record<Lang, Dict> = {
 
   zh: {
     foot_top: "回到顶部",
-    fl_tag: "市场动态",
-    fl_title: "利率每天都在动，替您盯着的是 Vaya。",
-    fl_sub: "20 多家银行持续调价，优惠悄然到期。一旦出现比您当前更划算的方案，您会第一时间知道——不必自己去找。",
     mk_start: "创建需求",
     mk_case: "申请档案",
     mk_status_wait: "等待银行报价",

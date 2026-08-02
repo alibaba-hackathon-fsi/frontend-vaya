@@ -5269,14 +5269,14 @@ select[data-open] {
 }
 
 /* =========================================================================
-   ROUND J — footer curtain reveal · scroll-driven rate flow band
+   ROUND J — footer curtain reveal · scroll-driven arrows behind the final CTA
    ========================================================================= */
 
 /* ---- footer reveal -----------------------------------------------------
    The page column is opaque and painted over a footer pinned to the bottom of
    the viewport, so the last screenful of scrolling wipes the page away and
    uncovers it. FooterReveal.tsx adds `.on` only when the footer both fits on
-   screen and there is enough page to scroll; without it everything below is
+   screen and there is page enough to scroll; otherwise everything below is
    inert and the footer is an ordinary block. */
 .page-above {
   position: relative;
@@ -5295,6 +5295,45 @@ select[data-open] {
   z-index: 1;
 }
 
+/* ---- the footer is one dark green panel -------------------------------- */
+footer {
+  background: var(--ink);
+  border-top: none;
+  padding: 54px 0 0;
+}
+/* `.foot-grid a { display: block }` outranks `.brand` and had been stacking the
+   mark above the wordmark ever since the footer was written. */
+.foot-grid a.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  margin-bottom: 0;
+}
+footer .brand svg {
+  width: 30px;
+  height: 30px;
+}
+.foot-grid p {
+  color: rgba(255, 255, 255, 0.62);
+}
+.foot-grid h5 {
+  color: #7fe9be;
+}
+.foot-grid a {
+  color: rgba(255, 255, 255, 0.8);
+}
+.foot-grid a:hover {
+  color: var(--green);
+}
+.foot-bot {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.58);
+}
+.disc {
+  color: rgba(255, 255, 255, 0.42);
+  padding-bottom: 26px;
+}
 .foot-top {
   display: inline-flex;
   align-items: center;
@@ -5306,10 +5345,10 @@ select[data-open] {
   font-family: var(--font-body);
   font-size: 13.5px;
   font-weight: 700;
-  color: var(--green-text);
+  color: var(--green);
 }
 .foot-top:hover {
-  color: var(--green-cta);
+  color: #7fe9be;
 }
 .foot-top span {
   transition: transform 0.2s var(--ease);
@@ -5318,60 +5357,63 @@ select[data-open] {
   transform: translateY(-3px);
 }
 
+/* ---- the sign-off lockup ----------------------------------------------
+   Mark and wordmark at the same cap height, cropped by the band: the logo
+   carries on past the bottom of the page rather than sitting politely inside
+   it. Decorative, hidden from screen readers. */
 .foot-mark {
-  margin-top: 34px;
-  background: var(--ink);
-  overflow: hidden;
   display: flex;
+  align-items: flex-start;
   justify-content: center;
-  /* shorter than the glyphs, which is what crops them */
-  height: clamp(58px, 9.5vw, 124px);
+  gap: clamp(14px, 2.6vw, 38px);
+  overflow: hidden;
+  /* shorter than the glyphs — this is what crops them */
+  height: clamp(76px, 13vw, 178px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: clamp(10px, 1.6vw, 22px);
 }
-.foot-mark span {
+.foot-mark-logo {
+  flex: 0 0 auto;
+  display: block;
+  width: clamp(74px, 13.5vw, 190px);
+}
+.foot-mark-logo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.foot-mark-word {
   font-family: var(--font-disp), sans-serif;
   font-weight: 800;
-  font-size: clamp(88px, 17vw, 232px);
-  line-height: 0.74;
-  letter-spacing: -0.03em;
+  font-size: clamp(94px, 17.5vw, 246px);
+  line-height: 0.72;
+  letter-spacing: -0.035em;
   color: var(--green);
   white-space: nowrap;
   user-select: none;
 }
 
-/* ---- scroll-driven arrow band ------------------------------------------
-   Columns of chevrons drift in alternating directions as the page scrolls.
-   Each column tiles one chevron as a repeating background and RateFlow.tsx
-   translates it, wrapping at a single tile so the loop has no seam. */
-.flow-sec {
-  padding-top: 0;
-}
-.flow-card {
-  position: relative;
-  overflow: hidden;
-  background: var(--ink);
-  min-height: 340px;
-  display: flex;
-  align-items: center;
-}
-.flow-field {
+/* ---- drifting arrows behind a dark panel ------------------------------- */
+.arrow-field {
   position: absolute;
   inset: 0;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  /* fade the columns out top and bottom so they read as endless */
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
+  /* fade top and bottom so the columns read as endless */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  pointer-events: none;
 }
-.flow-col {
+.arrow-col {
   position: relative;
   overflow: hidden;
 }
-.flow-run {
+.arrow-run {
   position: absolute;
   left: 0;
   right: 0;
-  /* one tile of slack at each end so the wrap is never visible */
+  /* a tile of slack at each end so the wrap never shows */
   top: -54px;
   bottom: -54px;
   background-repeat: repeat-y;
@@ -5379,65 +5421,32 @@ select[data-open] {
   background-size: 26px 54px;
   will-change: transform;
 }
-.flow-run.dn {
+.arrow-run.dn {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 20l7 7 7-7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-.flow-run.up {
+.arrow-run.up {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='54' viewBox='0 0 26 54'%3E%3Cpath d='M6 27l7-7 7 7' fill='none' stroke='%2300C776' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-.flow-body {
+/* the CTA copy is centred, so the scrim is too — the arrows stay legible at
+   the edges and never fight the headline */
+.cta-band.has-arrows > *:not(.arrow-field) {
   position: relative;
   z-index: 1;
-  max-width: 560px;
-  margin-left: clamp(20px, 6vw, 64px);
-  padding: 44px 0;
 }
-.flow-body .sec-tag {
-  color: #7fe9be;
-}
-.flow-body .sec-tag::before {
-  background: var(--green);
-}
-.flow-body h2 {
-  font-size: clamp(26px, 3.4vw, 40px);
-  font-weight: 800;
-  color: #fff;
-  margin: 10px 0 0;
-  line-height: 1.15;
-}
-.flow-body p {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 16px;
-  line-height: 1.6;
-  margin: 14px 0 22px;
-}
-/* a scrim behind the copy so the arrows never fight the text */
-.flow-body::before {
+.cta-band.has-arrows::before {
   content: "";
   position: absolute;
-  inset: -30px -60px -30px -80px;
+  inset: 0;
   background: radial-gradient(
-    120% 100% at 20% 50%,
-    rgba(1, 61, 59, 0.96) 40%,
+    74% 92% at 50% 50%,
+    rgba(1, 61, 59, 0.99) 46%,
+    rgba(1, 61, 59, 0.86) 66%,
     rgba(1, 61, 59, 0) 100%
   );
-  z-index: -1;
-}
-@media (max-width: 760px) {
-  .flow-card {
-    min-height: 300px;
-  }
-  .flow-body {
-    margin-inline: 18px;
-    padding: 34px 0;
-  }
-  .flow-body::before {
-    inset: -24px -24px;
-    background: rgba(1, 61, 59, 0.9);
-  }
+  z-index: 0;
 }
 @media (prefers-reduced-motion: reduce) {
-  .flow-run {
-    opacity: 0.16 !important;
+  .arrow-run {
+    opacity: 0.15 !important;
   }
 }
