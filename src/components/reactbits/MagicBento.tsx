@@ -9,6 +9,8 @@ export interface BentoCardProps {
   title?: string;
   description?: string;
   label?: string;
+  /** Optional visual fill for the card body (charts, lists, mock UI). */
+  media?: React.ReactNode;
   textAutoHide?: boolean;
   disableAnimations?: boolean;
 }
@@ -534,6 +536,9 @@ const MagicBento: React.FC<BentoProps> = ({
                 <div className="magic-bento-card__header">
                   <div className="magic-bento-card__label">{card.label}</div>
                 </div>
+                {card.media ? (
+                  <div className="magic-bento-card__media">{card.media}</div>
+                ) : null}
                 <div className="magic-bento-card__content">
                   <h2 className="magic-bento-card__title">{card.title}</h2>
                   <p className="magic-bento-card__description">{card.description}</p>
@@ -658,6 +663,9 @@ const MagicBento: React.FC<BentoProps> = ({
               <div className="magic-bento-card__header">
                 <div className="magic-bento-card__label">{card.label}</div>
               </div>
+              {card.media ? (
+                <div className="magic-bento-card__media">{card.media}</div>
+              ) : null}
               <div className="magic-bento-card__content">
                 <h2 className="magic-bento-card__title">{card.title}</h2>
                 <p className="magic-bento-card__description">{card.description}</p>
