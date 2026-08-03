@@ -90,6 +90,27 @@ function makeSessionId(): string {
 
 const CHAT_LS_KEY = "vaya_chat_session";
 
+/** Cap on transcript messages sent to the server — mirrors the server's own bound. */
+const TRANSCRIPT_MAX_MESSAGES = 20;
+
+/**
+ * Map rendered chat messages to the API transcript shape. Only conversational
+ * text carries dialogue context — result cards and inline forms are skipped.
+ */
+function toTranscript(messages: Message[]): ConversationTurn[] {
+  return messages
+    .flatMap((m): ConversationTurn[] => {
+      if (m.role === "user") {
+        return [{ role: "user", content: m.text }];
+      }
+      if (m.kind === "text" && !m.typing && m.text.trim()) {
+        return [{ role: "assistant", content: m.text }];
+      }
+      return [];
+    })
+    .slice(-TRANSCRIPT_MAX_MESSAGES);
+}
+
 /**
  * The durable client-side conversation snapshot. The client is the source of
  * truth (no database): this is persisted to localStorage so the advisor
@@ -1211,10 +1232,14 @@ export default function ChatAdvisor({
             message: txt,
             lang: langRef.current,
             // Re-send the durable state so the server can rehydrate after a
-            // restart: the wizard profile, or the offer-discussion transcript.
+            // restart: the wizard profile + recent transcript, or the
+            // offer-discussion transcript.
             ...(offerCtx
               ? { offer: offerCtx, history: offerHistoryRef.current }
-              : { profile: profileRef.current }),
+              : {
+                  profile: profileRef.current,
+                  messages: toTranscript(messagesRef.current),
+                }),
             ...(affordability ? { affordability } : {}),
           }),
         });

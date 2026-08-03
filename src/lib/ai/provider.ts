@@ -6,7 +6,10 @@ import {
 import { explainResultPrompt } from "./prompts/explainResult";
 import { policyAnswerPrompt } from "./prompts/policyAnswer";
 import { discussOfferPrompt } from "./prompts/discussOffer";
-import { advisoryFallbackPrompt } from "./prompts/advisoryFallback";
+import {
+  conversationalAdvisorPrompt,
+  type ConversationContext,
+} from "./prompts/conversationalAdvisor";
 import type {
   OfferDiscussionContext,
   AffordabilityVerdict,
@@ -56,9 +59,11 @@ export interface LLMProvider {
     pricing?: OfferPricing,
   ): Promise<AsyncIterable<string>>;
 
-  adviseFallback(
-    question: string,
+  converse(
+    message: string,
     contextChunks: PolicyChunkContext[],
+    history: { role: "user" | "assistant"; content: string }[],
+    context?: ConversationContext,
     lang?: ApiLang,
   ): Promise<string>;
 }
@@ -228,23 +233,28 @@ class OpenAICompatProvider implements LLMProvider {
     return iterate();
   }
 
-  async adviseFallback(
-    question: string,
+  async converse(
+    message: string,
     contextChunks: PolicyChunkContext[],
+    history: { role: "user" | "assistant"; content: string }[],
+    context: ConversationContext = {},
     lang: ApiLang = "vi",
   ): Promise<string> {
-    const context = formatPolicyExcerpts(contextChunks);
-
     const response = await getClient().chat.completions.create({
       model: getModel(),
       messages: [
-        { role: "system", content: advisoryFallbackPrompt(lang) },
         {
-          role: "user",
-          content: `Excerpts:\n${context}\n\nQuestion: ${question}`,
+          role: "system",
+          content: conversationalAdvisorPrompt(
+            lang,
+            context,
+            formatPolicyExcerpts(contextChunks),
+          ),
         },
+        ...history,
+        { role: "user", content: message },
       ],
-      temperature: 0.3,
+      temperature: 0.4,
     });
 
     return response.choices[0]?.message?.content ?? "";

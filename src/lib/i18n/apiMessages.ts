@@ -21,11 +21,6 @@ const MESSAGES = {
     vi: "Lý do",
     zh: "原因",
   },
-  also_prefix: {
-    en: "Also, ",
-    vi: "Ngoài ra, ",
-    zh: "另外，",
-  },
   fallback_to_form: {
     en: "Almost there! I just need a couple more details to crunch the numbers:",
     vi: "Gần xong rồi! Tôi chỉ cần thêm vài thông tin để tính toán chính xác:",

@@ -88,14 +88,34 @@ function rejectionCodeFromIssues(
 }
 
 /**
+ * Chat-shape variant of the profile schema: identical rules, but the amount
+ * may be absent. Mid-conversation a borrower can state a purpose without an
+ * amount ("vay tiền đi học") — that is an incomplete loan intent, not an
+ * invalid one. The strict LoanProfileSchema above stays the contract for the
+ * direct calculation API, where an absent amount is an error.
+ */
+const ChatProfileShapeSchema = LoanProfileSchema.extend({
+  so_tien: LoanProfileSchema.shape.so_tien.optional(),
+});
+
+/**
  * Trust boundary between LLM/user output and the Decision Engine.
  * All external input must pass through here before reaching pure functions.
+ *
+ * Two-step gate for the chat flow:
+ * 1. Shape/type check — invalid VALUES (unknown purpose, negative amount,
+ *    figures past the ceiling) still reject with a stable code.
+ * 2. Missing-field check — fields simply not stated yet never reject; they
+ *    are reported so the advisor can ask for them.
+ * A stated purpose with no amount therefore yields `profile: null` plus
+ * `missingFields: ["so_tien", ...]` and NO rejection code: the API layer
+ * turns that into a follow-up question instead of an out-of-scope message.
  */
 export function validateProfile(raw: unknown): {
   profile: LoanProfileInput | null;
   result: ValidationResult;
 } {
-  const parsed = LoanProfileSchema.safeParse(raw);
+  const parsed = ChatProfileShapeSchema.safeParse(raw);
   if (!parsed.success) {
     return {
       profile: null,
@@ -110,7 +130,7 @@ export function validateProfile(raw: unknown): {
   // Strong collateral (low LTV) qualifies on asset coverage, so income is not
   // required to price the loan; otherwise income stays mandatory.
   const incomeRequired = !hasStrongCollateral(
-    parsed.data.so_tien,
+    parsed.data.so_tien ?? 0,
     parsed.data.tai_san_dam_bao ?? null,
   );
   const requiredFields = incomeRequired
@@ -120,8 +140,17 @@ export function validateProfile(raw: unknown): {
     (field) => parsed.data[field] === null || parsed.data[field] === undefined,
   );
 
+  // No amount yet: nothing the engine could price, but nothing invalid either.
+  if (parsed.data.so_tien === undefined || parsed.data.so_tien === null) {
+    return {
+      profile: null,
+      result: { valid: false, missingFields: ["so_tien", ...missingFields] },
+    };
+  }
+
+  // Amount present and shape-valid: the data satisfies the strict schema.
   return {
-    profile: parsed.data,
+    profile: parsed.data as LoanProfileInput,
     result: { valid: missingFields.length === 0, missingFields },
   };
 }

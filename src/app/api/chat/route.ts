@@ -18,6 +18,7 @@ import {
   sanitizeExtraction,
 } from "@/lib/ai/intent";
 import { followUpReply } from "@/lib/ai/questionEngine";
+import type { ConversationContext } from "@/lib/ai/prompts/conversationalAdvisor";
 import {
   validateProfile,
   type RejectionCode,
@@ -44,6 +45,8 @@ interface ChatSession {
   turns: number;
   /** Multi-turn history for offer-discussion mode (separate from the wizard profile flow). */
   offerHistory?: ConversationTurn[];
+  /** Recent wizard-mode transcript — gives the conversational advisor dialogue context. */
+  wizardHistory?: ConversationTurn[];
   /** Last engine-computed affordability verdict; injected into later turns. */
   offerVerdict?: AffordabilityVerdict;
 }
@@ -51,6 +54,8 @@ interface ChatSession {
 const sessions = new Map<string, ChatSession>();
 
 const MAX_FOLLOWUP_TURNS = 3;
+/** Cap on retained wizard transcript messages so long chats don't blow the context window. */
+const WIZARD_HISTORY_MAX_MESSAGES = 20;
 const MANUAL_FORM_STAGE = "fallback_to_manual_form";
 /** Sanity ceiling for borrower-supplied income/debt (VND) — above this is garbage or abuse. */
 const AFFORDABILITY_MAX_VALUE = 1e12;
@@ -174,6 +179,34 @@ function isValidHistory(h: unknown): h is ConversationTurn[] {
   });
 }
 
+/** Append a turn to the wizard transcript, capped and de-duplicated against a trailing echo. */
+function appendTurn(
+  history: ConversationTurn[] | undefined,
+  turn: ConversationTurn,
+): ConversationTurn[] {
+  const h = history ?? [];
+  const last = h[h.length - 1];
+  if (last && last.role === turn.role && last.content === turn.content) return h;
+  return [...h, turn].slice(-WIZARD_HISTORY_MAX_MESSAGES);
+}
+
+/**
+ * Transcript to feed an LLM call: the client re-sends its rendered messages on
+ * every request, which already include the current user turn — strip that
+ * trailing echo so the model never sees the same message twice.
+ */
+function historyForCall(
+  history: ConversationTurn[] | undefined,
+  current: string,
+): ConversationTurn[] {
+  const h = history ?? [];
+  const last = h[h.length - 1];
+  if (last && last.role === "user" && last.content === current) {
+    return h.slice(0, -1);
+  }
+  return h;
+}
+
 /**
  * The deal actually on the table: min(request, offer) amount and term at the
  * offered rate. Shared by the affordability verdict and the pricing-only path
@@ -280,15 +313,28 @@ async function queryPolicyInline(question: string, lang: ApiLang) {
 }
 
 /**
- * General advisory fallback: answer a real-world question the wizard cannot
- * price, grounded in the banks' policy documents. The LLM only advises — no
- * Decision Engine runs here. Any failure degrades to { error: true } so the
- * caller can fall back to a friendly rejection.
+ * Unified conversational advisor: retrieve policy grounding, then let the
+ * finance persona answer with full dialogue context — general finance chat,
+ * real-life situations the wizard cannot price, and natural follow-ups for
+ * missing details. The LLM only converses and advises — no Decision Engine
+ * runs here. Any failure degrades to { error: true } so the caller can fall
+ * back to a canned reply.
  */
-async function queryAdvisoryInline(question: string, lang: ApiLang) {
+async function converseInline(
+  message: string,
+  history: ConversationTurn[],
+  context: ConversationContext,
+  lang: ApiLang,
+) {
   try {
-    const { chunks, citations } = await retrievePolicyContext(question);
-    const answer = await getLLMProvider().adviseFallback(question, chunks, lang);
+    const { chunks, citations } = await retrievePolicyContext(message);
+    const answer = await getLLMProvider().converse(
+      message,
+      chunks,
+      history,
+      context,
+      lang,
+    );
     return { answer, citations, error: false };
   } catch {
     return { answer: "", citations: [], error: true };
@@ -312,6 +358,8 @@ export async function POST(request: NextRequest) {
     profile?: Record<string, unknown>;
     /** Client-held offer-discussion transcript, re-sent each request for the same reason. */
     history?: ConversationTurn[];
+    /** Client-held wizard transcript, re-sent each request for the same reason. */
+    messages?: ConversationTurn[];
   };
   try {
     body = await request.json();
@@ -395,6 +443,9 @@ export async function POST(request: NextRequest) {
     turns: 0,
     offerHistory: isValidHistory(body.history)
       ? body.history.slice(-OFFER_HISTORY_MAX_MESSAGES)
+      : undefined,
+    wizardHistory: isValidHistory(body.messages)
+      ? body.messages.slice(-WIZARD_HISTORY_MAX_MESSAGES)
       : undefined,
   };
 
@@ -502,6 +553,7 @@ export async function POST(request: NextRequest) {
       session.profile,
       session.turns,
       llm,
+      historyForCall(session.wizardHistory, sanitized),
     );
   } catch (err) {
     // LLM call failed — log the real cause (and whether the key is present at
@@ -529,17 +581,22 @@ export async function POST(request: NextRequest) {
   // --- Merge profile ---
   session.profile = mergeProfile(session.profile, intentResult.extracted);
   session.turns += 1;
+  session.wizardHistory = appendTurn(session.wizardHistory, {
+    role: "user",
+    content: sanitized,
+  });
   sessions.set(sessionId, session);
 
   const { intent } = intentResult;
 
   // --- Policy-only intent ---
-  let policyResult = null;
-  if (intent === "POLICY" || intent === "MIXED") {
-    policyResult = await queryPolicyInline(sanitized, lang);
-  }
-
   if (intent === "POLICY") {
+    const policyResult = await queryPolicyInline(sanitized, lang);
+    session.wizardHistory = appendTurn(session.wizardHistory, {
+      role: "assistant",
+      content: `${apiT("policy_intro", lang)}\n${policyResult.answer}`,
+    });
+    sessions.set(sessionId, session);
     return new Response(
       JSON.stringify({
         reply: apiT("policy_intro", lang),
@@ -554,23 +611,95 @@ export async function POST(request: NextRequest) {
   // --- Validate profile ---
   const { profile, result } = validateProfile(session.profile);
 
+  // --- Valid loan intent, details still missing: ask, never reject ---
+  // Checked before the rejection path because an unstated amount also yields a
+  // null profile — the right response is a follow-up question, not out-of-scope.
+  // The unified persona phrases the ask naturally from the dialogue so far; a
+  // MIXED policy angle is covered by the same grounded reply. The canned
+  // question survives only as a fallback when the LLM is unavailable.
+  if (
+    !result.valid &&
+    result.missingFields.length > 0 &&
+    session.turns < MAX_FOLLOWUP_TURNS
+  ) {
+    const convo = await converseInline(
+      sanitized,
+      historyForCall(session.wizardHistory, sanitized),
+      { knownProfile: session.profile, missingFields: result.missingFields },
+      lang,
+    );
+    const reply =
+      !convo.error && convo.answer
+        ? convo.answer
+        : followUpReply(result.missingFields[0], lang);
+    session.wizardHistory = appendTurn(session.wizardHistory, {
+      role: "assistant",
+      content: reply,
+    });
+    sessions.set(sessionId, session);
+    return new Response(
+      JSON.stringify({
+        reply,
+        profile: session.profile,
+        missingFields: result.missingFields,
+        stage: "adaptive_followup",
+        citations: convo.error ? undefined : convo.citations,
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  if (!result.valid && result.missingFields.length > 0) {
+    // Cap reached — show inline form for remaining fields
+    const reply = apiT("fallback_to_form", lang);
+    session.wizardHistory = appendTurn(session.wizardHistory, {
+      role: "assistant",
+      content: reply,
+    });
+    sessions.set(sessionId, session);
+    return new Response(
+      JSON.stringify({
+        reply,
+        profile: session.profile,
+        missingFields: result.missingFields,
+        stage: MANUAL_FORM_STAGE,
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   if (!profile) {
-    // The request isn't a priceable loan. Rather than turn the borrower away,
-    // answer as a professional advisor grounded in the banks' policy documents.
-    // No Decision Engine runs here (nothing to price) — the LLM only advises.
-    const advisory = await queryAdvisoryInline(sanitized, lang);
-    if (!advisory.error && advisory.answer) {
+    // Not priceable: general finance chat, a real-life situation the wizard
+    // cannot price, or a stated-but-invalid value. The unified persona answers
+    // with full dialogue context; a validation note is passed as a hint so it
+    // can explain the problem naturally. No Decision Engine runs here.
+    const rejectionHint =
+      result.rejectedCode && result.rejectedCode !== "invalid_purpose"
+        ? apiT(REJECTION_MESSAGE_KEY[result.rejectedCode], lang)
+        : undefined;
+    const convo = await converseInline(
+      sanitized,
+      historyForCall(session.wizardHistory, sanitized),
+      { knownProfile: session.profile, rejectionHint },
+      lang,
+    );
+    if (!convo.error && convo.answer) {
+      session.wizardHistory = appendTurn(session.wizardHistory, {
+        role: "assistant",
+        content: convo.answer,
+      });
+      sessions.set(sessionId, session);
       return new Response(
         JSON.stringify({
-          reply: advisory.answer,
+          reply: convo.answer,
           stage: "advisory_answer",
-          citations: advisory.citations,
+          citations: convo.citations,
         }),
         { headers: { "Content-Type": "application/json" } },
       );
     }
 
-    // Advisory unavailable — graceful fallback to the friendly localized rejection.
+    // Advisor unavailable — graceful fallback to the friendly localized rejection.
     const reasonText = result.rejectedCode
       ? apiT(REJECTION_MESSAGE_KEY[result.rejectedCode], lang)
       : "";
@@ -589,38 +718,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // --- Missing fields: adaptive follow-up ---
-  if (!result.valid && session.turns < MAX_FOLLOWUP_TURNS) {
-    let reply = followUpReply(result.missingFields[0], lang);
-    if (intent === "MIXED" && policyResult && !policyResult.error) {
-      reply = `${policyResult.answer}\n\n${apiT("also_prefix", lang)}${reply.toLowerCase()}`;
-    }
-    return new Response(
-      JSON.stringify({
-        reply,
-        profile: session.profile,
-        missingFields: result.missingFields,
-        stage: "adaptive_followup",
-        citations: policyResult?.citations,
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  if (!result.valid) {
-    // Cap reached — show inline form for remaining fields
-    return new Response(
-      JSON.stringify({
-        reply: apiT("fallback_to_form", lang),
-        profile: session.profile,
-        missingFields: result.missingFields,
-        stage: MANUAL_FORM_STAGE,
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    );
-  }
-
   // --- Profile complete: run deterministic pipeline + SSE stream ---
+  // A MIXED policy angle is answered alongside the engine results (the policy
+  // answer prefixes the narration stream below).
+  const policyResult =
+    intent === "MIXED" ? await queryPolicyInline(sanitized, lang) : null;
+
+  session.wizardHistory = appendTurn(session.wizardHistory, {
+    role: "assistant",
+    content: apiT("results_ready", lang),
+  });
+  sessions.set(sessionId, session);
+
   const scoreLog = runCalculation({
     ...profile,
     thoi_han_thang: profile.thoi_han_thang!,

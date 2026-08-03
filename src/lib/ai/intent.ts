@@ -204,8 +204,11 @@ export async function extractAndClassify(
   sessionProfile: Record<string, unknown>,
   sessionTurns: number,
   llm: LLMProvider,
+  history: { role: "user" | "assistant"; content: string }[] = [],
 ): Promise<IntentExtractionResult> {
-  const { profile: rawExtracted } = await llm.extractIntent(message);
+  // Recent dialogue context lets the extractor resolve short follow-up answers
+  // ("24 tháng", "30 triệu") against the question that prompted them.
+  const { profile: rawExtracted } = await llm.extractIntent(message, history);
   const extracted = sanitizeExtraction(rawExtracted);
 
   const extractedKeys = Object.keys(extracted).filter(
