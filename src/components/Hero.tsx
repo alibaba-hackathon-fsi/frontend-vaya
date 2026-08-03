@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n/I18nProvider";
-import LightRays from "@/components/reactbits/LightRays";
 
 export default function Hero() {
   const router = useRouter();
@@ -111,20 +110,9 @@ export default function Hero() {
 
   return (
     <section className="hero">
-      <div className="hero-bg" aria-hidden="true">
-        <LightRays
-          raysOrigin="top-center"
-          raysColor="#00c776"
-          raysSpeed={0.85}
-          lightSpread={0.65}
-          rayLength={2.4}
-          fadeDistance={1.1}
-          saturation={1}
-          followMouse
-          mouseInfluence={0.14}
-          noiseAmount={0.04}
-          distortion={0.12}
-        />
+      <div className="hero-bg">
+        <div className="blob b1" />
+        <div className="blob b2" />
       </div>
       {/* Animated mascot — a true-transparent looping WebP that sits a fixed
           distance left of the centered content and gestures toward the chat. */}
