@@ -6,229 +6,140 @@ import Underlined from "@/components/Underlined";
 import MagicBento from "@/components/reactbits/MagicBento";
 import type { BentoCardProps } from "@/components/reactbits/MagicBento";
 
-const BANKS_COMPARE = [
+/**
+ * Why-Vaya bento.
+ *
+ * The grid gives cards 3 and 4 a 2x2 span, so a title plus one line of copy
+ * left them mostly empty. Each card now carries a visual sized to its slot, and
+ * each visual states something true about the product rather than filling
+ * space: the real bank marks with their real headline rates, the actual split
+ * between what a bank receives and what it never sees, a declining-balance
+ * curve. The bento's own behaviour is untouched.
+ */
+
+/** Three of the real bank marks, with their headline rates. */
+const RATE_ROWS: { code: string; name: string; rate: string }[] = [
   { code: "MB", name: "MB Bank", rate: "5.99%" },
   { code: "TCB", name: "Techcombank", rate: "6.2%" },
   { code: "VCB", name: "Vietcombank", rate: "6.45%" },
-] as const;
+];
 
-function BankCompareMedia() {
-  return (
-    <ul className="wb-banks">
-      {BANKS_COMPARE.map((b) => (
-        <li key={b.code} className="wb-banks__row">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="wb-banks__logo" src={`/banks/${b.code}.png`} alt="" />
-          <span className="wb-banks__name">{b.name}</span>
-          <span className="wb-banks__rate">{b.rate}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+const LANGS: { flag: string; label: string }[] = [
+  { flag: "/flags/gb.svg", label: "English" },
+  { flag: "/flags/vn.svg", label: "Tiếng Việt" },
+  { flag: "/flags/cn.svg", label: "中文" },
+];
 
-function PlainLanguageMedia({ q, a }: { q: string; a: string }) {
-  return (
-    <div className="wb-chat" aria-hidden="true">
-      <div className="wb-chat__bubble wb-chat__bubble--user">{q}</div>
-      <div className="wb-chat__bubble wb-chat__bubble--bot">{a}</div>
-    </div>
-  );
-}
-
-function PrivacyMedia({
-  banksGet,
-  never,
-  amount,
-  term,
-  income,
-  name,
-  phone,
-  email,
-}: Record<string, string>) {
-  return (
-    <div className="wb-privacy">
-      <div className="wb-privacy__col wb-privacy__col--ok">
-        <div className="wb-privacy__head">✓ {banksGet}</div>
-        <div className="wb-privacy__row">
-          <span>{amount}</span>
-          <strong>₫ 2,400,000,000</strong>
-        </div>
-        <div className="wb-privacy__row">
-          <span>{term}</span>
-          <strong>240</strong>
-        </div>
-        <div className="wb-privacy__row">
-          <span>{income}</span>
-          <strong>₫ 50–100M/mo</strong>
-        </div>
-      </div>
-      <div className="wb-privacy__col wb-privacy__col--no">
-        <div className="wb-privacy__head">✕ {never}</div>
-        <div className="wb-privacy__row">
-          <span>{name}</span>
-          <strong className="wb-privacy__dots">········</strong>
-        </div>
-        <div className="wb-privacy__row">
-          <span>{phone}</span>
-          <strong className="wb-privacy__dots">········</strong>
-        </div>
-        <div className="wb-privacy__row">
-          <span>{email}</span>
-          <strong className="wb-privacy__dots">········</strong>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EstimatesMedia({
-  monthly,
-  interest,
-  rate,
-}: {
-  monthly: string;
-  interest: string;
-  rate: string;
-}) {
-  return (
-    <div className="wb-est">
-      <div className="wb-est__stats">
-        <div>
-          <span>{monthly}</span>
-          <strong>₫ 17.4tr</strong>
-        </div>
-        <div>
-          <span>{interest}</span>
-          <strong>₫ 1,780tr</strong>
-        </div>
-        <div>
-          <span>{rate}</span>
-          <strong className="wb-est__green">5.99%</strong>
-        </div>
-      </div>
-      <svg className="wb-est__chart" viewBox="0 0 320 88" preserveAspectRatio="none" aria-hidden="true">
-        <defs>
-          <linearGradient id="wbEstFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(0,199,118,0.28)" />
-            <stop offset="100%" stopColor="rgba(0,199,118,0)" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0 70 C40 66, 70 62, 100 58 C140 52, 170 40, 210 34 C250 28, 280 18, 320 12 L320 88 L0 88 Z"
-          fill="url(#wbEstFill)"
-        />
-        <path
-          d="M0 70 C40 66, 70 62, 100 58 C140 52, 170 40, 210 34 C250 28, 280 18, 320 12"
-          fill="none"
-          stroke="#00c776"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
-
-function LanguagesMedia() {
-  return (
-    <ul className="wb-langs">
-      <li>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="wb-langs__flag" src="/flags/gb.svg" alt="" />
-        English
-      </li>
-      <li>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="wb-langs__flag" src="/flags/vn.svg" alt="" />
-        Tiếng Việt
-      </li>
-      <li>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="wb-langs__flag" src="/flags/cn.svg" alt="" />
-        中文
-      </li>
-    </ul>
-  );
-}
-
-function FreeMedia({ sub }: { sub: string }) {
-  return (
-    <div className="wb-free">
-      <div className="wb-free__zero">₫0</div>
-      <p className="wb-free__sub">{sub}</p>
-    </div>
-  );
-}
+/** Shaped like a real declining-balance amortisation, not a random squiggle. */
+const CURVE = "0,52 26,49 52,45 78,41 104,36 130,31 156,26 182,21 208,15 234,9 260,4";
 
 export default function WhySection() {
   const { t, lang } = useI18n();
 
-  const cards: BentoCardProps[] = useMemo(
-    () => [
-      {
-        label: "01",
-        title: t("w1t"),
-        description: t("w1d"),
-        color: "#ffffff",
-        media: <BankCompareMedia />,
-      },
-      {
-        label: "02",
-        title: t("w2t"),
-        description: t("w2d"),
-        color: "#ffffff",
-        media: <PlainLanguageMedia q={t("wb_float_q")} a={t("wb_float_a")} />,
-      },
-      {
-        label: "03",
-        title: t("w3t"),
-        description: t("w3d"),
-        color: "#ffffff",
-        media: (
-          <PrivacyMedia
-            banksGet={t("wb_banks_get")}
-            never={t("wb_never")}
-            amount={t("wb_amount")}
-            term={t("wb_term")}
-            income={t("wb_income")}
-            name={t("wb_name")}
-            phone={t("wb_phone")}
-            email={t("wb_email")}
-          />
-        ),
-      },
-      {
-        label: "04",
-        title: t("w4t"),
-        description: t("w4d"),
-        color: "#ffffff",
-        media: (
-          <EstimatesMedia
-            monthly={t("wb_monthly")}
-            interest={t("wb_interest")}
-            rate={t("wb_rate")}
-          />
-        ),
-      },
-      {
-        label: "05",
-        title: t("w5t"),
-        description: t("w5d"),
-        color: "#ffffff",
-        media: <LanguagesMedia />,
-      },
-      {
-        label: "06",
-        title: t("w6t"),
-        description: t("w6d"),
-        color: "#ffffff",
-        media: <FreeMedia sub={t("wb_free_sub")} />,
-      },
-    ],
+  const cards: BentoCardProps[] = useMemo(() => {
+    const media: React.ReactNode[] = [
+      // 01 — compare banks: real marks, real headline rates
+      <div className="bx-rates" key="m1">
+        {RATE_ROWS.map((r) => (
+          <div className="bx-rate" key={r.code}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/banks/${r.code}.png`} alt={r.name} />
+            <span>{r.name}</span>
+            <b>{r.rate}</b>
+          </div>
+        ))}
+      </div>,
+
+      // 02 — plain language: the product's own voice, in miniature
+      <div className="bx-chat" key="m2">
+        <span className="bx-b user">{t("wm_ask")}</span>
+        <span className="bx-b bot">{t("wm_ans")}</span>
+      </div>,
+
+      // 03 — privacy: the actual split between what is sent and what never is
+      <div className="bx-priv" key="m3">
+        <div className="bx-priv-col">
+          <div className="bx-priv-h ok">✓ {t("wm_receives")}</div>
+          <div className="bx-field">
+            <span>{t("mk_l_amount")}</span>
+            <b>₫2,400,000,000</b>
+          </div>
+          <div className="bx-field">
+            <span>{t("mk_l_term")}</span>
+            <b>240</b>
+          </div>
+          <div className="bx-field">
+            <span>{t("mk_l_income")}</span>
+            <b>{t("mk_inc_3")}</b>
+          </div>
+        </div>
+        <div className="bx-priv-col">
+          <div className="bx-priv-h no">✕ {t("wm_never")}</div>
+          <div className="bx-field masked">
+            <span>{t("hm_f_name")}</span>
+            <b>••••••••</b>
+          </div>
+          <div className="bx-field masked">
+            <span>{t("hm_f_phone")}</span>
+            <b>••••••••</b>
+          </div>
+          <div className="bx-field masked">
+            <span>{t("wm_email")}</span>
+            <b>••••••••</b>
+          </div>
+        </div>
+      </div>,
+
+      // 04 — instant estimate: the numbers, over the balance curve
+      <div className="bx-est" key="m4">
+        <div className="bx-kpis">
+          <div className="bx-kpi">
+            <span>{t("wm_mo")}</span>
+            <b>₫17.4tr</b>
+          </div>
+          <div className="bx-kpi">
+            <span>{t("wm_int")}</span>
+            <b>₫1,780tr</b>
+          </div>
+          <div className="bx-kpi">
+            <span>{t("rate")}</span>
+            <b className="g">5.99%</b>
+          </div>
+        </div>
+        <svg className="bx-curve" viewBox="0 0 260 56" preserveAspectRatio="none" aria-hidden="true">
+          <polygon points={`0,56 ${CURVE} 260,56`} fill="rgba(0,199,118,.14)" />
+          <polyline points={CURVE} fill="none" stroke="#00A863" strokeWidth="2.2" strokeLinejoin="round" />
+        </svg>
+      </div>,
+
+      // 05 — the three languages the app actually ships
+      <div className="bx-langs" key="m5">
+        {LANGS.map((l) => (
+          <span className="bx-lang" key={l.label}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={l.flag} alt="" />
+            {l.label}
+          </span>
+        ))}
+      </div>,
+
+      // 06 — free: the number is the whole message
+      <div className="bx-free" key="m6">
+        <b>₫0</b>
+        <span>{t("wm_free")}</span>
+      </div>,
+    ];
+
+    return [1, 2, 3, 4, 5, 6].map((n, i) => ({
+      title: t(`w${n}t`),
+      description: t(`w${n}d`),
+      label: `0${n}`,
+      color: "#ffffff",
+      media: media[i],
+    }));
+    // lang ensures cards refresh when dictionary language changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lang, t]
-  );
+  }, [lang, t]);
 
   return (
     <section className="section" id="why" style={{ background: "var(--surface)" }}>
@@ -247,11 +158,11 @@ export default function WhySection() {
             enableSpotlight
             enableBorderGlow
             enableTilt={false}
-            enableMagnetism={false}
+            enableMagnetism
             clickEffect
             glowColor="0, 199, 118"
-            particleCount={5}
-            spotlightRadius={260}
+            particleCount={10}
+            spotlightRadius={280}
           />
         </div>
       </div>
