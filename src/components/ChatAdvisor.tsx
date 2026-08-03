@@ -74,6 +74,14 @@ interface ApiRejectedOffer {
   reason: string;
 }
 
+/** Engine-computed path to eligibility, mirrored from the API results event. */
+interface ApiRecoveryPlan {
+  maxLoanAmount?: number;
+  suggestedTermMonths?: number;
+  estMonthlyPayment?: number;
+  minMonthlyIncome?: number;
+}
+
 /** Map frontend Purpose to API muc_dich enum. */
 const PURPOSE_TO_MUC_DICH: Record<string, string> = {
   home: "mua_nha",
@@ -178,6 +186,7 @@ type ResultData = {
 type ApiResultData = {
   ranked: ApiRankedOffer[];
   rejected: ApiRejectedOffer[];
+  recovery?: ApiRecoveryPlan;
   amount: number;
   term: number;
   income: number;
@@ -214,6 +223,8 @@ type Message =
       typing: boolean;
       kind: "form";
       fields: string[];
+      /** Asset class offered as collateral whose value the form should also collect. */
+      collateralType?: string;
     };
 
 /** Package-specific consultation result (advisor opened from a package page). */
@@ -514,11 +525,11 @@ export default function ChatAdvisor({
   );
 
   const addBotForm = useCallback(
-    (fields: string[]) => {
+    (fields: string[], collateralType?: string) => {
       const id = nextId();
       messagesRef.current = [
         ...messagesRef.current,
-        { id, role: "bot", typing: false, kind: "form", fields },
+        { id, role: "bot", typing: false, kind: "form", fields, collateralType },
       ];
       rerender();
       scrollChat();
@@ -1254,7 +1265,7 @@ export default function ChatAdvisor({
           if (data.profile) profileRef.current = data.profile;
           if (data.missingFields?.length > 0) {
             if (data.reply) addBot(data.reply);
-            addBotForm(data.missingFields);
+            addBotForm(data.missingFields, data.pendingCollateralType);
           } else {
             if (data.reply) addBot(data.reply);
             if (data.explanation) addBot(data.explanation);
@@ -1298,6 +1309,7 @@ export default function ChatAdvisor({
                 addBotApiResult({
                   ranked: payload.ranked,
                   rejected: payload.rejected ?? [],
+                  recovery: payload.recovery,
                   amount: (payload.profile?.so_tien ?? s.amount ?? 0) as number,
                   term: (payload.profile?.thoi_han_thang ??
                     s.term ??
@@ -1485,6 +1497,7 @@ export default function ChatAdvisor({
                   <div className="bub">
                     <FormCard
                       fields={m.fields}
+                      collateralType={m.collateralType}
                       lang={lang}
                       t={t}
                       onSubmit={(msg: string) => {
@@ -1808,23 +1821,65 @@ function ApiResultCard({
   const { ranked, rejected, amount, term } = data;
 
   if (ranked.length === 0) {
+    const rec = data.recovery;
     return (
       <div className="result api-result">
         <div className="rh">{t("api_no_result")}</div>
         <div className="api-roadmap">
           <div className="api-roadmap-title">{t("api_roadmap_title")}</div>
           <ol className="api-roadmap-list">
-            {rejected.some((r) => r.reason.includes("% of your income")) && (
-              <li>
-                {t("api_roadmap_dti").replace("{term}", String(term * 2))}
-              </li>
+            {rec ? (
+              <>
+                {rec.maxLoanAmount != null && (
+                  <li>
+                    {t("api_fix_amount").replace(
+                      "{amount}",
+                      fmtVND(rec.maxLoanAmount, lang),
+                    )}
+                  </li>
+                )}
+                {rec.suggestedTermMonths != null && (
+                  <li>
+                    {t("api_fix_term").replace(
+                      "{term}",
+                      String(rec.suggestedTermMonths),
+                    )}
+                  </li>
+                )}
+                {rec.minMonthlyIncome != null &&
+                  rec.estMonthlyPayment != null &&
+                  rec.minMonthlyIncome > data.income && (
+                    <li>
+                      {t("api_fix_income")
+                        .replace(
+                          "{income}",
+                          fmtVND(rec.minMonthlyIncome, lang),
+                        )
+                        .replace(
+                          "{payment}",
+                          fmtMonthly(rec.estMonthlyPayment),
+                        )}
+                    </li>
+                  )}
+              </>
+            ) : (
+              // Fallback for an older server without the recovery plan.
+              <>
+                {rejected.some((r) =>
+                  r.reason.includes("% of your income"),
+                ) && (
+                  <li>
+                    {t("api_roadmap_dti").replace("{term}", String(term * 2))}
+                  </li>
+                )}
+                {rejected.some((r) =>
+                  r.reason.includes("only lends up to"),
+                ) && <li>{t("api_roadmap_amount")}</li>}
+                {rejected.some((r) =>
+                  r.reason.includes("below this package's minimum"),
+                ) && <li>{t("api_roadmap_income")}</li>}
+              </>
             )}
-            {rejected.some((r) => r.reason.includes("only lends up to")) && (
-              <li>{t("api_roadmap_amount")}</li>
-            )}
-            {rejected.some((r) =>
-              r.reason.includes("below this package's minimum"),
-            ) && <li>{t("api_roadmap_income")}</li>}
             <li>{t("api_roadmap_general")}</li>
           </ol>
         </div>
@@ -1987,6 +2042,12 @@ const FIELD_LABELS: Record<
   string,
   { en: string; vi: string; zh: string; placeholder: string }
 > = {
+  so_tien: {
+    en: "Loan amount (VND)",
+    vi: "Số tiền vay (VND)",
+    zh: "借款金额（VND）",
+    placeholder: "e.g. 500000000",
+  },
   thoi_han_thang: {
     en: "Loan term (months)",
     vi: "Kỳ hạn vay (tháng)",
@@ -2001,13 +2062,42 @@ const FIELD_LABELS: Record<
   },
 };
 
+/** Synthetic form field collecting the value of an offered collateral asset. */
+const COLLATERAL_VALUE_KEY = "tai_san_dam_bao_gia_tri";
+
+const COLLATERAL_LABELS: Record<
+  string,
+  { en: string; vi: string; zh: string; placeholder: string }
+> = {
+  bat_dong_san: {
+    en: "Estimated property value (VND)",
+    vi: "Giá trị nhà/đất ước tính (VND)",
+    zh: "房产估值（VND）",
+    placeholder: "e.g. 1000000000",
+  },
+  o_to: {
+    en: "Estimated vehicle value (VND)",
+    vi: "Giá trị xe ước tính (VND)",
+    zh: "车辆估值（VND）",
+    placeholder: "e.g. 500000000",
+  },
+  so_tiet_kiem: {
+    en: "Savings book value (VND)",
+    vi: "Giá trị sổ tiết kiệm (VND)",
+    zh: "存单金额（VND）",
+    placeholder: "e.g. 200000000",
+  },
+};
+
 function FormCard({
   fields,
+  collateralType,
   lang,
   t,
   onSubmit,
 }: {
   fields: string[];
+  collateralType?: string;
   lang: "en" | "vi" | "zh";
   t: (k: string) => string;
   onSubmit: (msg: string) => void;
@@ -2015,13 +2105,24 @@ function FormCard({
   const [values, setValues] = React.useState<Record<string, string>>({});
   const [submitted, setSubmitted] = React.useState(false);
 
+  // An offered asset without a value adds its value field ahead of the rest —
+  // the label names the asset so the extractor maps the answer back to it.
+  const collateralMeta = collateralType
+    ? COLLATERAL_LABELS[collateralType]
+    : undefined;
+  const allFields = collateralMeta
+    ? [COLLATERAL_VALUE_KEY, ...fields]
+    : fields;
+  const metaOf = (f: string) =>
+    f === COLLATERAL_VALUE_KEY ? collateralMeta : FIELD_LABELS[f];
+
   const handleSubmit = () => {
-    const filled = fields.filter((f) => values[f]?.trim());
+    const filled = allFields.filter((f) => values[f]?.trim());
     if (filled.length === 0) return;
     setSubmitted(true);
     // Human-readable message for the chat bubble
     const humanParts = filled.map((f) => {
-      const meta = FIELD_LABELS[f];
+      const meta = metaOf(f);
       const label = meta ? meta[lang] : f;
       return `${label}: ${values[f].trim()}`;
     });
@@ -2039,8 +2140,8 @@ function FormCard({
   return (
     <div className="form-card">
       <div className="form-card-title">{t("api_form_title")}</div>
-      {fields.map((f) => {
-        const meta = FIELD_LABELS[f];
+      {allFields.map((f) => {
+        const meta = metaOf(f);
         const label = meta ? meta[lang] : f;
         const ph = meta ? meta.placeholder : "";
         return (

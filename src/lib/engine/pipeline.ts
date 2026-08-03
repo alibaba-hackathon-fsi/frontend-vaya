@@ -5,6 +5,7 @@ import { calcDTI } from "./calcDTI";
 import { scoreRisk } from "./scoreRisk";
 import { rankMCDA } from "./rankMCDA";
 import { hasStrongCollateral, ltvRiskLevel, requestLtv } from "./collateral";
+import { computeRecoveryPlan, type RecoveryPlan } from "./recoveryPlan";
 import { LOAN_PACKAGES } from "@/data/loanPackages";
 import { ELIGIBILITY_RULES } from "@/data/eligibilityRules";
 
@@ -35,6 +36,8 @@ export interface ScoreLog {
   profile: LoanProfile;
   ranked: RankedOffer[];
   rejected: RejectedOffer[];
+  /** Concrete path to eligibility — present only when nothing qualified. */
+  recovery?: RecoveryPlan;
 }
 
 /**
@@ -123,5 +126,14 @@ export function runCalculation(profile: LoanProfile): ScoreLog {
           : `The monthly payment cannot be covered by the stated income`,
       })),
     ],
+    // Nothing qualified: compute the concrete adjustments that would make the
+    // request attainable, so the borrower leaves with a plan, not just a "no".
+    ...(ranked.length === 0
+      ? {
+          recovery:
+            computeRecoveryPlan(profile, LOAN_PACKAGES, ELIGIBILITY_RULES) ??
+            undefined,
+        }
+      : {}),
   };
 }

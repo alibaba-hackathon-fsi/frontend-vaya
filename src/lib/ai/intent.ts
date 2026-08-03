@@ -197,6 +197,13 @@ export interface IntentExtractionResult {
   intent: Intent;
   extracted: Record<string, unknown>;
   extractedKeys: string[];
+  /**
+   * Asset class the customer offered as collateral, when the raw extraction
+   * named the asset but lacked a usable value — so the sanitizer dropped it.
+   * The engine profile must stay clean, but the advisor still needs to know
+   * a house/vehicle/savings book is on the table and ask for its value.
+   */
+  collateralLoaiStated?: string;
 }
 
 export async function extractAndClassify(
@@ -215,7 +222,23 @@ export async function extractAndClassify(
     (k) => extracted[k] !== null && extracted[k] !== undefined,
   );
 
+  // Incomplete collateral: the customer named an asset ("I have a house") but
+  // not its value, so it didn't survive sanitization. Surface the asset class
+  // separately — strong collateral can qualify the loan on asset coverage.
+  let collateralLoaiStated: string | undefined;
+  const rawCollateral = rawExtracted.tai_san_dam_bao;
+  if (
+    extracted.tai_san_dam_bao === undefined &&
+    typeof rawCollateral === "object" &&
+    rawCollateral !== null
+  ) {
+    const loai = (rawCollateral as Record<string, unknown>).loai;
+    if (typeof loai === "string" && VALID_ASSET_CLASSES.has(loai)) {
+      collateralLoaiStated = loai;
+    }
+  }
+
   const intent = classifyIntent(message, extractedKeys, sessionTurns);
 
-  return { intent, extracted, extractedKeys };
+  return { intent, extracted, extractedKeys, collateralLoaiStated };
 }

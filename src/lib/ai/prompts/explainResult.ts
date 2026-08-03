@@ -13,6 +13,9 @@ Rules:
 - Never compute, alter, or invent any number that is not already present in the provided log.
 - Reference ranked packages by bank name and explain the top factors that drove each ranking.
 - If a package was rejected, state the rejection reason exactly as given.
+- If the log carries a recovery plan (recovery), present it as the concrete next step
+  (amount cap, suggested term, or minimum income) using exactly the numbers given —
+  the borrower should leave knowing precisely what to change to qualify.
 - If the profile carries collateral (tai_san_dam_bao) or a ranked offer is asset-backed (assetBacked),
   explain that this is a secured loan (vay thế chấp) backed by the borrower's asset. Use the offer's
   ltv value to describe the loan-to-value ratio, and note that strong collateral lets the borrower

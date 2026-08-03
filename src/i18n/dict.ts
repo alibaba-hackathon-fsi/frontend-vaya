@@ -648,6 +648,12 @@ export const T: Record<Lang, Dict> = {
     api_roadmap_amount: "Reduce the loan amount to fit within bank package limits",
     api_roadmap_income: "Increase documented monthly income or add a co-borrower",
     api_roadmap_general: "Re-run the advisor after adjusting your inputs above",
+    api_fix_amount:
+      "Lower the amount to {amount} or less — the most any package for this purpose lends",
+    api_fix_term:
+      "Adjust the term to {term} months — the closest these packages support",
+    api_fix_income:
+      "Show verifiable income of at least {income}/month (estimated payment {payment}/month at the best available rate)",
     surv_from_chat_notice: "We've pre-filled amount, term, income, and bank from your conversation. Please complete the remaining fields below for an accurate cashflow analysis.",
   },
 
@@ -1290,6 +1296,12 @@ export const T: Record<Lang, Dict> = {
     api_roadmap_amount: "Giảm số tiền vay để phù hợp với hạn mức gói vay",
     api_roadmap_income: "Tăng thu nhập hàng tháng được chứng minh hoặc thêm người đồng vay",
     api_roadmap_general: "Chạy lại tư vấn sau khi điều chỉnh thông tin ở trên",
+    api_fix_amount:
+      "Giảm số tiền vay xuống còn {amount} trở xuống — hạn mức cao nhất các gói cùng mục đích cho vay",
+    api_fix_term:
+      "Điều chỉnh kỳ hạn còn {term} tháng — mức gần nhất các gói này hỗ trợ",
+    api_fix_income:
+      "Chứng minh thu nhập tối thiểu {income}/tháng (khoản trả ước tính {payment}/tháng theo lãi suất tốt nhất hiện có)",
     surv_from_chat_notice: "Chúng tôi đã điền sẵn số tiền, kỳ hạn, thu nhập và ngân hàng từ cuộc trò chuyện. Vui lòng hoàn thành các trường còn lại bên dưới để phân tích dòng tiền chính xác.",
   },
 
@@ -1909,6 +1921,10 @@ export const T: Record<Lang, Dict> = {
     api_roadmap_amount: "减少借款金额以符合银行方案限额",
     api_roadmap_income: "增加可证明的月收入或添加共同借款人",
     api_roadmap_general: "调整以上输入后重新运行顾问",
+    api_fix_amount: "将借款金额降至 {amount} 或更低——这是同类用途方案的最高额度",
+    api_fix_term: "将期限调整为 {term} 个月——这些方案支持的最接近期限",
+    api_fix_income:
+      "提供至少 {income}/月的可证明收入（按当前最优利率估算月供约 {payment}/月）",
     surv_from_chat_notice: "我们已从对话中预填了金额、期限、收入和银行。请完成以下剩余字段以获得准确的现金流分析。",
   },
 };

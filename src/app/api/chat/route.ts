@@ -49,6 +49,8 @@ interface ChatSession {
   wizardHistory?: ConversationTurn[];
   /** Last engine-computed affordability verdict; injected into later turns. */
   offerVerdict?: AffordabilityVerdict;
+  /** Asset class offered as collateral whose value is still unknown — the advisor asks for it. */
+  pendingCollateralLoai?: string;
 }
 
 const sessions = new Map<string, ChatSession>();
@@ -326,8 +328,20 @@ async function converseInline(
   context: ConversationContext,
   lang: ApiLang,
 ) {
+  // Policy grounding is best-effort (same pattern as the offer-discussion
+  // path): an embedding/retrieval failure must not kill the conversation —
+  // the advisor still answers, just without policy citations.
+  let chunks: PolicyChunkContext[] = [];
+  let citations: { bank: string; section: string }[] = [];
   try {
-    const { chunks, citations } = await retrievePolicyContext(message);
+    const retrieved = await retrievePolicyContext(message);
+    chunks = retrieved.chunks;
+    citations = retrieved.citations;
+  } catch {
+    chunks = [];
+    citations = [];
+  }
+  try {
     const answer = await getLLMProvider().converse(
       message,
       chunks,
@@ -581,6 +595,14 @@ export async function POST(request: NextRequest) {
   // --- Merge profile ---
   session.profile = mergeProfile(session.profile, intentResult.extracted);
   session.turns += 1;
+  // Incomplete collateral is dropped from the engine profile by the sanitizer;
+  // remember the offered asset class at the session level so the advisor can
+  // ask for its value — strong collateral waives the income requirement.
+  if (session.profile.tai_san_dam_bao) {
+    session.pendingCollateralLoai = undefined;
+  } else if (intentResult.collateralLoaiStated) {
+    session.pendingCollateralLoai = intentResult.collateralLoaiStated;
+  }
   session.wizardHistory = appendTurn(session.wizardHistory, {
     role: "user",
     content: sanitized,
@@ -625,7 +647,11 @@ export async function POST(request: NextRequest) {
     const convo = await converseInline(
       sanitized,
       historyForCall(session.wizardHistory, sanitized),
-      { knownProfile: session.profile, missingFields: result.missingFields },
+      {
+        knownProfile: session.profile,
+        missingFields: result.missingFields,
+        collateralLoai: session.pendingCollateralLoai,
+      },
       lang,
     );
     const reply =
@@ -642,6 +668,7 @@ export async function POST(request: NextRequest) {
         reply,
         profile: session.profile,
         missingFields: result.missingFields,
+        pendingCollateralType: session.pendingCollateralLoai,
         stage: "adaptive_followup",
         citations: convo.error ? undefined : convo.citations,
       }),
@@ -662,6 +689,7 @@ export async function POST(request: NextRequest) {
         reply,
         profile: session.profile,
         missingFields: result.missingFields,
+        pendingCollateralType: session.pendingCollateralLoai,
         stage: MANUAL_FORM_STAGE,
       }),
       { headers: { "Content-Type": "application/json" } },
@@ -680,7 +708,11 @@ export async function POST(request: NextRequest) {
     const convo = await converseInline(
       sanitized,
       historyForCall(session.wizardHistory, sanitized),
-      { knownProfile: session.profile, rejectionHint },
+      {
+        knownProfile: session.profile,
+        rejectionHint,
+        collateralLoai: session.pendingCollateralLoai,
+      },
       lang,
     );
     if (!convo.error && convo.answer) {
@@ -754,6 +786,7 @@ export async function POST(request: NextRequest) {
         missingFields: [],
         ranked: scoreLog.ranked,
         rejected: scoreLog.rejected,
+        recovery: scoreLog.recovery,
         citations: policyResult?.citations,
       });
 
