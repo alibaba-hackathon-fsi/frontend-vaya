@@ -45,10 +45,10 @@ const createParticleElement = (x: number, y: number, color: string = DEFAULT_GLO
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: rgba(${color}, 1);
-    box-shadow: 0 0 6px rgba(${color}, 0.6);
+    background: rgba(${color}, 0.7);
+    box-shadow: 0 0 6px rgba(${color}, 0.35);
     pointer-events: none;
-    z-index: 100;
+    z-index: 5;
     left: ${x}px;
     top: ${y}px;
   `;
@@ -141,7 +141,7 @@ const ParticleCard: React.FC<{
         gsap.fromTo(
           clone,
           { scale: 0, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 0.15, ease: 'power2.out' }
+          { scale: 1, opacity: 0.55, duration: 0.2, ease: 'power2.out' }
         );
 
         gsap.to(clone, {
@@ -149,6 +149,14 @@ const ParticleCard: React.FC<{
           y: (Math.random() - 0.5) * 80,
           duration: 2.2 + Math.random(),
           ease: 'none',
+          repeat: -1,
+          yoyo: true
+        });
+
+        gsap.to(clone, {
+          opacity: 0.28,
+          duration: 1.4,
+          ease: 'power1.inOut',
           repeat: -1,
           yoyo: true
         });
