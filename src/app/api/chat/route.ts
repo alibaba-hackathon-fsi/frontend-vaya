@@ -103,6 +103,32 @@ function sseEncode(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+/** Build a text/event-stream Response from a writer callback that emits events. */
+function sseResponse(
+  start: (write: (event: string, data: unknown) => void) => Promise<void>,
+): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const write = (event: string, data: unknown) => {
+        controller.enqueue(encoder.encode(sseEncode(event, data)));
+      };
+      try {
+        await start(write);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+
 /* ================================================================
    Offer-discussion helpers
    ================================================================ */
@@ -188,7 +214,8 @@ function appendTurn(
 ): ConversationTurn[] {
   const h = history ?? [];
   const last = h[h.length - 1];
-  if (last && last.role === turn.role && last.content === turn.content) return h;
+  if (last && last.role === turn.role && last.content === turn.content)
+    return h;
   return [...h, turn].slice(-WIZARD_HISTORY_MAX_MESSAGES);
 }
 
@@ -297,62 +324,120 @@ async function retrievePolicyContext(question: string): Promise<{
   return { chunks, citations };
 }
 
-async function queryPolicyInline(question: string, lang: ApiLang) {
+/** Shared result of a policy-context retrieval (chunks + derived citations). */
+interface PolicyContextResult {
+  chunks: PolicyChunkContext[];
+  citations: { bank: string; section: string }[];
+}
+
+/**
+ * Start policy retrieval without blocking — callers await the shared promise
+ * when (and if) their path needs grounding. Best effort: any embedding or
+ * retrieval failure resolves to empty context so the conversation continues.
+ */
+function prefetchPolicyContext(question: string): Promise<PolicyContextResult> {
+  return retrievePolicyContext(question).catch(() => ({
+    chunks: [],
+    citations: [],
+  }));
+}
+
+async function queryPolicyInline(
+  question: string,
+  lang: ApiLang,
+  policyPrefetch: Promise<PolicyContextResult>,
+) {
+  const { chunks, citations } = await policyPrefetch;
+  if (chunks.length === 0) {
+    return {
+      answer: "not found in the documents",
+      citations: [],
+      error: false,
+    };
+  }
   try {
-    const { chunks, citations } = await retrievePolicyContext(question);
-    if (chunks.length === 0) {
-      return {
-        answer: "not found in the documents",
-        citations: [],
-        error: false,
-      };
-    }
-    const answer = await getLLMProvider().answerPolicyQuery(question, chunks, lang);
+    const answer = await getLLMProvider().answerPolicyQuery(
+      question,
+      chunks,
+      lang,
+    );
     return { answer, citations, error: false };
   } catch {
     return { answer: "not found in the documents", citations: [], error: true };
   }
 }
 
+type AdvisorStreamResult =
+  | {
+      error: false;
+      citations: { bank: string; section: string }[];
+      stream: AsyncIterable<string>;
+    }
+  | { error: true };
+
 /**
- * Unified conversational advisor: retrieve policy grounding, then let the
- * finance persona answer with full dialogue context — general finance chat,
- * real-life situations the wizard cannot price, and natural follow-ups for
- * missing details. The LLM only converses and advises — no Decision Engine
- * runs here. Any failure degrades to { error: true } so the caller can fall
- * back to a canned reply.
+ * Unified conversational advisor (streaming): resolve the pre-fetched policy
+ * grounding, then start the finance-persona stream with full dialogue context
+ * — general finance chat, real-life situations the wizard cannot price, and
+ * natural follow-ups for missing details. The LLM only converses and advises
+ * — no Decision Engine runs here. A stream-creation failure degrades to
+ * { error: true } so the caller can fall back to a canned reply.
  */
-async function converseInline(
+async function converseInlineStream(
+  policyPrefetch: Promise<PolicyContextResult>,
   message: string,
   history: ConversationTurn[],
   context: ConversationContext,
   lang: ApiLang,
-) {
-  // Policy grounding is best-effort (same pattern as the offer-discussion
-  // path): an embedding/retrieval failure must not kill the conversation —
-  // the advisor still answers, just without policy citations.
-  let chunks: PolicyChunkContext[] = [];
-  let citations: { bank: string; section: string }[] = [];
+): Promise<AdvisorStreamResult> {
+  const { chunks, citations } = await policyPrefetch;
   try {
-    const retrieved = await retrievePolicyContext(message);
-    chunks = retrieved.chunks;
-    citations = retrieved.citations;
-  } catch {
-    chunks = [];
-    citations = [];
-  }
-  try {
-    const answer = await getLLMProvider().converse(
+    const stream = await getLLMProvider().converseStream(
       message,
       chunks,
       history,
       context,
       lang,
     );
-    return { answer, citations, error: false };
+    return { error: false, citations, stream };
   } catch {
-    return { answer: "", citations: [], error: true };
+    return { error: true };
   }
+}
+
+/**
+ * Emit an advisor reply as explanation deltas, substituting the canned
+ * fallback when the stream is unavailable, empty, or dies before its first
+ * delta. Returns the text actually shown (for transcript bookkeeping).
+ */
+async function writeAdvisorReply(
+  write: (event: string, data: unknown) => void,
+  convo: AdvisorStreamResult,
+  fallback: string,
+  lang: ApiLang,
+): Promise<string> {
+  if (convo.error) {
+    write("explanation", { delta: fallback });
+    return fallback;
+  }
+  let text = "";
+  try {
+    for await (const delta of convo.stream) {
+      text += delta;
+      write("explanation", { delta });
+    }
+  } catch {
+    // Mid-stream failure: keep partial text if any surfaced.
+    if (text) {
+      write("explanation_error", { message: apiT("explanation_error", lang) });
+      return text;
+    }
+  }
+  if (!text) {
+    write("explanation", { delta: fallback });
+    return fallback;
+  }
+  return text;
 }
 
 /* ================================================================
@@ -505,61 +590,48 @@ export async function POST(request: NextRequest) {
       policyChunks = [];
     }
 
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        const write = (event: string, data: unknown) => {
-          controller.enqueue(encoder.encode(sseEncode(event, data)));
-        };
+    return sseResponse(async (write) => {
+      let assistantText = "";
+      try {
+        // Engine verdict first (authoritative numbers), LLM narration after.
+        if (verdict) write("affordability", verdict);
 
-        let assistantText = "";
-        try {
-          // Engine verdict first (authoritative numbers), LLM narration after.
-          if (verdict) write("affordability", verdict);
-
-          const discussionStream = await llm.discussOffer(
-            offer,
-            policyChunks,
-            sanitized,
-            history,
-            lang,
-            verdict,
-            pricing,
-          );
-          for await (const delta of discussionStream) {
-            assistantText += delta;
-            write("explanation", { delta });
-          }
-
-          // Multi-turn: remember this exchange within the session.
-          history.push(
-            { role: "user", content: sanitized },
-            { role: "assistant", content: assistantText },
-          );
-          session.offerHistory = history.slice(-OFFER_HISTORY_MAX_MESSAGES);
-          sessions.set(sessionId, session);
-
-          write("done", {});
-        } catch {
-          write("explanation_error", {
-            message: apiT("explanation_error", lang),
-          });
+        const discussionStream = await llm.discussOffer(
+          offer,
+          policyChunks,
+          sanitized,
+          history,
+          lang,
+          verdict,
+          pricing,
+        );
+        for await (const delta of discussionStream) {
+          assistantText += delta;
+          write("explanation", { delta });
         }
 
-        controller.close();
-      },
-    });
+        // Multi-turn: remember this exchange within the session.
+        history.push(
+          { role: "user", content: sanitized },
+          { role: "assistant", content: assistantText },
+        );
+        session.offerHistory = history.slice(-OFFER_HISTORY_MAX_MESSAGES);
+        sessions.set(sessionId, session);
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
+        write("done", {});
+      } catch {
+        write("explanation_error", {
+          message: apiT("explanation_error", lang),
+        });
+      }
     });
   }
 
   // --- Intent extraction ---
+  // Policy retrieval depends only on the message: start it now so it overlaps
+  // the extraction LLM call instead of adding serial latency later. Every
+  // consumer (policy answer, advisor grounding, MIXED) awaits this one promise.
+  const policyPrefetch = prefetchPolicyContext(sanitized);
   let intentResult;
   try {
     intentResult = await extractAndClassify(
@@ -613,7 +685,7 @@ export async function POST(request: NextRequest) {
 
   // --- Policy-only intent ---
   if (intent === "POLICY") {
-    const policyResult = await queryPolicyInline(sanitized, lang);
+    const policyResult = await queryPolicyInline(sanitized, lang, policyPrefetch);
     session.wizardHistory = appendTurn(session.wizardHistory, {
       role: "assistant",
       content: `${apiT("policy_intro", lang)}\n${policyResult.answer}`,
@@ -644,7 +716,8 @@ export async function POST(request: NextRequest) {
     result.missingFields.length > 0 &&
     session.turns < MAX_FOLLOWUP_TURNS
   ) {
-    const convo = await converseInline(
+    const convo = await converseInlineStream(
+      policyPrefetch,
       sanitized,
       historyForCall(session.wizardHistory, sanitized),
       {
@@ -654,26 +727,24 @@ export async function POST(request: NextRequest) {
       },
       lang,
     );
-    const reply =
-      !convo.error && convo.answer
-        ? convo.answer
-        : followUpReply(result.missingFields[0], lang);
-    session.wizardHistory = appendTurn(session.wizardHistory, {
-      role: "assistant",
-      content: reply,
-    });
-    sessions.set(sessionId, session);
-    return new Response(
-      JSON.stringify({
-        reply,
+    // Same fallback as before, delivered as the narration when the advisor is down.
+    const fallback = followUpReply(result.missingFields[0], lang);
+    return sseResponse(async (write) => {
+      write("turn", {
+        stage: "adaptive_followup",
         profile: session.profile,
         missingFields: result.missingFields,
         pendingCollateralType: session.pendingCollateralLoai,
-        stage: "adaptive_followup",
         citations: convo.error ? undefined : convo.citations,
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    );
+      });
+      const assistantText = await writeAdvisorReply(write, convo, fallback, lang);
+      session.wizardHistory = appendTurn(session.wizardHistory, {
+        role: "assistant",
+        content: assistantText,
+      });
+      sessions.set(sessionId, session);
+      write("done", {});
+    });
   }
 
   if (!result.valid && result.missingFields.length > 0) {
@@ -705,7 +776,8 @@ export async function POST(request: NextRequest) {
       result.rejectedCode && result.rejectedCode !== "invalid_purpose"
         ? apiT(REJECTION_MESSAGE_KEY[result.rejectedCode], lang)
         : undefined;
-    const convo = await converseInline(
+    const convo = await converseInlineStream(
+      policyPrefetch,
       sanitized,
       historyForCall(session.wizardHistory, sanitized),
       {
@@ -715,46 +787,36 @@ export async function POST(request: NextRequest) {
       },
       lang,
     );
-    if (!convo.error && convo.answer) {
-      session.wizardHistory = appendTurn(session.wizardHistory, {
-        role: "assistant",
-        content: convo.answer,
-      });
-      sessions.set(sessionId, session);
-      return new Response(
-        JSON.stringify({
-          reply: convo.answer,
-          stage: "advisory_answer",
-          citations: convo.citations,
-        }),
-        { headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    // Advisor unavailable — graceful fallback to the friendly localized rejection.
+    // Same fallback as before — the friendly localized out-of-scope reply.
     const reasonText = result.rejectedCode
       ? apiT(REJECTION_MESSAGE_KEY[result.rejectedCode], lang)
       : "";
     const reasonSuffix = reasonText
       ? ` ${apiT("reason_prefix", lang)}: ${reasonText}`
       : "";
-    return new Response(
-      JSON.stringify({
-        reply: `${apiT("out_of_scope", lang)}${reasonSuffix}`,
-        profile: session.profile,
-        missingFields: [],
-        rejectedReason: reasonText,
-        stage: MANUAL_FORM_STAGE,
-      }),
-      { headers: { "Content-Type": "application/json" } },
-    );
+    const fallback = `${apiT("out_of_scope", lang)}${reasonSuffix}`;
+    return sseResponse(async (write) => {
+      write("turn", {
+        stage: "advisory_answer",
+        citations: convo.error ? [] : convo.citations,
+      });
+      const assistantText = await writeAdvisorReply(write, convo, fallback, lang);
+      session.wizardHistory = appendTurn(session.wizardHistory, {
+        role: "assistant",
+        content: assistantText,
+      });
+      sessions.set(sessionId, session);
+      write("done", {});
+    });
   }
 
   // --- Profile complete: run deterministic pipeline + SSE stream ---
   // A MIXED policy angle is answered alongside the engine results (the policy
   // answer prefixes the narration stream below).
   const policyResult =
-    intent === "MIXED" ? await queryPolicyInline(sanitized, lang) : null;
+    intent === "MIXED"
+      ? await queryPolicyInline(sanitized, lang, policyPrefetch)
+      : null;
 
   session.wizardHistory = appendTurn(session.wizardHistory, {
     role: "assistant",
@@ -770,53 +832,35 @@ export async function POST(request: NextRequest) {
     thu_nhap_hang_thang: profile.thu_nhap_hang_thang ?? null,
   });
 
-  const encoder = new TextEncoder();
+  return sseResponse(async (write) => {
+    // 1. Authoritative results event (numbers from engine, never from LLM)
+    write("results", {
+      reply: apiT("results_ready", lang),
+      stage: "results",
+      profile,
+      missingFields: [],
+      ranked: scoreLog.ranked,
+      rejected: scoreLog.rejected,
+      recovery: scoreLog.recovery,
+      citations: policyResult?.citations,
+    });
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const write = (event: string, data: unknown) => {
-        controller.enqueue(encoder.encode(sseEncode(event, data)));
-      };
-
-      // 1. Authoritative results event (numbers from engine, never from LLM)
-      write("results", {
-        reply: apiT("results_ready", lang),
-        stage: "results",
-        profile,
-        missingFields: [],
-        ranked: scoreLog.ranked,
-        rejected: scoreLog.rejected,
-        recovery: scoreLog.recovery,
-        citations: policyResult?.citations,
-      });
-
-      // 2. LLM narration stream (presentation-only)
-      try {
-        if (intent === "MIXED" && policyResult && !policyResult.error) {
-          write("explanation", { delta: policyResult.answer + "\n\n---\n\n" });
-        }
-
-        const explanationStream = await llm.explainResult(scoreLog, lang);
-        for await (const delta of explanationStream) {
-          write("explanation", { delta });
-        }
-        write("done", {});
-      } catch {
-        // Narration failed — ranked numbers already delivered above remain authoritative
-        write("explanation_error", {
-          message: apiT("explanation_error", lang),
-        });
+    // 2. LLM narration stream (presentation-only)
+    try {
+      if (intent === "MIXED" && policyResult && !policyResult.error) {
+        write("explanation", { delta: policyResult.answer + "\n\n---\n\n" });
       }
 
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
+      const explanationStream = await llm.explainResult(scoreLog, lang);
+      for await (const delta of explanationStream) {
+        write("explanation", { delta });
+      }
+      write("done", {});
+    } catch {
+      // Narration failed — ranked numbers already delivered above remain authoritative
+      write("explanation_error", {
+        message: apiT("explanation_error", lang),
+      });
+    }
   });
 }

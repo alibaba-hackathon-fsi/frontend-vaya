@@ -1,8 +1,4 @@
-import type {
-  EligibilityRule,
-  LoanPackageRecord,
-  LoanProfile,
-} from "./types";
+import type { EligibilityRule, LoanPackageRecord, LoanProfile } from "./types";
 import { calcMonthlyPayment } from "./calcMonthlyPayment";
 import { DTI_CAP } from "./calcDTI";
 import { maxSecuredAmount, withinCollateralCap } from "./collateral";
@@ -28,10 +24,7 @@ function closestTerm(
   requested: number,
   candidates: LoanPackageRecord[],
 ): number {
-  const endpoints = candidates.flatMap((p) => [
-    p.thoi_han_min,
-    p.thoi_han_max,
-  ]);
+  const endpoints = candidates.flatMap((p) => [p.thoi_han_min, p.thoi_han_max]);
   return endpoints.reduce((best, e) => {
     const dE = Math.abs(e - requested);
     const dBest = Math.abs(best - requested);
@@ -49,9 +42,7 @@ export function computeRecoveryPlan(
   packages: LoanPackageRecord[],
   rules: EligibilityRule[],
 ): RecoveryPlan | null {
-  const samePurpose = packages.filter(
-    (p) => p.muc_dich === profile.muc_dich,
-  );
+  const samePurpose = packages.filter((p) => p.muc_dich === profile.muc_dich);
   if (samePurpose.length === 0) return null;
 
   // Secured request over its LTV cap: borrow less, bounded by both the
@@ -72,9 +63,7 @@ export function computeRecoveryPlan(
   }
 
   const fitsTerm = (term: number) =>
-    amountFits.filter(
-      (p) => term >= p.thoi_han_min && term <= p.thoi_han_max,
-    );
+    amountFits.filter((p) => term >= p.thoi_han_min && term <= p.thoi_han_max);
   const requestedTerm = profile.thoi_han_thang ?? 0;
   const termOutOfRange = fitsTerm(requestedTerm).length === 0;
   const effectiveTerm = termOutOfRange
@@ -91,8 +80,7 @@ export function computeRecoveryPlan(
   const incomeFloors = compatible
     .map(
       (p) =>
-        rules.find((r) => r.package_id === p.id)?.dieu_kien
-          .thu_nhap_toi_thieu,
+        rules.find((r) => r.package_id === p.id)?.dieu_kien.thu_nhap_toi_thieu,
     )
     .filter((v): v is number => v != null);
   // Round up to the nearest 100k so the suggestion sits safely inside the

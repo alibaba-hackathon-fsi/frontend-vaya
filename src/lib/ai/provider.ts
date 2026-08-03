@@ -59,13 +59,13 @@ export interface LLMProvider {
     pricing?: OfferPricing,
   ): Promise<AsyncIterable<string>>;
 
-  converse(
+  converseStream(
     message: string,
     contextChunks: PolicyChunkContext[],
     history: { role: "user" | "assistant"; content: string }[],
     context?: ConversationContext,
     lang?: ApiLang,
-  ): Promise<string>;
+  ): Promise<AsyncIterable<string>>;
 }
 
 /* ================================================================
@@ -233,14 +233,14 @@ class OpenAICompatProvider implements LLMProvider {
     return iterate();
   }
 
-  async converse(
+  async converseStream(
     message: string,
     contextChunks: PolicyChunkContext[],
     history: { role: "user" | "assistant"; content: string }[],
     context: ConversationContext = {},
     lang: ApiLang = "vi",
-  ): Promise<string> {
-    const response = await getClient().chat.completions.create({
+  ): Promise<AsyncIterable<string>> {
+    const stream = await getClient().chat.completions.create({
       model: getModel(),
       messages: [
         {
@@ -254,10 +254,17 @@ class OpenAICompatProvider implements LLMProvider {
         ...history,
         { role: "user", content: message },
       ],
+      stream: true,
       temperature: 0.4,
     });
 
-    return response.choices[0]?.message?.content ?? "";
+    async function* iterate() {
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) yield delta;
+      }
+    }
+    return iterate();
   }
 }
 

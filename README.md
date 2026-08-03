@@ -156,20 +156,20 @@ sequenceDiagram
 
 ## Technology Stack
 
-| Category        | Technology                                                    |
-| --------------- | ------------------------------------------------------------- |
-| Framework       | Next.js 14 (App Router)                                       |
-| Language        | TypeScript 5.5 (strict mode)                                  |
-| Runtime         | Node.js 18+                                                   |
-| Styling         | Tailwind CSS 3.4 + CSS custom properties design system        |
-| AI/LLM          | OpenAI-compatible SDK — Alibaba DashScope (Qwen) or DeepSeek  |
+| Category        | Technology                                                      |
+| --------------- | --------------------------------------------------------------- |
+| Framework       | Next.js 14 (App Router)                                         |
+| Language        | TypeScript 5.5 (strict mode)                                    |
+| Runtime         | Node.js 18+                                                     |
+| Styling         | Tailwind CSS 3.4 + CSS custom properties design system          |
+| AI/LLM          | OpenAI-compatible SDK — Alibaba DashScope (Qwen) or DeepSeek    |
 | Embeddings      | DashScope text-embedding-v3 (optional; RAG degrades gracefully) |
-| Validation      | Zod 4 (schema-first, trust boundary)                          |
-| Streaming       | Server-Sent Events (native ReadableStream)                    |
-| Charts          | Hand-written SVG (zero chart library dependencies)            |
-| Fonts           | Sora (display) + Plus Jakarta Sans (body) + Noto Sans SC      |
-| Deployment      | Vercel (serverless functions)                                 |
-| Package Manager | npm / Bun (dual lockfile)                                     |
+| Validation      | Zod 4 (schema-first, trust boundary)                            |
+| Streaming       | Server-Sent Events (native ReadableStream)                      |
+| Charts          | Hand-written SVG (zero chart library dependencies)              |
+| Fonts           | Sora (display) + Plus Jakarta Sans (body) + Noto Sans SC        |
+| Deployment      | Vercel (serverless functions)                                   |
+| Package Manager | npm / Bun (dual lockfile)                                       |
 
 ---
 
@@ -301,10 +301,11 @@ classifyIntent → POLICY → RAG answer with citations (JSON)
 validateProfile (Zod — second trust boundary)
     ↓
 ├── Missing fields, turns < 3 → Conversational advisor asks naturally
-│       (JSON: adaptive_followup + pendingCollateralType)
+│       (SSE: turn meta adaptive_followup → streamed reply → form if needed)
 ├── Missing fields, turns = 3 → Inline manual form fallback (JSON)
 ├── Not priceable (chat / invalid value / real-life situation)
-│       → Conversational advisor answers with full context (JSON: advisory_answer)
+│       → Conversational advisor answers with full context
+│       (SSE: turn meta advisory_answer → streamed reply)
 └── Profile complete → Decision Engine pipeline
         filterEligible → calcMonthlyPayment → calcDTI / LTV → scoreRisk → rankMCDA
         (ranked empty → computeRecoveryPlan attached)
@@ -340,13 +341,13 @@ Interactive SVG chart with tooltips
 
 The AI layer is strictly separated from the Decision Engine. The LLM performs exactly five jobs, all presentational:
 
-| Role        | Entry point                     | What it does                                                            |
-| ----------- | ------------------------------- | ----------------------------------------------------------------------- |
-| **Extract** | `extractIntent` (tool call)     | Parses free text into structured profile fields                         |
-| **Converse** | `converse`                     | Chats, advises, and asks follow-up questions as the Vaya persona        |
-| **Explain** | `explainResult` (streamed)      | Narrates the engine's ScoreLog — ranked offers, rejections, recovery    |
-| **Answer**  | `answerPolicyQuery`             | Answers policy questions from retrieved excerpts with citations         |
-| **Discuss** | `discussOffer` (streamed)       | Debates a specific bank offer, grounded in policy chunks + engine facts |
+| Role         | Entry point                 | What it does                                                            |
+| ------------ | --------------------------- | ----------------------------------------------------------------------- |
+| **Extract**  | `extractIntent` (tool call) | Parses free text into structured profile fields                         |
+| **Converse** | `converse`                  | Chats, advises, and asks follow-up questions as the Vaya persona        |
+| **Explain**  | `explainResult` (streamed)  | Narrates the engine's ScoreLog — ranked offers, rejections, recovery    |
+| **Answer**   | `answerPolicyQuery`         | Answers policy questions from retrieved excerpts with citations         |
+| **Discuss**  | `discussOffer` (streamed)   | Debates a specific bank offer, grounded in policy chunks + engine facts |
 
 Every numerical output — payments, DTI, LTV, risk levels, scores, rankings, recovery targets — originates exclusively from the deterministic engine. The `results` SSE event is emitted **before** narration starts, so even a total LLM outage leaves the authoritative numbers on screen.
 
@@ -428,6 +429,8 @@ Deduplicated citations returned to client
 
 The chunk store hydrates from `src/data/rag/chunks.json` at boot (safe no-op if absent). At this corpus scale a flat in-memory array with brute-force cosine similarity is sufficient — no vector database required.
 
+**Retrieval never sits on the critical path.** Since it depends only on the message text, the route fires the embedding + retrieval the moment the input is sanitized — concurrently with the extraction LLM call — and every downstream consumer (policy answer, advisor grounding, MIXED) awaits the same shared promise.
+
 **Retrieval is best-effort everywhere.** Both the advisor (`converseInline`) and the offer-discussion path wrap embedding/retrieval in try/catch: if the embedding key is missing or the service fails, the conversation proceeds with empty excerpts instead of erroring out. Policy answers degrade to an honest "not found in the documents" rather than guessing.
 
 ### Result Narration
@@ -446,28 +449,31 @@ When the client sends a structured `offer` context, the route skips extraction a
 
 `/api/chat` returns `text/event-stream` with these event types:
 
-| Event               | Payload                                              | Purpose                                |
-| ------------------- | ---------------------------------------------------- | -------------------------------------- |
-| `results`           | `{ ranked, rejected, recovery, profile, citations }` | Authoritative engine output            |
-| `affordability`     | `AffordabilityVerdict`                               | Engine verdict (offer mode only)       |
-| `explanation`       | `{ delta: string }`                                  | LLM narration token                    |
-| `done`              | `{}`                                                 | Stream complete                        |
-| `explanation_error` | `{ message }`                                        | Narration failed (results still valid) |
+| Event               | Payload                                                              | Purpose                                          |
+| ------------------- | -------------------------------------------------------------------- | ------------------------------------------------ |
+| `results`           | `{ ranked, rejected, recovery, profile, citations }`                 | Authoritative engine output                      |
+| `turn`              | `{ stage, profile?, missingFields?, pendingCollateralType?, citations? }` | Conversational-turn meta (follow-up / advisory) |
+| `affordability`     | `AffordabilityVerdict`                                               | Engine verdict (offer mode only)                 |
+| `explanation`       | `{ delta: string }`                                                  | LLM narration token                              |
+| `done`              | `{}`                                                                 | Stream complete                                  |
+| `explanation_error` | `{ message }`                                                        | Narration failed (partial text stays valid)      |
 
-Non-streaming turns return plain JSON with a `stage` discriminator (see [API Documentation](#post-apichat)).
+Follow-up and advisory turns stream too: the `turn` event carries the structured fields first (so the client can mirror the profile and queue the inline form), then the advisor's reply streams as `explanation` deltas — the user sees text after the extraction call plus the model's time-to-first-token instead of waiting for the full completion. Only policy answers, the manual-form fallback, and error turns return plain JSON (see [API Documentation](#post-apichat)).
+
+Canned fallbacks (the localized follow-up question, the out-of-scope reply) are delivered as a single narration delta when the advisor stream is unavailable, so the visible text is identical whether or not the LLM cooperates.
 
 ### Degradation and Fallback Matrix
 
-| Failure                                  | Behavior                                                                   |
-| ---------------------------------------- | -------------------------------------------------------------------------- |
-| Extraction LLM call fails                | Localized error + `fallback_to_manual_form` stage                          |
-| Advisor (`converse`) fails on follow-up  | Canned localized follow-up question from `questionEngine`                  |
-| Advisor fails on advisory turn           | Friendly localized out-of-scope reply with rejection reason                |
-| Follow-up cap reached (3 turns)          | Inline manual form with human-labeled fields (+ collateral value field)    |
-| Embedding/retrieval fails                | Conversation continues ungrounded; policy answers say "not found"          |
-| Narration stream fails                   | `explanation_error` event — ranked results already delivered               |
-| Rate limit exceeded                      | HTTP 429 with `Retry-After` and a localized reply                          |
-| Injection pattern detected               | HTTP 400 with a localized block notice                                     |
+| Failure                                 | Behavior                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| Extraction LLM call fails               | Localized error + `fallback_to_manual_form` stage                       |
+| Advisor (`converse`) fails on follow-up | Canned localized follow-up question from `questionEngine`               |
+| Advisor fails on advisory turn          | Friendly localized out-of-scope reply with rejection reason             |
+| Follow-up cap reached (3 turns)         | Inline manual form with human-labeled fields (+ collateral value field) |
+| Embedding/retrieval fails               | Conversation continues ungrounded; policy answers say "not found"       |
+| Narration stream fails                  | `explanation_error` event — ranked results already delivered            |
+| Rate limit exceeded                     | HTTP 429 with `Retry-After` and a localized reply                       |
+| Injection pattern detected              | HTTP 400 with a localized block notice                                  |
 
 ---
 
@@ -488,12 +494,12 @@ Each POST passes through, in order:
 
 ```typescript
 interface ChatSession {
-  profile: Record<string, unknown>;     // merged, sanitized borrower profile
-  turns: number;                        // follow-up turn counter (cap 3)
-  offerHistory?: ConversationTurn[];    // offer-discussion transcript (max 20)
-  wizardHistory?: ConversationTurn[];   // wizard transcript for advisor context (max 20)
-  offerVerdict?: AffordabilityVerdict;  // last engine verdict — keeps later turns grounded
-  pendingCollateralLoai?: string;       // asset offered, value unknown — advisor asks
+  profile: Record<string, unknown>; // merged, sanitized borrower profile
+  turns: number; // follow-up turn counter (cap 3)
+  offerHistory?: ConversationTurn[]; // offer-discussion transcript (max 20)
+  wizardHistory?: ConversationTurn[]; // wizard transcript for advisor context (max 20)
+  offerVerdict?: AffordabilityVerdict; // last engine verdict — keeps later turns grounded
+  pendingCollateralLoai?: string; // asset offered, value unknown — advisor asks
 }
 ```
 
@@ -517,24 +523,24 @@ The Decision Engine (`src/lib/engine/`) is a pure-function computation layer wit
 
 ### Pipeline Stages
 
-| Stage      | Module                  | Responsibility                                                              |
-| ---------- | ----------------------- | --------------------------------------------------------------------------- |
-| 1. Filter  | `filterEligible.ts`     | Eliminate by purpose, amount cap, term range, income floor, collateral cap  |
-| 2. Payment | `calcMonthlyPayment.ts` | Compute annuity or equal-principal monthly payment                          |
-| 3. DTI/LTV | `calcDTI.ts`, `collateral.ts` | Debt-to-income ratio (cap 60%) or loan-to-value for secured requests  |
-| 4. Risk    | `scoreRisk.ts`, `collateral.ts` | Score risk from DTI + term, or from LTV bands for asset-backed loans |
-| 5. Rank    | `rankMCDA.ts`           | Weighted-sum MCDA with priority-adjusted weights                            |
-| 6. Recover | `recoveryPlan.ts`       | When ranking is empty: concrete numeric path to eligibility                 |
+| Stage      | Module                          | Responsibility                                                             |
+| ---------- | ------------------------------- | -------------------------------------------------------------------------- |
+| 1. Filter  | `filterEligible.ts`             | Eliminate by purpose, amount cap, term range, income floor, collateral cap |
+| 2. Payment | `calcMonthlyPayment.ts`         | Compute annuity or equal-principal monthly payment                         |
+| 3. DTI/LTV | `calcDTI.ts`, `collateral.ts`   | Debt-to-income ratio (cap 60%) or loan-to-value for secured requests       |
+| 4. Risk    | `scoreRisk.ts`, `collateral.ts` | Score risk from DTI + term, or from LTV bands for asset-backed loans       |
+| 5. Rank    | `rankMCDA.ts`                   | Weighted-sum MCDA with priority-adjusted weights                           |
+| 6. Recover | `recoveryPlan.ts`               | When ranking is empty: concrete numeric path to eligibility                |
 
 ### Secured-Lending Policy Constants
 
 LTV caps are anchored to published Vietnamese bank policies (as of 2026-07), chosen conservative-to-typical so the engine never over-promises:
 
-| Asset class     | LTV cap | Anchor                                                        |
-| --------------- | ------- | ------------------------------------------------------------- |
-| `bat_dong_san`  | 0.70    | SeABank 70–80%, VIB 70–90% of appraised value                 |
-| `o_to`          | 0.80    | Techcombank up to 80% of vehicle value                        |
-| `so_tiet_kiem`  | 0.90    | BIDV 90% of savings-book value                                |
+| Asset class    | LTV cap | Anchor                                        |
+| -------------- | ------- | --------------------------------------------- |
+| `bat_dong_san` | 0.70    | SeABank 70–80%, VIB 70–90% of appraised value |
+| `o_to`         | 0.80    | Techcombank up to 80% of vehicle value        |
+| `so_tiet_kiem` | 0.90    | BIDV 90% of savings-book value                |
 
 **Income relief:** at or below a request-LTV of 0.50 the collateral is strong enough that the loan qualifies on asset coverage and the income floor is waived — income may legitimately be `null` entering the pipeline, and risk is then scored from LTV bands (≤0.5 low, ≤0.7 medium, above high) so secured and unsecured candidates stay comparable in ranking.
 
@@ -628,7 +634,7 @@ Only suggestions that improve the score are shown, sorted by impact magnitude.
 
 ### POST /api/chat
 
-Full advisory flow. Returns either a JSON turn (follow-up, advisory, policy, form fallback) or an SSE stream (engine results + narration).
+Full advisory flow. Returns either a JSON turn (policy answer, manual-form fallback, errors) or an SSE stream (engine results, follow-up, or advisory reply — all narrated live).
 
 **Request:**
 
@@ -650,25 +656,29 @@ Full advisory flow. Returns either a JSON turn (follow-up, advisory, policy, for
 - `profile`, `messages`, `history` — client-held state re-sent each request so the server session (an in-memory cache) rehydrates after restarts. Untrusted: shape-checked and sanitized.
 - `offer`, `affordability` — present only in offer-discussion mode.
 
-**Response (JSON turns):**
+**Response (SSE — follow-up / advisory turns):**
 
-```json
-{
-  "reply": "Bạn dự định vay trong bao lâu?",
-  "profile": { "muc_dich": "mua_nha", "so_tien": 2000000000 },
-  "missingFields": ["thoi_han_thang"],
-  "pendingCollateralType": "bat_dong_san",
-  "stage": "adaptive_followup",
-  "citations": [{ "bank": "Vietcombank", "section": "Home Loan Policy" }]
-}
+```
+event: turn
+data: {"stage":"adaptive_followup","profile":{...},"missingFields":["thoi_han_thang"],
+       "pendingCollateralType":"bat_dong_san","citations":[...]}
+
+event: explanation
+data: {"delta":"Bạn dự định vay "}
+
+event: explanation
+data: {"delta":"trong bao lâu?"}
+
+event: done
+data: {}
 ```
 
-| Stage                     | Meaning                                                              |
-| ------------------------- | -------------------------------------------------------------------- |
-| `adaptive_followup`       | Advisor asked for the next missing detail(s) naturally               |
-| `fallback_to_manual_form` | Follow-up cap reached — render the inline form for `missingFields`   |
-| `policy_answer`           | RAG policy answer in `explanation` + `citations`                     |
-| `advisory_answer`         | Non-priceable conversation (chat, real-life advice, invalid values)  |
+| Stage                     | Channel | Meaning                                                             |
+| ------------------------- | ------- | ------------------------------------------------------------------- |
+| `adaptive_followup`       | SSE     | Advisor asks for the next missing detail(s), streamed live          |
+| `advisory_answer`         | SSE     | Non-priceable conversation (chat, real-life advice, invalid values) |
+| `fallback_to_manual_form` | JSON    | Follow-up cap reached — render the inline form for `missingFields`  |
+| `policy_answer`           | JSON    | RAG policy answer in `explanation` + `citations`                    |
 
 **Response (SSE — profile complete):**
 
@@ -829,7 +839,7 @@ The `SurvivalChart` component adds interactive hover tooltips via React state ov
 - **Input sanitization** — messages are normalized before processing; client-supplied profile, history, offer, and affordability payloads are shape-checked and sanitized exactly like LLM output.
 - **Two-step trust boundary** — `sanitizeExtraction` (schema-derived whitelist) then `validateProfile` (Zod) before anything reaches the engine.
 - **Prompt hardening** — the advisor persona is instructed that customer messages are data, not instructions.
-- **No secret leakage** — API keys live only in server-side env vars; error logs record key *presence*, never values; stack traces never reach the client.
+- **No secret leakage** — API keys live only in server-side env vars; error logs record key _presence_, never values; stack traces never reach the client.
 - **Engine isolation** — the Decision Engine has no I/O surface at all, so no input can trigger side effects.
 
 ---
@@ -838,16 +848,16 @@ The `SurvivalChart` component adds interactive hover tooltips via React state ov
 
 ### Environment Variables
 
-| Variable                    | Required        | Default                                          | Description                           |
-| --------------------------- | --------------- | ------------------------------------------------ | ------------------------------------- |
-| `DASHSCOPE_API_KEY`         | Yes (for AI)    | —                                                | Alibaba Cloud DashScope API key       |
-| `DASHSCOPE_BASE_URL`        | No              | `dashscope-intl.aliyuncs.com/compatible-mode/v1` | Custom endpoint                       |
-| `DASHSCOPE_MODEL`           | No              | `qwen-plus`                                      | LLM model identifier                  |
-| `DASHSCOPE_EMBEDDING_MODEL` | No              | `text-embedding-v3`                              | Embedding model                       |
-| `LLM_PROVIDER`              | No              | `qwen`                                           | Provider switch: `qwen` or `deepseek` |
-| `DEEPSEEK_API_KEY`          | If deepseek     | —                                                | DeepSeek API key                      |
-| `DEEPSEEK_BASE_URL`         | No              | `api.deepseek.com/v1`                            | Custom endpoint                       |
-| `DEEPSEEK_MODEL`            | No              | `deepseek-chat`                                  | Model identifier                      |
+| Variable                    | Required     | Default                                          | Description                           |
+| --------------------------- | ------------ | ------------------------------------------------ | ------------------------------------- |
+| `DASHSCOPE_API_KEY`         | Yes (for AI) | —                                                | Alibaba Cloud DashScope API key       |
+| `DASHSCOPE_BASE_URL`        | No           | `dashscope-intl.aliyuncs.com/compatible-mode/v1` | Custom endpoint                       |
+| `DASHSCOPE_MODEL`           | No           | `qwen-plus`                                      | LLM model identifier                  |
+| `DASHSCOPE_EMBEDDING_MODEL` | No           | `text-embedding-v3`                              | Embedding model                       |
+| `LLM_PROVIDER`              | No           | `qwen`                                           | Provider switch: `qwen` or `deepseek` |
+| `DEEPSEEK_API_KEY`          | If deepseek  | —                                                | DeepSeek API key                      |
+| `DEEPSEEK_BASE_URL`         | No           | `api.deepseek.com/v1`                            | Custom endpoint                       |
+| `DEEPSEEK_MODEL`            | No           | `deepseek-chat`                                  | Model identifier                      |
 
 Note: the same `DASHSCOPE_API_KEY` serves both the Qwen chat model and the embedding model. Without it, chat still works via DeepSeek (if configured) but RAG grounding silently disables — policy answers then report "not found in the documents" by design.
 

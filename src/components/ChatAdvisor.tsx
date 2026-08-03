@@ -101,6 +101,15 @@ const CHAT_LS_KEY = "vaya_chat_session";
 /** Cap on transcript messages sent to the server — mirrors the server's own bound. */
 const TRANSCRIPT_MAX_MESSAGES = 20;
 
+/** Beat of typing dots before a bot reply starts revealing (ms). */
+const BOT_TYPING_BEAT_MS = 420;
+/** Random jitter on the typing beat so replies feel organic (ms). */
+const BOT_TYPING_JITTER_MS = 260;
+/** Interval between typewriter reveal ticks (ms). */
+const TYPEWRITER_TICK_MS = 28;
+/** Target ticks to reveal a full reply — short and long answers finish in ~2s. */
+const TYPEWRITER_TARGET_TICKS = 80;
+
 /**
  * Map rendered chat messages to the API transcript shape. Only conversational
  * text carries dialogue context — result cards and inline forms are skipped.
@@ -195,7 +204,15 @@ type ApiResultData = {
 
 type Message =
   | { id: number; role: "user"; text: string }
-  | { id: number; role: "bot"; typing: boolean; kind: "text"; text: string }
+  | {
+      id: number;
+      role: "bot";
+      typing: boolean;
+      kind: "text";
+      text: string;
+      /** Typewriter offset: chars currently visible. Undefined = fully revealed. */
+      shown?: number;
+    }
   | {
       id: number;
       role: "bot";
@@ -351,7 +368,24 @@ export default function ChatAdvisor({
   const buildSnapshot = useCallback((): PersistedChat => {
     const oc = offerRef.current;
     return {
-      messages: messagesRef.current,
+      // Never persist transient UI state: the "processing" placeholder (empty
+      // typing bubble) and the mid-typewriter offset — a restored conversation
+      // always shows complete messages.
+      messages: messagesRef.current.flatMap((m): Message[] => {
+        if (m.role === "bot" && m.kind === "text") {
+          if (m.typing && !m.text) return [];
+          return [
+            {
+              id: m.id,
+              role: m.role,
+              typing: m.typing,
+              kind: m.kind,
+              text: m.text,
+            },
+          ];
+        }
+        return [m];
+      }),
       state: stateRef.current,
       pkg: pkgRef.current,
       pkgAns: pkgAns.current,
@@ -421,28 +455,50 @@ export default function ChatAdvisor({
     [rerender, scrollChat],
   );
 
-  // addBot: show typing bubble, then reveal text after a delay, then run cb.
+  // addBot: typing dots for a beat, then reveal the text progressively
+  // (typewriter), then run cb once fully revealed.
   const addBot = useCallback(
     (html: string, cb?: () => void) => {
       const id = nextId();
       messagesRef.current = [
         ...messagesRef.current,
-        { id, role: "bot", typing: true, kind: "text", text: html },
+        { id, role: "bot", typing: true, kind: "text", text: html, shown: 0 },
       ];
       rerender();
       scrollChat();
-      const timer = setTimeout(
-        () => {
+      const beat = setTimeout(() => {
+        messagesRef.current = messagesRef.current.map((m) =>
+          m.id === id && m.role === "bot" && m.kind === "text"
+            ? { ...m, typing: false }
+            : m,
+        );
+        rerender();
+        scrollChat();
+        const step = Math.max(
+          1,
+          Math.ceil(html.length / TYPEWRITER_TARGET_TICKS),
+        );
+        const tick = () => {
+          const cur = messagesRef.current.find((m) => m.id === id);
+          if (!cur || cur.role !== "bot" || cur.kind !== "text") return; // chat restarted mid-reveal
+          const next = (cur.shown ?? 0) + step;
+          const done = next >= html.length;
           messagesRef.current = messagesRef.current.map((m) =>
-            m.id === id && m.role === "bot" ? { ...m, typing: false } : m,
+            m.id === id && m.role === "bot" && m.kind === "text"
+              ? { ...m, shown: done ? html.length : next }
+              : m,
           );
           rerender();
           scrollChat();
-          cb && cb();
-        },
-        640 + Math.random() * 300,
-      );
-      timersRef.current.push(timer);
+          if (done) {
+            cb && cb();
+            return;
+          }
+          timersRef.current.push(setTimeout(tick, TYPEWRITER_TICK_MS));
+        };
+        timersRef.current.push(setTimeout(tick, TYPEWRITER_TICK_MS));
+      }, BOT_TYPING_BEAT_MS + Math.random() * BOT_TYPING_JITTER_MS);
+      timersRef.current.push(beat);
     },
     [rerender, scrollChat],
   );
@@ -529,12 +585,28 @@ export default function ChatAdvisor({
       const id = nextId();
       messagesRef.current = [
         ...messagesRef.current,
-        { id, role: "bot", typing: false, kind: "form", fields, collateralType },
+        {
+          id,
+          role: "bot",
+          typing: false,
+          kind: "form",
+          fields,
+          collateralType,
+        },
       ];
       rerender();
       scrollChat();
     },
     [rerender, scrollChat],
+  );
+
+  /** Remove a message by id — used to retract the transient "processing" bubble. */
+  const dropMessage = useCallback(
+    (id: number) => {
+      messagesRef.current = messagesRef.current.filter((m) => m.id !== id);
+      rerender();
+    },
+    [rerender],
   );
 
   /* ---- package-advisor flow ---- */
@@ -1234,6 +1306,21 @@ export default function ChatAdvisor({
       offerCtx?: OfferDiscussionContext,
       affordability?: AffordabilityInputs,
     ) => {
+      // "Processing" placeholder: typing dots from the moment the message is
+      // sent until the first response payload arrives — covers the LLM round-trip.
+      const pendingId = nextId();
+      messagesRef.current = [
+        ...messagesRef.current,
+        { id: pendingId, role: "bot", typing: true, kind: "text", text: "" },
+      ];
+      rerender();
+      scrollChat();
+      let pendingDropped = false;
+      const dropPending = () => {
+        if (pendingDropped) return;
+        pendingDropped = true;
+        dropMessage(pendingId);
+      };
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -1260,6 +1347,7 @@ export default function ChatAdvisor({
         // Non-SSE JSON response (follow-up question, policy answer, etc.)
         if (contentType.includes("application/json")) {
           const data = await res.json();
+          dropPending();
           // The server profile is the authoritative merged snapshot — mirror it
           // so the next request can rehydrate the session after a restart.
           if (data.profile) profileRef.current = data.profile;
@@ -1274,7 +1362,10 @@ export default function ChatAdvisor({
         }
 
         // SSE stream (results + explanation)
-        if (!res.body) return;
+        if (!res.body) {
+          dropPending();
+          return;
+        }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
@@ -1282,6 +1373,10 @@ export default function ChatAdvisor({
         // Accumulates the assistant's narration so the offer transcript mirror
         // (offerHistoryRef) can record this turn for restart rehydration.
         let assistantText = "";
+        // Inline form announced by a `turn` meta event — rendered only after
+        // the streamed reply completes so it lands below the text bubble.
+        let turnForm: { fields: string[]; collateralType?: string } | null =
+          null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -1298,7 +1393,17 @@ export default function ChatAdvisor({
               currentEvent = line.slice(7);
             } else if (line.startsWith("data: ")) {
               const payload = JSON.parse(line.slice(6));
-              if (currentEvent === "results" && payload.ranked) {
+              if (currentEvent === "turn") {
+                // Conversational-turn meta (follow-up / advisory): mirror the
+                // authoritative profile and remember the form to render later.
+                if (payload.profile) profileRef.current = payload.profile;
+                if (payload.missingFields?.length > 0) {
+                  turnForm = {
+                    fields: payload.missingFields,
+                    collateralType: payload.pendingCollateralType,
+                  };
+                }
+              } else if (currentEvent === "results" && payload.ranked) {
                 const s = stateRef.current;
                 // Mirror the authoritative profile snapshot (see JSON handler).
                 if (payload.profile) profileRef.current = payload.profile;
@@ -1306,6 +1411,7 @@ export default function ChatAdvisor({
                 // the Decision Engine used — it includes values the customer typed
                 // in free-text chat, which the client wizard state (s.amount/s.term)
                 // never sees. Fall back to wizard state only if the profile lacks them.
+                dropPending();
                 addBotApiResult({
                   ranked: payload.ranked,
                   rejected: payload.rejected ?? [],
@@ -1323,9 +1429,12 @@ export default function ChatAdvisor({
                 // Engine verdict (authoritative numbers) — render deterministically,
                 // then offer the stress-test CTA and a re-run.
                 const v = payload as AffordabilityVerdict;
+                dropPending();
                 addBot(renderVerdict(v));
                 setChips([survivalChip(v), retryChip()]);
               } else if (currentEvent === "explanation" && payload.delta) {
+                // The narration stream itself is the reveal — drop the placeholder.
+                dropPending();
                 // Accumulate all deltas into a single message bubble
                 assistantText += payload.delta;
                 if (explanationId === null) {
@@ -1352,12 +1461,16 @@ export default function ChatAdvisor({
                 rerender();
                 scrollChat();
               } else if (currentEvent === "explanation_error") {
+                dropPending();
                 addBot(payload.message ?? "Explanation unavailable.");
               }
               currentEvent = "";
             }
           }
         }
+
+        // The turn's streamed reply is complete — render any pending form.
+        if (turnForm) addBotForm(turnForm.fields, turnForm.collateralType);
 
         // Mirror the server's offer-history bookkeeping so a restart can be
         // rehydrated: remember this exchange (capped) within the offer talk.
@@ -1369,10 +1482,11 @@ export default function ChatAdvisor({
           ].slice(-OFFER_HISTORY_MAX_MESSAGES);
         }
       } catch {
+        dropPending();
         addBot(tRef.current("chat_err"));
       }
     },
-    [addBot, addBotForm, addBotApiResult, setChips],
+    [addBot, addBotForm, addBotApiResult, dropMessage, setChips],
   );
 
   const sendCurrent = () => {
@@ -1487,7 +1601,17 @@ export default function ChatAdvisor({
                 ) : m.kind === "text" ? (
                   <div
                     className="bub"
-                    dangerouslySetInnerHTML={{ __html: renderMd(m.text) }}
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        renderMd(
+                          m.shown != null && m.shown < m.text.length
+                            ? m.text.slice(0, m.shown)
+                            : m.text,
+                        ) +
+                        (m.shown != null && m.shown < m.text.length
+                          ? '<span class="tw-caret"></span>'
+                          : ""),
+                    }}
                   />
                 ) : m.kind === "api-result" ? (
                   <div className="bub">
@@ -1851,10 +1975,7 @@ function ApiResultCard({
                   rec.minMonthlyIncome > data.income && (
                     <li>
                       {t("api_fix_income")
-                        .replace(
-                          "{income}",
-                          fmtVND(rec.minMonthlyIncome, lang),
-                        )
+                        .replace("{income}", fmtVND(rec.minMonthlyIncome, lang))
                         .replace(
                           "{payment}",
                           fmtMonthly(rec.estMonthlyPayment),
@@ -2110,9 +2231,7 @@ function FormCard({
   const collateralMeta = collateralType
     ? COLLATERAL_LABELS[collateralType]
     : undefined;
-  const allFields = collateralMeta
-    ? [COLLATERAL_VALUE_KEY, ...fields]
-    : fields;
+  const allFields = collateralMeta ? [COLLATERAL_VALUE_KEY, ...fields] : fields;
   const metaOf = (f: string) =>
     f === COLLATERAL_VALUE_KEY ? collateralMeta : FIELD_LABELS[f];
 

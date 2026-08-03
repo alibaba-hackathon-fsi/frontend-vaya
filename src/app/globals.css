@@ -1183,6 +1183,16 @@ footer {
 .typing i:nth-child(3) {
   animation-delay: 0.3s;
 }
+/* Typewriter caret shown while a bot reply is revealing */
+.bub .tw-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background: currentColor;
+  animation: cblink 0.9s infinite;
+}
 @keyframes bp {
   0%,
   60%,

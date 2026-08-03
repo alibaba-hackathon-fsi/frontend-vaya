@@ -11,7 +11,8 @@ export const T: Record<Lang, Dict> = {
   en: {
     fl_tag: "THE MARKET",
     fl_title: "Rates move every day. Vaya is the one watching.",
-    fl_sub: "Twenty-plus lenders repricing constantly, promos quietly expiring. The moment something beats the deal you are on, you hear about it — you do not have to go looking.",
+    fl_sub:
+      "Twenty-plus lenders repricing constantly, promos quietly expiring. The moment something beats the deal you are on, you hear about it — you do not have to go looking.",
     foot_top: "Back to top",
     mk_start: "Create request",
     mk_case: "REQUEST",
@@ -24,10 +25,14 @@ export const T: Record<Lang, Dict> = {
     mk_open_file: "See the offers",
     mk_close_file: "Hide the offers",
     mk_offers_in: "Offers received",
-    mk_seed_6: "Buying in Thao Dien, developer hands over next month. The collateral valuation is already done — what I want is the promo locked for 36 months, not 12.",
-    mk_seed_7: "Moving up from an apartment to a townhouse. I am selling the current place to fund the deposit, so flexibility on early repayment matters more to me than the headline rate.",
-    mk_seed_8: "Importing a hybrid, papers clear customs next week. I want the longest term on offer so the monthly payment stays under ₫15M.",
-    mk_seed_9: "Paying for a part-time master's. Small amount, short term — what I actually care about is no insurance quietly bundled in.",
+    mk_seed_6:
+      "Buying in Thao Dien, developer hands over next month. The collateral valuation is already done — what I want is the promo locked for 36 months, not 12.",
+    mk_seed_7:
+      "Moving up from an apartment to a townhouse. I am selling the current place to fund the deposit, so flexibility on early repayment matters more to me than the headline rate.",
+    mk_seed_8:
+      "Importing a hybrid, papers clear customs next week. I want the longest term on offer so the monthly payment stays under ₫15M.",
+    mk_seed_9:
+      "Paying for a part-time master's. Small amount, short term — what I actually care about is no insurance quietly bundled in.",
     /* ---- round E: report download / marketplace ---- */
     chat_err: "Connection problem — please try again.",
     nav_market: "Marketplace",
@@ -41,27 +46,35 @@ export const T: Record<Lang, Dict> = {
     rep_c_interest: "Total interest",
     rep_chart: "Total interest, side by side",
     rep_steps: "What to do next",
-    rep_s1: "Take this to the bank at the top and ask them to match or beat the rate in writing.",
-    rep_s2: "Have the document checklist ready before you apply — missing paperwork is the usual cause of delay.",
-    rep_s3: "Check what the payment becomes after the promotional period ends, not just the headline rate.",
-    rep_disc: "Indicative figures based on published rates and the details you gave. This is not a credit offer — your final rate depends on the bank's assessment of your file.",
+    rep_s1:
+      "Take this to the bank at the top and ask them to match or beat the rate in writing.",
+    rep_s2:
+      "Have the document checklist ready before you apply — missing paperwork is the usual cause of delay.",
+    rep_s3:
+      "Check what the payment becomes after the promotional period ends, not just the headline rate.",
+    rep_disc:
+      "Indicative figures based on published rates and the details you gave. This is not a credit offer — your final rate depends on the bank's assessment of your file.",
     rep_print: "Print / Save as PDF",
     mk_tag: "MARKETPLACE",
     mk_title: "Stop shopping. Make the banks come to you.",
-    mk_sub: "Post one anonymous request and banks bid against each other in the open. Every offer sits next to that bank's own published rate — the gap between them is what competition is actually worth.",
+    mk_sub:
+      "Post one anonymous request and banks bid against each other in the open. Every offer sits next to that bank's own published rate — the gap between them is what competition is actually worth.",
     mk_board: "This board",
     mk_st_req: "open requests",
     mk_st_off: "offers made",
     mk_st_cut: "avg. below listed",
     mk_cta: "Post a loan request",
-    mk_cta_sub: "Takes a minute. Your name never appears — banks bid on the numbers.",
+    mk_cta_sub:
+      "Takes a minute. Your name never appears — banks bid on the numbers.",
     mk_new: "Your request",
     mk_post: "Post to the board",
-    mk_privacy: "Anonymous. Banks see the figures, never your identity or contact details.",
+    mk_privacy:
+      "Anonymous. Banks see the figures, never your identity or contact details.",
     mk_f_income: "Monthly income",
     mk_f_collateral: "Collateral available?",
     mk_f_note: "Anything banks should know?",
-    mk_f_note_ph: "Optional — context wins better offers. Five years in the same job, 30% down ready, that sort of thing.",
+    mk_f_note_ph:
+      "Optional — context wins better offers. Five years in the same job, 30% down ready, that sort of thing.",
     mk_yes: "Yes",
     mk_no: "No",
     mk_inc_1: "Under ₫20M/mo",
@@ -79,18 +92,23 @@ export const T: Record<Lang, Dict> = {
     mk_no_col: "No collateral",
     mk_best_now: "Best bid",
     mk_vs_listed: "vs listed",
-    mk_waiting: "Sent to matching banks — first replies usually land within the hour",
+    mk_waiting:
+      "Sent to matching banks — first replies usually land within the hour",
     mk_no_offers: "No offers yet",
     mk_offers: "offers",
     mk_leading: "Leading",
     mk_up_to: "up to",
     mk_expires: "expires in",
     mk_take: "Discuss this offer",
-    mk_discuss_greet: "Let's talk about {bank}'s offer: {rate}%/year ({listed}% listed — {cut}% below listed), up to {max}, term up to {term}. Conditions: {conditions}. This is an indicative quote, not a credit approval — what would you like to know?",
+    mk_discuss_greet:
+      "Let's talk about {bank}'s offer: {rate}%/year ({listed}% listed — {cut}% below listed), up to {max}, term up to {term}. Conditions: {conditions}. This is an indicative quote, not a credit approval — what would you like to know?",
     mk_afford_chip: "Can I afford this?",
-    mk_ask_income: "Sure — what is your monthly income? (Just the number, e.g. 30 million.)",
-    mk_verdict_ok: "Engine check: borrowing {amount} over {term} at the offered {rate}%/year, your first payment is about {payment}/month. That is {dti} of your {income}/month income — within the {limit} safe limit. Risk level: {risk}.",
-    mk_verdict_over: "Engine check: borrowing {amount} over {term} at the offered {rate}%/year, your first payment is about {payment}/month. That is {dti} of your {income}/month income — over the {limit} safe limit. Risk level: {risk}. A longer term or a smaller amount would bring it down.",
+    mk_ask_income:
+      "Sure — what is your monthly income? (Just the number, e.g. 30 million.)",
+    mk_verdict_ok:
+      "Engine check: borrowing {amount} over {term} at the offered {rate}%/year, your first payment is about {payment}/month. That is {dti} of your {income}/month income — within the {limit} safe limit. Risk level: {risk}.",
+    mk_verdict_over:
+      "Engine check: borrowing {amount} over {term} at the offered {rate}%/year, your first payment is about {payment}/month. That is {dti} of your {income}/month income — over the {limit} safe limit. Risk level: {risk}. A longer term or a smaller amount would bring it down.",
     mk_run_survival: "Stress-test with survival score",
     mk_afford_retry: "Re-check affordability",
     mk_risk_low: "low",
@@ -101,7 +119,8 @@ export const T: Record<Lang, Dict> = {
     mk_d: "d ago",
     mk_empty_t: "Nothing posted in this category",
     mk_empty_d: "Try another category — or post yours and be the first.",
-    mk_foot: "Offers on this board are indicative quotes from participating banks, not credit approvals. A bank still has to underwrite your file before anything becomes binding.",
+    mk_foot:
+      "Offers on this board are indicative quotes from participating banks, not credit approvals. A bank still has to underwrite your file before anything becomes binding.",
     mk_v_income: "Income verified",
     mk_v_id: "ID verified",
     mk_v_biz: "Business registered",
@@ -115,17 +134,24 @@ export const T: Record<Lang, Dict> = {
     mk_c_fast: "Disbursed in 48h",
     mk_c_statements: "6 months of statements",
     mk_c_ltv80: "Up to 80% LTV",
-    mk_seed_1: "Second home in Thu Duc, handover in Q3. I have 35% down and I want the promotional rate to run at least 24 months — I would rather pay a little more now than walk into a rate cliff.",
-    mk_seed_2: "Coffee roastery, three outlets, four years trading. Working capital for a fourth site. Books are clean and VAT is filed monthly.",
-    mk_seed_3: "Trading up to a seven-seater, buying from an authorised dealer, registration ready. Fastest disbursement wins — I need it before Tet.",
-    mk_seed_4: "Consolidating two credit cards. All I want is one predictable payment and no early-settlement penalty.",
-    mk_seed_5: "Refinancing an existing mortgage currently at 11.2%. Property valued at ₫3.6B, ₫1.5B outstanding. Come and take it.",
+    mk_seed_1:
+      "Second home in Thu Duc, handover in Q3. I have 35% down and I want the promotional rate to run at least 24 months — I would rather pay a little more now than walk into a rate cliff.",
+    mk_seed_2:
+      "Coffee roastery, three outlets, four years trading. Working capital for a fourth site. Books are clean and VAT is filed monthly.",
+    mk_seed_3:
+      "Trading up to a seven-seater, buying from an authorised dealer, registration ready. Fastest disbursement wins — I need it before Tet.",
+    mk_seed_4:
+      "Consolidating two credit cards. All I want is one predictable payment and no early-settlement penalty.",
+    mk_seed_5:
+      "Refinancing an existing mortgage currently at 11.2%. Property valued at ₫3.6B, ₫1.5B outstanding. Come and take it.",
     /* ---- round D: compare / human desk / email checklist / glossary ---- */
     cx_tag: "COMPARE",
     cx_title: "Put the packages on the same ruler",
-    cx_sub: "Headline rates are not comparable on their own: every package caps a different amount and term, and some promos expire. Set one amount and one term, then see what each actually costs.",
+    cx_sub:
+      "Headline rates are not comparable on their own: every package caps a different amount and term, and some promos expire. Set one amount and one term, then see what each actually costs.",
     cx_assume: "Your assumptions",
-    cx_clamped: "Some packages cap out below your figures — those columns fall back to their own maximum.",
+    cx_clamped:
+      "Some packages cap out below your figures — those columns fall back to their own maximum.",
     cx_metric: "Metric",
     cx_best: "Best",
     cx_leads: "Leads on {n}",
@@ -155,27 +181,31 @@ export const T: Record<Lang, Dict> = {
     cx_added: "In comparison",
     cx_full: "You can compare {n} packages at a time — remove one first.",
     cx_empty_t: "Nothing to compare yet",
-    cx_empty_d: "Pick at least two packages from the market table and they will line up side by side here.",
+    cx_empty_d:
+      "Pick at least two packages from the market table and they will line up side by side here.",
     cx_empty_btn: "Browse packages",
     hm_cta: "Talk to a human",
     hm_back: "← Back to AI advisor",
     hm_tag: "HUMAN DESK",
     hm_title: "Would you rather speak to a person?",
-    hm_sub: "Our specialists take the cases an AI should not settle alone — a rejection you want to contest, income that does not fit a template, paperwork a bank has already sent back.",
+    hm_sub:
+      "Our specialists take the cases an AI should not settle alone — a rejection you want to contest, income that does not fit a template, paperwork a bank has already sent back.",
     hm_hours_lab: "Desk hours (GMT+7)",
     hm_hours_wd: "Mon – Fri",
     hm_hours_sat: "Saturday",
     hm_hours_sun: "Sunday",
     hm_closed: "Closed",
     hm_offline_t: "Nobody is on duty right now",
-    hm_offline_d: "The desk is closed. Leave a number and a specialist calls you back when it reopens — or carry on with the AI advisor, which answers straight away.",
+    hm_offline_d:
+      "The desk is closed. Leave a number and a specialist calls you back when it reopens — or carry on with the AI advisor, which answers straight away.",
     hm_use_ai: "Continue with AI",
     hm_team: "The desk",
     hm_role_home: "Home loans",
     hm_role_biz: "Business & SME",
     hm_role_car: "Car & personal",
     hm_away: "Away",
-    hm_note: "Specialists are licensed advisors, not bank staff — they earn nothing on which package you pick.",
+    hm_note:
+      "Specialists are licensed advisors, not bank staff — they earn nothing on which package you pick.",
     hm_cb_title: "Request a callback",
     hm_f_name: "Your name",
     hm_f_name_ph: "Nguyễn Văn A",
@@ -193,7 +223,8 @@ export const T: Record<Lang, Dict> = {
     hm_done_d: "A specialist will call {phone} once the desk reopens.",
     hm_done_again: "Send another",
     mail_cta: "Email me this checklist",
-    mail_cta_sub: "{n} required documents, as a tick-list you can work through.",
+    mail_cta_sub:
+      "{n} required documents, as a tick-list you can work through.",
     mail_title: "Send the checklist",
     mail_send: "Send",
     mail_sending: "Sending…",
@@ -211,34 +242,44 @@ export const T: Record<Lang, Dict> = {
     sh_3_d: "How often you still make it through — and where it breaks.",
     g_healthy: "Healthy:",
     g_emi_t: "Equated Monthly Instalment",
-    g_emi_d: "The fixed amount you hand the bank every month — principal plus interest.",
+    g_emi_d:
+      "The fixed amount you hand the bank every month — principal plus interest.",
     g_emi_h: "under 40% of take-home pay",
     g_dti_t: "Debt-to-Income",
-    g_dti_d: "Every monthly debt payment you have, as a share of your income. Banks read it as how loaded you already are.",
+    g_dti_d:
+      "Every monthly debt payment you have, as a share of your income. Banks read it as how loaded you already are.",
     g_dti_h: "under 45%",
     g_pti_t: "Payment-to-Income",
-    g_pti_d: "Just this loan's monthly payment against your income. Unlike DTI it ignores your other debts.",
+    g_pti_d:
+      "Just this loan's monthly payment against your income. Unlike DTI it ignores your other debts.",
     g_pti_h: "under 35%",
     g_ltv_t: "Loan-to-Value",
-    g_ltv_d: "How much of the asset's price the loan covers. The rest is your down payment.",
+    g_ltv_d:
+      "How much of the asset's price the loan covers. The rest is your down payment.",
     g_ltv_h: "80% or less",
     g_mkcut_t: "Avg. below listed",
-    g_mkcut_d: "For each request, the best bank bid against that bank's public listed rate — averaged across the whole board. A bigger gap means banks are competing harder to win your loan.",
+    g_mkcut_d:
+      "For each request, the best bank bid against that bank's public listed rate — averaged across the whole board. A bigger gap means banks are competing harder to win your loan.",
     g_mkcut_h: "1%+ below listed",
     g_disp_t: "Monthly surplus",
-    g_disp_d: "What is left after the instalment and living costs. This is the money that absorbs a bad month.",
+    g_disp_d:
+      "What is left after the instalment and living costs. This is the money that absorbs a bad month.",
     g_disp_h: "positive, with room left to save",
     g_efr_t: "Emergency fund runway",
-    g_efr_d: "How many months you could keep paying if your income stopped today.",
+    g_efr_d:
+      "How many months you could keep paying if your income stopped today.",
     g_efr_h: "3 months or more",
     g_stab_t: "Income stability",
-    g_stab_d: "How predictable your income is, from your job type and history. Steadier income absorbs shocks better.",
+    g_stab_d:
+      "How predictable your income is, from your job type and history. Steadier income absorbs shocks better.",
     g_stab_h: "60/100 or higher",
     g_score_t: "Survival Score",
-    g_score_d: "A 0–100 summary of how well this loan survives 60 simulated months of your cash flow, bad months included.",
+    g_score_d:
+      "A 0–100 summary of how well this loan survives 60 simulated months of your cash flow, bad months included.",
     g_score_h: "70 or above",
     g_ruin_t: "Cash shortfall probability",
-    g_ruin_d: "The share of simulated futures where your savings hit zero before the loan is paid off.",
+    g_ruin_d:
+      "The share of simulated futures where your savings hit zero before the loan is paid off.",
     g_ruin_h: "under 20%",
     nav_markets: "Markets",
     nav_why: "Why Vaya",
@@ -644,9 +685,12 @@ export const T: Record<Lang, Dict> = {
     api_form_submit: "Submit",
     api_form_sent: "Sent! Calculating...",
     api_roadmap_title: "Roadmap to eligibility:",
-    api_roadmap_dti: "Extend your loan term (try {term} months) to reduce monthly payment below the affordability cap",
-    api_roadmap_amount: "Reduce the loan amount to fit within bank package limits",
-    api_roadmap_income: "Increase documented monthly income or add a co-borrower",
+    api_roadmap_dti:
+      "Extend your loan term (try {term} months) to reduce monthly payment below the affordability cap",
+    api_roadmap_amount:
+      "Reduce the loan amount to fit within bank package limits",
+    api_roadmap_income:
+      "Increase documented monthly income or add a co-borrower",
     api_roadmap_general: "Re-run the advisor after adjusting your inputs above",
     api_fix_amount:
       "Lower the amount to {amount} or less — the most any package for this purpose lends",
@@ -654,13 +698,15 @@ export const T: Record<Lang, Dict> = {
       "Adjust the term to {term} months — the closest these packages support",
     api_fix_income:
       "Show verifiable income of at least {income}/month (estimated payment {payment}/month at the best available rate)",
-    surv_from_chat_notice: "We've pre-filled amount, term, income, and bank from your conversation. Please complete the remaining fields below for an accurate cashflow analysis.",
+    surv_from_chat_notice:
+      "We've pre-filled amount, term, income, and bank from your conversation. Please complete the remaining fields below for an accurate cashflow analysis.",
   },
 
   vi: {
     fl_tag: "THỊ TRƯỜNG",
     fl_title: "Lãi suất đổi mỗi ngày. Vaya là bên ngồi canh.",
-    fl_sub: "Hơn 20 ngân hàng chỉnh giá liên tục, ưu đãi lặng lẽ hết hạn. Ngay khi có gói tốt hơn gói bạn đang trả, bạn sẽ biết — khỏi phải tự đi dò.",
+    fl_sub:
+      "Hơn 20 ngân hàng chỉnh giá liên tục, ưu đãi lặng lẽ hết hạn. Ngay khi có gói tốt hơn gói bạn đang trả, bạn sẽ biết — khỏi phải tự đi dò.",
     foot_top: "Về đầu trang",
     mk_start: "Tạo yêu cầu",
     mk_case: "HỒ SƠ",
@@ -673,10 +719,14 @@ export const T: Record<Lang, Dict> = {
     mk_open_file: "Xem các đề nghị",
     mk_close_file: "Ẩn các đề nghị",
     mk_offers_in: "Đề nghị đã nhận",
-    mk_seed_6: "Mua ở Thảo Điền, chủ đầu tư bàn giao tháng sau. Định giá tài sản đã xong — điều tôi cần là ưu đãi khoá trong 36 tháng, không phải 12.",
-    mk_seed_7: "Đổi từ căn hộ lên nhà phố. Tôi bán căn đang ở để lấy tiền đặt cọc, nên linh hoạt trả nợ trước hạn quan trọng với tôi hơn là lãi suất niêm yết.",
-    mk_seed_8: "Nhập xe hybrid, giấy tờ thông quan tuần sau. Tôi muốn kỳ hạn dài nhất có thể để khoản trả hàng tháng dưới 15 triệu.",
-    mk_seed_9: "Đóng học phí thạc sĩ vừa học vừa làm. Số tiền nhỏ, kỳ hạn ngắn — cái tôi quan tâm là đừng gài bảo hiểm vào hợp đồng.",
+    mk_seed_6:
+      "Mua ở Thảo Điền, chủ đầu tư bàn giao tháng sau. Định giá tài sản đã xong — điều tôi cần là ưu đãi khoá trong 36 tháng, không phải 12.",
+    mk_seed_7:
+      "Đổi từ căn hộ lên nhà phố. Tôi bán căn đang ở để lấy tiền đặt cọc, nên linh hoạt trả nợ trước hạn quan trọng với tôi hơn là lãi suất niêm yết.",
+    mk_seed_8:
+      "Nhập xe hybrid, giấy tờ thông quan tuần sau. Tôi muốn kỳ hạn dài nhất có thể để khoản trả hàng tháng dưới 15 triệu.",
+    mk_seed_9:
+      "Đóng học phí thạc sĩ vừa học vừa làm. Số tiền nhỏ, kỳ hạn ngắn — cái tôi quan tâm là đừng gài bảo hiểm vào hợp đồng.",
     /* ---- round E: report download / marketplace ---- */
     chat_err: "Lỗi kết nối — vui lòng thử lại.",
     nav_market: "Sàn vay",
@@ -690,27 +740,35 @@ export const T: Record<Lang, Dict> = {
     rep_c_interest: "Tổng lãi",
     rep_chart: "Tổng lãi, đặt cạnh nhau",
     rep_steps: "Việc nên làm tiếp",
-    rep_s1: "Cầm bản này tới ngân hàng đứng đầu và yêu cầu họ cam kết bằng văn bản mức lãi bằng hoặc tốt hơn.",
-    rep_s2: "Chuẩn bị sẵn checklist giấy tờ trước khi nộp — thiếu hồ sơ là nguyên nhân chậm phổ biến nhất.",
-    rep_s3: "Xem khoản trả sau khi hết ưu đãi là bao nhiêu, đừng chỉ nhìn lãi suất quảng cáo.",
-    rep_disc: "Số liệu mang tính tham khảo, dựa trên lãi suất niêm yết và thông tin bạn cung cấp. Đây không phải cam kết cấp tín dụng — lãi suất cuối cùng phụ thuộc vào thẩm định hồ sơ của ngân hàng.",
+    rep_s1:
+      "Cầm bản này tới ngân hàng đứng đầu và yêu cầu họ cam kết bằng văn bản mức lãi bằng hoặc tốt hơn.",
+    rep_s2:
+      "Chuẩn bị sẵn checklist giấy tờ trước khi nộp — thiếu hồ sơ là nguyên nhân chậm phổ biến nhất.",
+    rep_s3:
+      "Xem khoản trả sau khi hết ưu đãi là bao nhiêu, đừng chỉ nhìn lãi suất quảng cáo.",
+    rep_disc:
+      "Số liệu mang tính tham khảo, dựa trên lãi suất niêm yết và thông tin bạn cung cấp. Đây không phải cam kết cấp tín dụng — lãi suất cuối cùng phụ thuộc vào thẩm định hồ sơ của ngân hàng.",
     rep_print: "In / Lưu PDF",
     mk_tag: "SÀN VAY",
     mk_title: "Đừng đi dò từng ngân hàng. Để ngân hàng tới tìm bạn.",
-    mk_sub: "Đăng một yêu cầu ẩn danh, các ngân hàng công khai chào giá cạnh tranh với nhau. Mỗi đề nghị được đặt cạnh chính lãi suất niêm yết của ngân hàng đó — khoảng chênh chính là giá trị thật của cạnh tranh.",
+    mk_sub:
+      "Đăng một yêu cầu ẩn danh, các ngân hàng công khai chào giá cạnh tranh với nhau. Mỗi đề nghị được đặt cạnh chính lãi suất niêm yết của ngân hàng đó — khoảng chênh chính là giá trị thật của cạnh tranh.",
     mk_board: "Sàn hôm nay",
     mk_st_req: "yêu cầu đang mở",
     mk_st_off: "đề nghị đã gửi",
     mk_st_cut: "thấp hơn niêm yết TB",
     mk_cta: "Đăng yêu cầu vay",
-    mk_cta_sub: "Chỉ mất một phút. Tên bạn không bao giờ xuất hiện — ngân hàng chào giá dựa trên con số.",
+    mk_cta_sub:
+      "Chỉ mất một phút. Tên bạn không bao giờ xuất hiện — ngân hàng chào giá dựa trên con số.",
     mk_new: "Yêu cầu của bạn",
     mk_post: "Đăng lên sàn",
-    mk_privacy: "Ẩn danh. Ngân hàng chỉ thấy con số, không thấy danh tính hay liên hệ của bạn.",
+    mk_privacy:
+      "Ẩn danh. Ngân hàng chỉ thấy con số, không thấy danh tính hay liên hệ của bạn.",
     mk_f_income: "Thu nhập hàng tháng",
     mk_f_collateral: "Có tài sản đảm bảo?",
     mk_f_note: "Điều gì ngân hàng nên biết?",
-    mk_f_note_ph: "Không bắt buộc — càng rõ hoàn cảnh càng nhận được đề nghị tốt. Kiểu như: làm cùng chỗ 5 năm, đã có sẵn 30% vốn tự có.",
+    mk_f_note_ph:
+      "Không bắt buộc — càng rõ hoàn cảnh càng nhận được đề nghị tốt. Kiểu như: làm cùng chỗ 5 năm, đã có sẵn 30% vốn tự có.",
     mk_yes: "Có",
     mk_no: "Không",
     mk_inc_1: "Dưới 20 triệu/tháng",
@@ -728,18 +786,23 @@ export const T: Record<Lang, Dict> = {
     mk_no_col: "Không tài sản đảm bảo",
     mk_best_now: "Chào giá tốt nhất",
     mk_vs_listed: "so với niêm yết",
-    mk_waiting: "Đã gửi tới các ngân hàng phù hợp — thường có phản hồi đầu tiên trong vòng một giờ",
+    mk_waiting:
+      "Đã gửi tới các ngân hàng phù hợp — thường có phản hồi đầu tiên trong vòng một giờ",
     mk_no_offers: "Chưa có đề nghị",
     mk_offers: "đề nghị",
     mk_leading: "Đang dẫn",
     mk_up_to: "tối đa",
     mk_expires: "hết hạn sau",
     mk_take: "Trao đổi về đề nghị này",
-    mk_discuss_greet: "Hãy cùng trao đổi về đề nghị của {bank}: {rate}%/năm (niêm yết {listed}% — thấp hơn {cut}%), tối đa {max}, kỳ hạn tới {term}. Điều kiện: {conditions}. Đây là chào giá tham khảo, không phải phê duyệt tín dụng — bạn muốn biết thêm điều gì?",
+    mk_discuss_greet:
+      "Hãy cùng trao đổi về đề nghị của {bank}: {rate}%/năm (niêm yết {listed}% — thấp hơn {cut}%), tối đa {max}, kỳ hạn tới {term}. Điều kiện: {conditions}. Đây là chào giá tham khảo, không phải phê duyệt tín dụng — bạn muốn biết thêm điều gì?",
     mk_afford_chip: "Tôi có trả nổi không?",
-    mk_ask_income: "Được chứ — thu nhập hàng tháng của bạn là bao nhiêu? (Chỉ cần con số, ví dụ 30 triệu.)",
-    mk_verdict_ok: "Kết quả từ công cụ tính: vay {amount} trong {term} với lãi suất chào {rate}%/năm, kỳ trả đầu tiên khoảng {payment}/tháng. Tương đương {dti} thu nhập {income}/tháng của bạn — trong giới hạn an toàn {limit}. Mức rủi ro: {risk}.",
-    mk_verdict_over: "Kết quả từ công cụ tính: vay {amount} trong {term} với lãi suất chào {rate}%/năm, kỳ trả đầu tiên khoảng {payment}/tháng. Tương đương {dti} thu nhập {income}/tháng của bạn — vượt giới hạn an toàn {limit}. Mức rủi ro: {risk}. Kéo dài kỳ hạn hoặc giảm số tiền vay sẽ giúp chỉ số này dễ chịu hơn.",
+    mk_ask_income:
+      "Được chứ — thu nhập hàng tháng của bạn là bao nhiêu? (Chỉ cần con số, ví dụ 30 triệu.)",
+    mk_verdict_ok:
+      "Kết quả từ công cụ tính: vay {amount} trong {term} với lãi suất chào {rate}%/năm, kỳ trả đầu tiên khoảng {payment}/tháng. Tương đương {dti} thu nhập {income}/tháng của bạn — trong giới hạn an toàn {limit}. Mức rủi ro: {risk}.",
+    mk_verdict_over:
+      "Kết quả từ công cụ tính: vay {amount} trong {term} với lãi suất chào {rate}%/năm, kỳ trả đầu tiên khoảng {payment}/tháng. Tương đương {dti} thu nhập {income}/tháng của bạn — vượt giới hạn an toàn {limit}. Mức rủi ro: {risk}. Kéo dài kỳ hạn hoặc giảm số tiền vay sẽ giúp chỉ số này dễ chịu hơn.",
     mk_run_survival: "Thử sức chịu đựng với điểm sinh tồn",
     mk_afford_retry: "Kiểm tra lại khả năng trả nợ",
     mk_risk_low: "thấp",
@@ -750,7 +813,8 @@ export const T: Record<Lang, Dict> = {
     mk_d: " ngày trước",
     mk_empty_t: "Chưa có bài nào ở mục này",
     mk_empty_d: "Thử mục khác — hoặc đăng bài của bạn và là người đầu tiên.",
-    mk_foot: "Các đề nghị trên sàn là chào giá tham khảo từ ngân hàng tham gia, không phải phê duyệt tín dụng. Ngân hàng vẫn phải thẩm định hồ sơ trước khi bất cứ điều gì có hiệu lực.",
+    mk_foot:
+      "Các đề nghị trên sàn là chào giá tham khảo từ ngân hàng tham gia, không phải phê duyệt tín dụng. Ngân hàng vẫn phải thẩm định hồ sơ trước khi bất cứ điều gì có hiệu lực.",
     mk_v_income: "Đã xác minh thu nhập",
     mk_v_id: "Đã xác minh danh tính",
     mk_v_biz: "Có đăng ký kinh doanh",
@@ -764,17 +828,24 @@ export const T: Record<Lang, Dict> = {
     mk_c_fast: "Giải ngân trong 48h",
     mk_c_statements: "Sao kê 6 tháng",
     mk_c_ltv80: "LTV tới 80%",
-    mk_seed_1: "Mua căn thứ hai ở Thủ Đức, bàn giao quý 3. Tôi có sẵn 35% vốn tự có và muốn ưu đãi kéo dài ít nhất 24 tháng — thà trả nhỉnh hơn bây giờ còn hơn dính cú sốc lãi suất sau này.",
-    mk_seed_2: "Xưởng rang cà phê, ba cửa hàng, kinh doanh bốn năm. Cần vốn lưu động mở điểm thứ tư. Sổ sách rõ ràng, VAT kê khai hàng tháng.",
-    mk_seed_3: "Đổi lên xe 7 chỗ, mua tại đại lý chính hãng, giấy tờ đã sẵn. Ai giải ngân nhanh nhất thì thắng — tôi cần trước Tết.",
-    mk_seed_4: "Gộp hai thẻ tín dụng lại. Tôi chỉ cần một khoản trả cố định dễ liệu và không bị phạt trả nợ trước hạn.",
-    mk_seed_5: "Tái cấp vốn khoản vay đang chịu lãi 11,2%. Tài sản định giá 3,6 tỷ, dư nợ còn 1,5 tỷ. Mời các ngân hàng vào chào.",
+    mk_seed_1:
+      "Mua căn thứ hai ở Thủ Đức, bàn giao quý 3. Tôi có sẵn 35% vốn tự có và muốn ưu đãi kéo dài ít nhất 24 tháng — thà trả nhỉnh hơn bây giờ còn hơn dính cú sốc lãi suất sau này.",
+    mk_seed_2:
+      "Xưởng rang cà phê, ba cửa hàng, kinh doanh bốn năm. Cần vốn lưu động mở điểm thứ tư. Sổ sách rõ ràng, VAT kê khai hàng tháng.",
+    mk_seed_3:
+      "Đổi lên xe 7 chỗ, mua tại đại lý chính hãng, giấy tờ đã sẵn. Ai giải ngân nhanh nhất thì thắng — tôi cần trước Tết.",
+    mk_seed_4:
+      "Gộp hai thẻ tín dụng lại. Tôi chỉ cần một khoản trả cố định dễ liệu và không bị phạt trả nợ trước hạn.",
+    mk_seed_5:
+      "Tái cấp vốn khoản vay đang chịu lãi 11,2%. Tài sản định giá 3,6 tỷ, dư nợ còn 1,5 tỷ. Mời các ngân hàng vào chào.",
     /* ---- round D: compare / human desk / email checklist / glossary ---- */
     cx_tag: "SO SÁNH",
     cx_title: "Đặt các gói lên cùng một thước đo",
-    cx_sub: "Lãi suất niêm yết không so thẳng với nhau được: mỗi gói chặn một mức vay và kỳ hạn khác nhau, lại còn ưu đãi hết hạn. Chọn một số tiền và một kỳ hạn, rồi xem thực tế mỗi gói tốn bao nhiêu.",
+    cx_sub:
+      "Lãi suất niêm yết không so thẳng với nhau được: mỗi gói chặn một mức vay và kỳ hạn khác nhau, lại còn ưu đãi hết hạn. Chọn một số tiền và một kỳ hạn, rồi xem thực tế mỗi gói tốn bao nhiêu.",
     cx_assume: "Giả định của bạn",
-    cx_clamped: "Vài gói có trần thấp hơn con số bạn nhập — những cột đó lấy mức tối đa của chính nó.",
+    cx_clamped:
+      "Vài gói có trần thấp hơn con số bạn nhập — những cột đó lấy mức tối đa của chính nó.",
     cx_metric: "Chỉ số",
     cx_best: "Tốt nhất",
     cx_leads: "Dẫn {n} mục",
@@ -804,27 +875,31 @@ export const T: Record<Lang, Dict> = {
     cx_added: "Đang so sánh",
     cx_full: "Mỗi lần chỉ so sánh được {n} gói — bỏ bớt một gói trước nhé.",
     cx_empty_t: "Chưa có gì để so sánh",
-    cx_empty_d: "Chọn ít nhất hai gói từ bảng thị trường, chúng sẽ được xếp cạnh nhau ở đây.",
+    cx_empty_d:
+      "Chọn ít nhất hai gói từ bảng thị trường, chúng sẽ được xếp cạnh nhau ở đây.",
     cx_empty_btn: "Xem các gói vay",
     hm_cta: "Chat với người thật",
     hm_back: "← Về trợ lý AI",
     hm_tag: "TỔNG ĐÀI NGƯỜI THẬT",
     hm_title: "Bạn muốn nói chuyện với người thật?",
-    hm_sub: "Chuyên viên của Vaya nhận những ca mà AI không nên tự quyết — bị từ chối và muốn khiếu nại, thu nhập không theo khuôn mẫu, hồ sơ ngân hàng đã trả về.",
+    hm_sub:
+      "Chuyên viên của Vaya nhận những ca mà AI không nên tự quyết — bị từ chối và muốn khiếu nại, thu nhập không theo khuôn mẫu, hồ sơ ngân hàng đã trả về.",
     hm_hours_lab: "Giờ trực (GMT+7)",
     hm_hours_wd: "Thứ 2 – Thứ 6",
     hm_hours_sat: "Thứ 7",
     hm_hours_sun: "Chủ nhật",
     hm_closed: "Nghỉ",
     hm_offline_t: "Hiện chưa có ai trực",
-    hm_offline_d: "Tổng đài đang ngoài giờ. Để lại số điện thoại, chuyên viên sẽ gọi lại khi mở cửa — hoặc tiếp tục với trợ lý AI, trả lời ngay lập tức.",
+    hm_offline_d:
+      "Tổng đài đang ngoài giờ. Để lại số điện thoại, chuyên viên sẽ gọi lại khi mở cửa — hoặc tiếp tục với trợ lý AI, trả lời ngay lập tức.",
     hm_use_ai: "Tiếp tục với AI",
     hm_team: "Đội chuyên viên",
     hm_role_home: "Vay mua nhà",
     hm_role_biz: "Doanh nghiệp & SME",
     hm_role_car: "Mua xe & tiêu dùng",
     hm_away: "Ngoài giờ",
-    hm_note: "Chuyên viên là tư vấn có chứng chỉ, không phải nhân viên ngân hàng — họ không ăn hoa hồng theo gói bạn chọn.",
+    hm_note:
+      "Chuyên viên là tư vấn có chứng chỉ, không phải nhân viên ngân hàng — họ không ăn hoa hồng theo gói bạn chọn.",
     hm_cb_title: "Đăng ký gọi lại",
     hm_f_name: "Tên của bạn",
     hm_f_name_ph: "Nguyễn Văn A",
@@ -860,34 +935,43 @@ export const T: Record<Lang, Dict> = {
     sh_3_d: "Bạn trụ được bao nhiêu lần — và gãy ở chỗ nào.",
     g_healthy: "Ngưỡng an toàn:",
     g_emi_t: "Khoản trả góp hàng tháng",
-    g_emi_d: "Số tiền cố định bạn trả ngân hàng mỗi tháng — gồm cả gốc lẫn lãi.",
+    g_emi_d:
+      "Số tiền cố định bạn trả ngân hàng mỗi tháng — gồm cả gốc lẫn lãi.",
     g_emi_h: "dưới 40% thu nhập thực nhận",
     g_dti_t: "Tỷ lệ nợ trên thu nhập",
-    g_dti_d: "Tổng mọi khoản nợ phải trả hàng tháng so với thu nhập. Ngân hàng nhìn vào đây để biết bạn đã gánh bao nhiêu.",
+    g_dti_d:
+      "Tổng mọi khoản nợ phải trả hàng tháng so với thu nhập. Ngân hàng nhìn vào đây để biết bạn đã gánh bao nhiêu.",
     g_dti_h: "dưới 45%",
     g_pti_t: "Tỷ lệ trả nợ trên thu nhập",
-    g_pti_d: "Chỉ riêng khoản vay này chiếm bao nhiêu phần thu nhập mỗi tháng. Khác DTI ở chỗ không tính các nợ khác.",
+    g_pti_d:
+      "Chỉ riêng khoản vay này chiếm bao nhiêu phần thu nhập mỗi tháng. Khác DTI ở chỗ không tính các nợ khác.",
     g_pti_h: "dưới 35%",
     g_ltv_t: "Tỷ lệ vay trên giá trị tài sản",
-    g_ltv_d: "Khoản vay chiếm bao nhiêu phần giá trị tài sản. Phần còn lại là tiền bạn tự bỏ ra.",
+    g_ltv_d:
+      "Khoản vay chiếm bao nhiêu phần giá trị tài sản. Phần còn lại là tiền bạn tự bỏ ra.",
     g_ltv_h: "từ 80% trở xuống",
     g_mkcut_t: "TB thấp hơn niêm yết",
-    g_mkcut_d: "Với mỗi yêu cầu, so mức chào tốt nhất với lãi suất niêm yết công khai của chính ngân hàng đó — trung bình trên toàn sàn. Khoảng cách càng lớn nghĩa là các ngân hàng càng cạnh tranh gay gắt để giành khoản vay của bạn.",
+    g_mkcut_d:
+      "Với mỗi yêu cầu, so mức chào tốt nhất với lãi suất niêm yết công khai của chính ngân hàng đó — trung bình trên toàn sàn. Khoảng cách càng lớn nghĩa là các ngân hàng càng cạnh tranh gay gắt để giành khoản vay của bạn.",
     g_mkcut_h: "thấp hơn niêm yết từ 1% trở lên",
     g_disp_t: "Tiền dư mỗi tháng",
-    g_disp_d: "Số còn lại sau khi trả góp và chi tiêu sinh hoạt. Đây chính là khoản đỡ cho bạn khi gặp tháng khó.",
+    g_disp_d:
+      "Số còn lại sau khi trả góp và chi tiêu sinh hoạt. Đây chính là khoản đỡ cho bạn khi gặp tháng khó.",
     g_disp_h: "dương và còn dư để tiết kiệm",
     g_efr_t: "Quỹ dự phòng cầm cự được",
     g_efr_d: "Nếu hôm nay mất thu nhập, bạn còn trả nợ được bao nhiêu tháng.",
     g_efr_h: "từ 3 tháng trở lên",
     g_stab_t: "Mức ổn định thu nhập",
-    g_stab_d: "Thu nhập của bạn đều đặn tới đâu, tính theo loại công việc và lịch sử. Thu nhập càng đều càng chịu được cú sốc.",
+    g_stab_d:
+      "Thu nhập của bạn đều đặn tới đâu, tính theo loại công việc và lịch sử. Thu nhập càng đều càng chịu được cú sốc.",
     g_stab_h: "từ 60/100 trở lên",
     g_score_t: "Điểm sinh tồn",
-    g_score_d: "Thang 0–100 cho biết khoản vay trụ được tới đâu qua 60 tháng dòng tiền mô phỏng, tính cả những tháng xấu.",
+    g_score_d:
+      "Thang 0–100 cho biết khoản vay trụ được tới đâu qua 60 tháng dòng tiền mô phỏng, tính cả những tháng xấu.",
     g_score_h: "từ 70 trở lên",
     g_ruin_t: "Xác suất thiếu hụt tiền mặt",
-    g_ruin_d: "Tỷ lệ các kịch bản mô phỏng mà tiền tiết kiệm về 0 trước khi trả hết nợ.",
+    g_ruin_d:
+      "Tỷ lệ các kịch bản mô phỏng mà tiền tiết kiệm về 0 trước khi trả hết nợ.",
     g_ruin_h: "dưới 20%",
     nav_markets: "Thị trường",
     nav_why: "Vì sao Vaya",
@@ -950,7 +1034,8 @@ export const T: Record<Lang, Dict> = {
     emi_flow_1: "Vay {amt} với lãi suất {rate}%/năm trong {term} tháng",
     emi_flow_2: "→ Khoản trả hàng tháng (EMI) = {emi}",
     emi_flow_3: "→ Thu nhập = {inc}/tháng → EMI chiếm {pct}% thu nhập",
-    emi_flow_4: "→ Vượt ngưỡng 90% → Khoản vay bị từ chối vì không đủ khả năng chi trả",
+    emi_flow_4:
+      "→ Vượt ngưỡng 90% → Khoản vay bị từ chối vì không đủ khả năng chi trả",
     g_loan: "Khoản vay",
     g_income: "Thu nhập & chi tiêu",
     g_buffer: "Dự phòng & vốn",
@@ -1286,15 +1371,18 @@ export const T: Record<Lang, Dict> = {
     api_b_calc: "Cách tính lãi",
     api_b_calc_d: "Lãi tính trên dư nợ giảm dần theo tháng",
     api_w_dti: "Tỷ lệ nợ cao",
-    api_w_dti_d: "DTI của bạn là {dti} — nên cân nhắc kỳ hạn dài hơn hoặc giảm số tiền vay",
+    api_w_dti_d:
+      "DTI của bạn là {dti} — nên cân nhắc kỳ hạn dài hơn hoặc giảm số tiền vay",
     api_rejected: "gói không phù hợp đã bị loại.",
     api_form_title: "Chỉ cần thêm vài thông tin:",
     api_form_submit: "Gửi",
     api_form_sent: "Đã gửi! Đang tính toán...",
     api_roadmap_title: "Lộ trình để đủ điều kiện:",
-    api_roadmap_dti: "Kéo dài kỳ hạn vay (thử {term} tháng) để giảm khoản trả hàng tháng xuống dưới giới hạn",
+    api_roadmap_dti:
+      "Kéo dài kỳ hạn vay (thử {term} tháng) để giảm khoản trả hàng tháng xuống dưới giới hạn",
     api_roadmap_amount: "Giảm số tiền vay để phù hợp với hạn mức gói vay",
-    api_roadmap_income: "Tăng thu nhập hàng tháng được chứng minh hoặc thêm người đồng vay",
+    api_roadmap_income:
+      "Tăng thu nhập hàng tháng được chứng minh hoặc thêm người đồng vay",
     api_roadmap_general: "Chạy lại tư vấn sau khi điều chỉnh thông tin ở trên",
     api_fix_amount:
       "Giảm số tiền vay xuống còn {amount} trở xuống — hạn mức cao nhất các gói cùng mục đích cho vay",
@@ -1302,13 +1390,15 @@ export const T: Record<Lang, Dict> = {
       "Điều chỉnh kỳ hạn còn {term} tháng — mức gần nhất các gói này hỗ trợ",
     api_fix_income:
       "Chứng minh thu nhập tối thiểu {income}/tháng (khoản trả ước tính {payment}/tháng theo lãi suất tốt nhất hiện có)",
-    surv_from_chat_notice: "Chúng tôi đã điền sẵn số tiền, kỳ hạn, thu nhập và ngân hàng từ cuộc trò chuyện. Vui lòng hoàn thành các trường còn lại bên dưới để phân tích dòng tiền chính xác.",
+    surv_from_chat_notice:
+      "Chúng tôi đã điền sẵn số tiền, kỳ hạn, thu nhập và ngân hàng từ cuộc trò chuyện. Vui lòng hoàn thành các trường còn lại bên dưới để phân tích dòng tiền chính xác.",
   },
 
   zh: {
     fl_tag: "市场动态",
     fl_title: "利率每天都在动，替您盯着的是 Vaya。",
-    fl_sub: "20 多家银行持续调价，优惠悄然到期。一旦出现比您当前更划算的方案，您会第一时间知道——不必自己去找。",
+    fl_sub:
+      "20 多家银行持续调价，优惠悄然到期。一旦出现比您当前更划算的方案，您会第一时间知道——不必自己去找。",
     foot_top: "回到顶部",
     mk_start: "创建需求",
     mk_case: "申请档案",
@@ -1321,10 +1411,14 @@ export const T: Record<Lang, Dict> = {
     mk_open_file: "查看报价",
     mk_close_file: "收起报价",
     mk_offers_in: "已收到的报价",
-    mk_seed_6: "在草田区购房，开发商下月交房。抵押物估值已完成——我要的是优惠利率锁定 36 个月，而不是 12 个月。",
-    mk_seed_7: "从公寓换成联排别墅。我会卖掉现住房来付首付，所以提前还款的灵活度比牌面利率更重要。",
-    mk_seed_8: "进口一台混动车，下周清关。希望期限尽量长，把月供压在 1500 万越盾以内。",
-    mk_seed_9: "支付在职硕士学费。金额小、期限短——我真正在意的是别悄悄捆绑保险。",
+    mk_seed_6:
+      "在草田区购房，开发商下月交房。抵押物估值已完成——我要的是优惠利率锁定 36 个月，而不是 12 个月。",
+    mk_seed_7:
+      "从公寓换成联排别墅。我会卖掉现住房来付首付，所以提前还款的灵活度比牌面利率更重要。",
+    mk_seed_8:
+      "进口一台混动车，下周清关。希望期限尽量长，把月供压在 1500 万越盾以内。",
+    mk_seed_9:
+      "支付在职硕士学费。金额小、期限短——我真正在意的是别悄悄捆绑保险。",
     /* ---- round E: report download / marketplace ---- */
     chat_err: "连接出现问题——请重试。",
     nav_market: "贷款集市",
@@ -1338,14 +1432,17 @@ export const T: Record<Lang, Dict> = {
     rep_c_interest: "利息总额",
     rep_chart: "利息总额对比",
     rep_steps: "下一步该做什么",
-    rep_s1: "带着这份报告去找排在首位的银行，要求他们以书面形式给出相同或更低的利率。",
+    rep_s1:
+      "带着这份报告去找排在首位的银行，要求他们以书面形式给出相同或更低的利率。",
     rep_s2: "申请前先备齐材料清单——材料不全是最常见的延误原因。",
     rep_s3: "看清优惠期结束后的月供是多少，不要只盯着宣传利率。",
-    rep_disc: "以上为参考数据，基于公开利率与您提供的信息测算。这不是授信承诺——最终利率取决于银行对您材料的审核。",
+    rep_disc:
+      "以上为参考数据，基于公开利率与您提供的信息测算。这不是授信承诺——最终利率取决于银行对您材料的审核。",
     rep_print: "打印 / 另存为 PDF",
     mk_tag: "贷款集市",
     mk_title: "别再一家家去问。让银行主动来找您。",
-    mk_sub: "发布一条匿名需求，银行公开互相竞价。每份报价都与该行自己的挂牌利率并列显示——两者之间的差额，就是竞争的真实价值。",
+    mk_sub:
+      "发布一条匿名需求，银行公开互相竞价。每份报价都与该行自己的挂牌利率并列显示——两者之间的差额，就是竞争的真实价值。",
     mk_board: "今日看板",
     mk_st_req: "条待应需求",
     mk_st_off: "份报价",
@@ -1358,7 +1455,8 @@ export const T: Record<Lang, Dict> = {
     mk_f_income: "月收入",
     mk_f_collateral: "是否有抵押物？",
     mk_f_note: "还有什么想让银行知道？",
-    mk_f_note_ph: "选填——情况说明越清楚，拿到的报价越好。例如：同一岗位五年、已备好 30% 首付。",
+    mk_f_note_ph:
+      "选填——情况说明越清楚，拿到的报价越好。例如：同一岗位五年、已备好 30% 首付。",
     mk_yes: "有",
     mk_no: "没有",
     mk_inc_1: "月入 2000 万越盾以下",
@@ -1383,11 +1481,14 @@ export const T: Record<Lang, Dict> = {
     mk_up_to: "最高",
     mk_expires: "有效期剩余",
     mk_take: "洽谈此报价",
-    mk_discuss_greet: "我们来聊聊 {bank} 的报价：年利率 {rate}%（挂牌 {listed}% — 低 {cut}%），最高 {max}，期限最长 {term}。条件：{conditions}。此为参考报价，并非授信批复——您想了解什么？",
+    mk_discuss_greet:
+      "我们来聊聊 {bank} 的报价：年利率 {rate}%（挂牌 {listed}% — 低 {cut}%），最高 {max}，期限最长 {term}。条件：{conditions}。此为参考报价，并非授信批复——您想了解什么？",
     mk_afford_chip: "我负担得起吗？",
     mk_ask_income: "好的——您的月收入是多少？（给个数字即可，例如 3000 万。）",
-    mk_verdict_ok: "引擎测算：按报价年利率 {rate}% 借 {amount}、期限 {term}，首期月供约 {payment}。相当于月收入 {income} 的 {dti} — 在 {limit} 安全线以内。风险等级：{risk}。",
-    mk_verdict_over: "引擎测算：按报价年利率 {rate}% 借 {amount}、期限 {term}，首期月供约 {payment}。相当于月收入 {income} 的 {dti} — 超过 {limit} 安全线。风险等级：{risk}。拉长期限或降低金额可以缓解。",
+    mk_verdict_ok:
+      "引擎测算：按报价年利率 {rate}% 借 {amount}、期限 {term}，首期月供约 {payment}。相当于月收入 {income} 的 {dti} — 在 {limit} 安全线以内。风险等级：{risk}。",
+    mk_verdict_over:
+      "引擎测算：按报价年利率 {rate}% 借 {amount}、期限 {term}，首期月供约 {payment}。相当于月收入 {income} 的 {dti} — 超过 {limit} 安全线。风险等级：{risk}。拉长期限或降低金额可以缓解。",
     mk_run_survival: "用生存评分做压力测试",
     mk_afford_retry: "重新测算负担能力",
     mk_risk_low: "低",
@@ -1398,7 +1499,8 @@ export const T: Record<Lang, Dict> = {
     mk_d: "天前",
     mk_empty_t: "该分类下暂无发布",
     mk_empty_d: "换个分类看看——或者发布您的需求，做第一个。",
-    mk_foot: "看板上的报价为参与银行提供的参考价，并非授信批复。银行仍需完成尽调，之后才具约束力。",
+    mk_foot:
+      "看板上的报价为参与银行提供的参考价，并非授信批复。银行仍需完成尽调，之后才具约束力。",
     mk_v_income: "收入已核实",
     mk_v_id: "身份已核实",
     mk_v_biz: "已注册经营",
@@ -1412,15 +1514,21 @@ export const T: Record<Lang, Dict> = {
     mk_c_fast: "48 小时放款",
     mk_c_statements: "6 个月流水",
     mk_c_ltv80: "最高 80% LTV",
-    mk_seed_1: "在守德区买第二套房，第三季度交房。首付已备好 35%，希望优惠利率至少维持 24 个月——现在多付一点，也不想日后撞上利率跳涨。",
-    mk_seed_2: "咖啡烘焙工坊，三家门店，经营四年。需要流动资金开第四家。账目清晰，增值税按月申报。",
-    mk_seed_3: "换购七座车，在授权经销商处购买，手续齐备。谁放款最快就选谁——春节前要用。",
-    mk_seed_4: "合并两张信用卡。只想要一笔可预期的月供，并且不收提前还款违约金。",
-    mk_seed_5: "对现有按揭再融资，当前利率 11.2%。房产估值 36 亿越盾，剩余本金 15 亿越盾。欢迎各行来抢。",
+    mk_seed_1:
+      "在守德区买第二套房，第三季度交房。首付已备好 35%，希望优惠利率至少维持 24 个月——现在多付一点，也不想日后撞上利率跳涨。",
+    mk_seed_2:
+      "咖啡烘焙工坊，三家门店，经营四年。需要流动资金开第四家。账目清晰，增值税按月申报。",
+    mk_seed_3:
+      "换购七座车，在授权经销商处购买，手续齐备。谁放款最快就选谁——春节前要用。",
+    mk_seed_4:
+      "合并两张信用卡。只想要一笔可预期的月供，并且不收提前还款违约金。",
+    mk_seed_5:
+      "对现有按揭再融资，当前利率 11.2%。房产估值 36 亿越盾，剩余本金 15 亿越盾。欢迎各行来抢。",
     /* ---- round D: compare / human desk / email checklist / glossary ---- */
     cx_tag: "对比",
     cx_title: "把各方案放到同一把尺子上",
-    cx_sub: "牌面利率无法直接比较：每个方案的额度与期限上限不同，优惠还会到期。设定同一笔金额和期限，看看各家实际要花多少。",
+    cx_sub:
+      "牌面利率无法直接比较：每个方案的额度与期限上限不同，优惠还会到期。设定同一笔金额和期限，看看各家实际要花多少。",
     cx_assume: "您的假设",
     cx_clamped: "部分方案的上限低于您填写的数字——这些列按其自身上限计算。",
     cx_metric: "指标",
@@ -1458,14 +1566,16 @@ export const T: Record<Lang, Dict> = {
     hm_back: "← 返回 AI 顾问",
     hm_tag: "真人服务台",
     hm_title: "更想和真人聊聊？",
-    hm_sub: "我们的专员负责 AI 不该独自决定的情况——被拒后想申诉、收入结构特殊、银行已退回的材料。",
+    hm_sub:
+      "我们的专员负责 AI 不该独自决定的情况——被拒后想申诉、收入结构特殊、银行已退回的材料。",
     hm_hours_lab: "服务时间（GMT+7）",
     hm_hours_wd: "周一至周五",
     hm_hours_sat: "周六",
     hm_hours_sun: "周日",
     hm_closed: "休息",
     hm_offline_t: "目前没有人在线",
-    hm_offline_d: "服务台已下班。留下电话，专员会在开工后回电——或继续使用 AI 顾问，立即得到答复。",
+    hm_offline_d:
+      "服务台已下班。留下电话，专员会在开工后回电——或继续使用 AI 顾问，立即得到答复。",
     hm_use_ai: "继续使用 AI",
     hm_team: "服务团队",
     hm_role_home: "住房贷款",
@@ -1520,7 +1630,8 @@ export const T: Record<Lang, Dict> = {
     g_ltv_d: "贷款覆盖了资产价格的多少，其余为您的首付。",
     g_ltv_h: "80% 及以下",
     g_mkcut_t: "平均低于挂牌",
-    g_mkcut_d: "针对每条需求，将银行最优报价与该银行公开挂牌利率相比，再对整个看板取平均。差距越大，说明银行为争取您的贷款竞争越激烈。",
+    g_mkcut_d:
+      "针对每条需求，将银行最优报价与该银行公开挂牌利率相比，再对整个看板取平均。差距越大，说明银行为争取您的贷款竞争越激烈。",
     g_mkcut_h: "低于挂牌 1% 及以上",
     g_disp_t: "每月结余",
     g_disp_d: "扣除月供与生活开支后剩下的钱，也是您应对糟糕月份的缓冲。",
@@ -1532,7 +1643,8 @@ export const T: Record<Lang, Dict> = {
     g_stab_d: "根据职业类型与历史判断收入的可预测性。收入越稳，越扛得住冲击。",
     g_stab_h: "60/100 以上",
     g_score_t: "生存评分",
-    g_score_d: "0–100 的综合评分，衡量这笔贷款在 60 个月模拟现金流（含不利月份）中的存活能力。",
+    g_score_d:
+      "0–100 的综合评分，衡量这笔贷款在 60 个月模拟现金流（含不利月份）中的存活能力。",
     g_score_h: "70 分以上",
     g_ruin_t: "现金短缺概率",
     g_ruin_d: "在模拟的未来情境中，储蓄在还清贷款前归零的比例。",
@@ -1671,10 +1783,14 @@ export const T: Record<Lang, Dict> = {
     why_stab: "自由职业/自营收入可预测性较低——银行会施加更高的折扣系数。",
     why_ruin: "在超过 30% 的模拟情景中，储蓄归零——存在显著的偿付能力风险。",
     why_ok: "所有关键指标均在安全阈值内。请保持应急基金，避免增加新债务。",
-    sug_extend_term: "将期限从 {old} 年延长至 {new} 年：分数 {base} → {new_sc}。月供降低，但总利息支出增加。",
-    sug_reduce_amount: "减少贷款金额 {pct}%：分数 {base} → {new_sc}。月供压力减轻，但需要更多自有资金。",
-    sug_increase_buffer: "将应急基金增加至 6 个月支出：分数 {base} → {new_sc}。抗风险能力增强，但需要时间积累。",
-    sug_switch_method: "切换为等额本金还款：分数 {base} → {new_sc}。若利率较高，可减轻初期负担。",
+    sug_extend_term:
+      "将期限从 {old} 年延长至 {new} 年：分数 {base} → {new_sc}。月供降低，但总利息支出增加。",
+    sug_reduce_amount:
+      "减少贷款金额 {pct}%：分数 {base} → {new_sc}。月供压力减轻，但需要更多自有资金。",
+    sug_increase_buffer:
+      "将应急基金增加至 6 个月支出：分数 {base} → {new_sc}。抗风险能力增强，但需要时间积累。",
+    sug_switch_method:
+      "切换为等额本金还款：分数 {base} → {new_sc}。若利率较高，可减轻初期负担。",
     d_back: "← 返回",
     d_keyfacts: "关键信息",
     d_features: "亮点",
@@ -1898,8 +2014,7 @@ export const T: Record<Lang, Dict> = {
     api_no_result: "未找到合适的贷款方案。",
     api_loan_range: "最高额度",
     api_view_detail: "查看详情",
-    api_savings:
-      "推荐方案在 {term} 个月内比替代方案节省约 {save} 利息。",
+    api_savings: "推荐方案在 {term} 个月内比替代方案节省约 {save} 利息。",
     api_b_fast: "快速放款",
     api_b_fast_d: "24–48 小时内审批并放款",
     api_b_online: "在线申请",
@@ -1917,14 +2032,17 @@ export const T: Record<Lang, Dict> = {
     api_form_submit: "提交",
     api_form_sent: "已发送！正在计算...",
     api_roadmap_title: "符合资格路线图：",
-    api_roadmap_dti: "延长贷款期限（尝试 {term} 个月）以降低月供至可负担上限以下",
+    api_roadmap_dti:
+      "延长贷款期限（尝试 {term} 个月）以降低月供至可负担上限以下",
     api_roadmap_amount: "减少借款金额以符合银行方案限额",
     api_roadmap_income: "增加可证明的月收入或添加共同借款人",
     api_roadmap_general: "调整以上输入后重新运行顾问",
-    api_fix_amount: "将借款金额降至 {amount} 或更低——这是同类用途方案的最高额度",
+    api_fix_amount:
+      "将借款金额降至 {amount} 或更低——这是同类用途方案的最高额度",
     api_fix_term: "将期限调整为 {term} 个月——这些方案支持的最接近期限",
     api_fix_income:
       "提供至少 {income}/月的可证明收入（按当前最优利率估算月供约 {payment}/月）",
-    surv_from_chat_notice: "我们已从对话中预填了金额、期限、收入和银行。请完成以下剩余字段以获得准确的现金流分析。",
+    surv_from_chat_notice:
+      "我们已从对话中预填了金额、期限、收入和银行。请完成以下剩余字段以获得准确的现金流分析。",
   },
 };
