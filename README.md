@@ -100,7 +100,7 @@ graph TB
         K[POST /api/policy] --> L[RAG Pipeline]
     end
 
-    subgraph Decision Engine - pure, offline
+    subgraph DE["Decision Engine — pure, offline"]
         J --> M[filterEligible]
         M --> N[calcMonthlyPayment]
         N --> O[calcDTI / collateral LTV]
@@ -109,7 +109,7 @@ graph TB
         Q --> R[computeRecoveryPlan when empty]
     end
 
-    subgraph AI Layer - presentation only
+    subgraph AI["AI Layer — presentation only"]
         H --> S[LLM Provider: Qwen / DeepSeek]
         CV --> S
         OM --> S
