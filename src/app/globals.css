@@ -473,6 +473,9 @@ header {
   color: var(--muted-2);
   margin-bottom: 16px;
 }
+.why-bento {
+  margin-top: 8px;
+}
 .mq {
   display: flex;
   gap: 46px;
