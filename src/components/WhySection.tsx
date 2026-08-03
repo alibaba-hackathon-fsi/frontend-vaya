@@ -250,8 +250,8 @@ export default function WhySection() {
             enableMagnetism={false}
             clickEffect
             glowColor="0, 199, 118"
-            particleCount={10}
-            spotlightRadius={280}
+            particleCount={5}
+            spotlightRadius={260}
           />
         </div>
       </div>

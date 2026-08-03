@@ -116,15 +116,8 @@ const ParticleCard: React.FC<{
     magnetismAnimationRef.current?.kill();
 
     particlesRef.current.forEach(particle => {
-      gsap.to(particle, {
-        scale: 0,
-        opacity: 0,
-        duration: 0.3,
-        ease: 'back.in(1.7)',
-        onComplete: () => {
-          particle.parentNode?.removeChild(particle);
-        }
-      });
+      gsap.killTweensOf(particle);
+      particle.parentNode?.removeChild(particle);
     });
     particlesRef.current = [];
   }, []);
@@ -141,29 +134,25 @@ const ParticleCard: React.FC<{
         if (!isHoveredRef.current || !cardRef.current) return;
 
         const clone = particle.cloneNode(true) as HTMLDivElement;
+        clone.style.willChange = 'transform, opacity';
         cardRef.current.appendChild(clone);
         particlesRef.current.push(clone);
 
-        gsap.fromTo(clone, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' });
+        gsap.fromTo(
+          clone,
+          { scale: 0, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.15, ease: 'power2.out' }
+        );
 
         gsap.to(clone, {
-          x: (Math.random() - 0.5) * 100,
-          y: (Math.random() - 0.5) * 100,
-          rotation: Math.random() * 360,
-          duration: 2 + Math.random() * 2,
+          x: (Math.random() - 0.5) * 80,
+          y: (Math.random() - 0.5) * 80,
+          duration: 2.2 + Math.random(),
           ease: 'none',
           repeat: -1,
           yoyo: true
         });
-
-        gsap.to(clone, {
-          opacity: 0.3,
-          duration: 1.5,
-          ease: 'power2.inOut',
-          repeat: -1,
-          yoyo: true
-        });
-      }, index * 100);
+      }, index * 35);
 
       timeoutsRef.current.push(timeoutId);
     });
@@ -355,29 +344,44 @@ const GlobalSpotlight: React.FC<{
       );
       z-index: 200;
       opacity: 0;
-      transform: translate(-50%, -50%);
+      left: 0;
+      top: 0;
+      transform: translate3d(-50%, -50%, 0);
+      will-change: transform, opacity;
       mix-blend-mode: multiply;
     `;
     document.body.appendChild(spotlight);
     spotlightRef.current = spotlight;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!spotlightRef.current || !gridRef.current) return;
+    const sectionEl = gridRef.current;
+    let rafId = 0;
+    let latestX = 0;
+    let latestY = 0;
+    let sectionRect: DOMRect | null = null;
 
-      const section = gridRef.current.closest('.bento-section');
-      const rect = section?.getBoundingClientRect();
+    const refreshSectionRect = () => {
+      sectionRect = sectionEl.getBoundingClientRect();
+    };
+    refreshSectionRect();
+    window.addEventListener('resize', refreshSectionRect, { passive: true });
+    window.addEventListener('scroll', refreshSectionRect, { passive: true });
+
+    const paint = () => {
+      rafId = 0;
+      const spot = spotlightRef.current;
+      if (!spot || !gridRef.current || !sectionRect) return;
+
       const mouseInside =
-        rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+        latestX >= sectionRect.left &&
+        latestX <= sectionRect.right &&
+        latestY >= sectionRect.top &&
+        latestY <= sectionRect.bottom;
 
-      isInsideSection.current = mouseInside || false;
+      isInsideSection.current = mouseInside;
       const cards = gridRef.current.querySelectorAll('.magic-bento-card');
 
       if (!mouseInside) {
-        gsap.to(spotlightRef.current, {
-          opacity: 0,
-          duration: 0.3,
-          ease: 'power2.out'
-        });
+        spot.style.opacity = '0';
         cards.forEach(card => {
           (card as HTMLElement).style.setProperty('--glow-intensity', '0');
         });
@@ -393,7 +397,8 @@ const GlobalSpotlight: React.FC<{
         const centerX = cardRect.left + cardRect.width / 2;
         const centerY = cardRect.top + cardRect.height / 2;
         const distance =
-          Math.hypot(e.clientX - centerX, e.clientY - centerY) - Math.max(cardRect.width, cardRect.height) / 2;
+          Math.hypot(latestX - centerX, latestY - centerY) -
+          Math.max(cardRect.width, cardRect.height) / 2;
         const effectiveDistance = Math.max(0, distance);
 
         minDistance = Math.min(minDistance, effectiveDistance);
@@ -405,15 +410,10 @@ const GlobalSpotlight: React.FC<{
           glowIntensity = (fadeDistance - effectiveDistance) / (fadeDistance - proximity);
         }
 
-        updateCardGlowProperties(cardElement, e.clientX, e.clientY, glowIntensity, spotlightRadius);
+        updateCardGlowProperties(cardElement, latestX, latestY, glowIntensity, spotlightRadius);
       });
 
-      gsap.to(spotlightRef.current, {
-        left: e.clientX,
-        top: e.clientY,
-        duration: 0.1,
-        ease: 'power2.out'
-      });
+      spot.style.transform = `translate3d(${latestX}px, ${latestY}px, 0) translate(-50%, -50%)`;
 
       const targetOpacity =
         minDistance <= proximity
@@ -421,12 +421,13 @@ const GlobalSpotlight: React.FC<{
           : minDistance <= fadeDistance
             ? ((fadeDistance - minDistance) / (fadeDistance - proximity)) * 0.8
             : 0;
+      spot.style.opacity = String(targetOpacity);
+    };
 
-      gsap.to(spotlightRef.current, {
-        opacity: targetOpacity,
-        duration: targetOpacity > 0 ? 0.2 : 0.5,
-        ease: 'power2.out'
-      });
+    const handleMouseMove = (e: MouseEvent) => {
+      latestX = e.clientX;
+      latestY = e.clientY;
+      if (!rafId) rafId = requestAnimationFrame(paint);
     };
 
     const handleMouseLeave = () => {
@@ -434,21 +435,18 @@ const GlobalSpotlight: React.FC<{
       gridRef.current?.querySelectorAll('.magic-bento-card').forEach(card => {
         (card as HTMLElement).style.setProperty('--glow-intensity', '0');
       });
-      if (spotlightRef.current) {
-        gsap.to(spotlightRef.current, {
-          opacity: 0,
-          duration: 0.3,
-          ease: 'power2.out'
-        });
-      }
+      if (spotlightRef.current) spotlightRef.current.style.opacity = '0';
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('resize', refreshSectionRect);
+      window.removeEventListener('scroll', refreshSectionRect);
+      if (rafId) cancelAnimationFrame(rafId);
       spotlightRef.current?.parentNode?.removeChild(spotlightRef.current);
     };
   }, [gridRef, disableAnimations, enabled, spotlightRadius, glowColor]);

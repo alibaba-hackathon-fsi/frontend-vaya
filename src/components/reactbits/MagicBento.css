@@ -35,7 +35,9 @@
   background: #ffffff;
   font-weight: 400;
   overflow: hidden;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.15s ease;
+  will-change: transform;
+  contain: layout style;
 
   --glow-x: 50%;
   --glow-y: 50%;
@@ -50,19 +52,9 @@
     box-shadow: 0 16px 40px -24px rgba(1, 61, 59, 0.35);
   }
 
-  .magic-bento-card--border-glow:hover::after {
-    opacity: 1;
-  }
-
   .magic-bento-card--border-glow:hover {
     box-shadow:
       0 16px 40px -24px rgba(1, 61, 59, 0.35),
-      0 0 28px var(--bento-glow);
-  }
-
-  .particle-container:hover {
-    box-shadow:
-      0 16px 40px -24px rgba(1, 61, 59, 0.28),
       0 0 28px var(--bento-glow);
   }
 }
@@ -138,6 +130,7 @@
     height: auto;
     gap: 0.55em;
     transition: none;
+    will-change: auto;
   }
 
   .magic-bento-card__content {
