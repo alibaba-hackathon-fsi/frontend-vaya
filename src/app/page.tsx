@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Hero from "@/components/Hero";
 import MarketsSection from "@/components/MarketsSection";
 import PurposePicker from "@/components/PurposePicker";
@@ -14,11 +14,23 @@ import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
 import RateFlow from "@/components/RateFlow";
 import FooterReveal from "@/components/FooterReveal";
+import LogoLoop from "@/components/reactbits/LogoLoop";
+import type { LogoItem } from "@/components/reactbits/LogoLoop";
 import { useI18n } from "@/i18n/I18nProvider";
 import { BANKS } from "@/data/banks";
 
 export default function Home() {
   const { t } = useI18n();
+
+  const bankLogos: LogoItem[] = useMemo(
+    () =>
+      BANKS.map((b) => ({
+        src: `/banks/${b.code}.png`,
+        alt: b.name,
+        title: b.name,
+      })),
+    []
+  );
 
   // Reveal-on-scroll (IntersectionObserver) — ported from the source's global
   // observer. Observes every `.reveal:not(.in)` element after mount.
@@ -35,25 +47,6 @@ export default function Home() {
     );
     document.querySelectorAll(".reveal:not(.in)").forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
-
-  // Trust marquee — JS transform ticker (rAF). Replaces the CSS keyframe
-  // animation so it always scrolls (not gated by prefers-reduced-motion) and
-  // loops seamlessly at the halfway point of the duplicated band.
-  useEffect(() => {
-    const el = document.getElementById("mq");
-    if (!el) return;
-    let raf = 0;
-    let x = 0;
-    const step = () => {
-      const half = el.scrollWidth / 2;
-      x -= 0.4;
-      if (half > 0 && -x >= half) x += half;
-      el.style.transform = `translateX(${x.toFixed(1)}px)`;
-      raf = requestAnimationFrame(step);
-    };
-    step();
-    return () => cancelAnimationFrame(raf);
   }, []);
 
   // Smooth-scroll to a section when arriving with a hash (e.g. from /#markets).
@@ -75,14 +68,18 @@ export default function Home() {
 
         <section className="trust">
           <div className="lab">{t("trust")}</div>
-          <div className="mq" id="mq">
-            {[...Array(10)].flatMap(() => BANKS).map((b, i) => (
-              <span key={i}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="mqlogo" src={`/banks/${b.code}.png`} alt={b.name} title={b.name} />
-              </span>
-            ))}
-          </div>
+          <LogoLoop
+            logos={bankLogos}
+            speed={55}
+            direction="left"
+            logoHeight={36}
+            gap={48}
+            pauseOnHover
+            fadeOut
+            fadeOutColor="#f4f7f9"
+            scaleOnHover
+            ariaLabel="Partner banks"
+          />
         </section>
 
         <PurposePicker />

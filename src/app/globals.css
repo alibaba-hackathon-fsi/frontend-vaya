@@ -260,6 +260,25 @@ header {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
+}
+.hero-bg .light-rays-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.72;
+}
+/* Soft brand wash under the rays so the hero stays light but not flat. */
+.hero-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 50% at 70% 0%, rgba(0, 199, 118, 0.14), transparent 70%),
+    radial-gradient(ellipse 45% 45% at 15% 30%, rgba(47, 107, 255, 0.08), transparent 65%);
+  pointer-events: none;
 }
 .hero-bg .blob {
   position: absolute;
@@ -472,6 +491,16 @@ header {
   text-transform: uppercase;
   color: var(--muted-2);
   margin-bottom: 16px;
+}
+.trust .logoloop {
+  --logoloop-fadeColorAuto: var(--surface);
+}
+.trust .logoloop__item img {
+  filter: grayscale(0.15);
+  opacity: 0.88;
+}
+.why-bento {
+  margin-top: 8px;
 }
 .mq {
   display: flex;
